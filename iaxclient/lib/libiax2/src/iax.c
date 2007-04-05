@@ -2403,6 +2403,77 @@ static inline char *extract(char *src, char *string)
 		
 }
 
+static void iax_handle_vnak(struct iax_session *session, struct ast_iax2_full_hdr *fh)
+{
+	struct iax_sched *sch, *list, *l, *tmp;
+	
+	/*
+	* According to the IAX2 02 draft, we MUST immediately retransmit all frames 
+	* with higher sequence number than the VNAK's iseqno
+	* However, it seems that the right thing to do would be to retransmit
+	* frames with sequence numbers higher OR EQUAL to VNAK's iseqno.
+	*/
+	sch = schedq;
+	list = NULL;
+	while ( sch != NULL )
+	{
+		if ( sch->frame != NULL &&
+				   sch->frame->session == session
+		   )
+		{
+			/* 
+			* We want to check if our frame's oseqno is greater or equal than 
+			* the VNAK's iseqno, but we need to take into account sequence
+			* number wrap-arounds
+			* session->rseqno is our last acknowledged sequence number, so 
+			* we use that as a base 
+			*/
+			if ( (fh->iseqno - session->rseqno) <= (sch->frame->oseqno - session->rseqno) )
+			{
+				/*
+				* We cannot retransmit immediately, since the frames are ordered by retransmit time
+				* We need to collect them and orrange them in ascending order of their oseqno
+				*/
+				tmp = (struct iax_sched *)calloc(1, sizeof(struct iax_sched));
+				tmp->frame = sch->frame;
+				
+				if ( list == NULL ||
+								 (list->frame->oseqno - session->rseqno) > (tmp->frame->oseqno - session->rseqno)
+				   )
+				{
+					tmp->next = list;
+					list = tmp;
+				} else
+				{
+					l = list;
+					while ( l != NULL )
+					{
+						if ( l->next == NULL ||
+										(l->next->frame->oseqno - session->rseqno) > (tmp->frame->oseqno - session->rseqno)
+						   )
+						{
+							tmp->next = l->next;
+							l->next = tmp;
+							break;
+						}
+						l = l->next;
+					}
+				}
+			}
+		}
+		sch = sch->next;
+	}
+	
+	/* Transmit collected frames and free the space */
+	while ( list != NULL )
+	{
+		tmp = list;
+		iax_xmit_frame(tmp->frame);
+		list = list->next;
+		free(tmp);
+	}
+}
+
 static struct iax_event *iax_header_to_event(struct iax_session *session,
 											 struct ast_iax2_full_hdr *fh,
 											 int datalen, struct sockaddr_in *sin)
@@ -2598,6 +2669,11 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_ACK:
+				free(e);
+				e = NULL;
+				break;
+			case IAX_COMMAND_VNAK:
+				iax_handle_vnak(session, fh);
 				free(e);
 				e = NULL;
 				break;

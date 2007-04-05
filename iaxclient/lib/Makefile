@@ -32,7 +32,7 @@ USE_VIDEO=0
 # Choice is inclusive
 USE_PA_OSS=1
 USE_PA_ALSA=1
-USE_PA_JACK=1
+USE_PA_JACK=0
 AUDIO_ALSA=0
 
 CFLAGS= -I. -Igsm/inc \
