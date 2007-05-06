@@ -2428,7 +2428,7 @@ static void iax_handle_vnak(struct iax_session *session, struct ast_iax2_full_hd
 			* session->rseqno is our last acknowledged sequence number, so 
 			* we use that as a base 
 			*/
-			if ( (fh->iseqno - session->rseqno) <= (sch->frame->oseqno - session->rseqno) )
+			if ( (unsigned char)(fh->iseqno - session->rseqno) <= (unsigned char)(sch->frame->oseqno - session->rseqno) )
 			{
 				/*
 				* We cannot retransmit immediately, since the frames are ordered by retransmit time
