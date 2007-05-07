@@ -164,7 +164,7 @@ static PaError gatherDeviceInfo(PaMacAUHAL *auhalHostApi)
     {
        int i;
        for( i=0; i<auhalHostApi->devCount; ++i )
-          printf( "Device %d\t: %ld\n", i, auhalHostApi->devIds[i] );
+          fprintf(stderr, "Device %d\t: %ld\n", i, auhalHostApi->devIds[i] );
     }
 #endif
 
@@ -1561,9 +1561,9 @@ static OSStatus AudioIOProc( void *inRefCon,
       int xrunFlags = stream->xrunFlags;
 /*
       if( xrunFlags & paInputUnderflow )
-         printf( "input underflow.\n" );
+         fprintf(stderr, "input underflow.\n" );
       if( xrunFlags & paInputOverflow )
-         printf( "input overflow.\n" );
+         fprintf(stderr, "input overflow.\n" );
 */
       if( stream->state == STOPPING || stream->state == CALLBACK_STOPPED )
          xrunFlags = 0;

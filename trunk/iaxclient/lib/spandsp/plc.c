@@ -55,7 +55,7 @@
 #endif
 
 /* We do a straight line fade to zero volume in 50ms when we are filling in for missing data. */
-#define ATTENUATION_INCREMENT       0.0025                              /* Attenuation per sample */
+#define ATTENUATION_INCREMENT       0.0025f /* Attenuation per sample */
 
 #define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
 
@@ -150,13 +150,13 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
         pitch_overlap = s->pitch >> 2;
         if (pitch_overlap > len)
             pitch_overlap = len;
-        gain = 1.0 - s->missing_samples*ATTENUATION_INCREMENT;
-        if (gain < 0.0)
-            gain = 0.0;
-        new_step = 1.0/pitch_overlap;
+        gain = 1.0f - s->missing_samples*ATTENUATION_INCREMENT;
+        if (gain < 0.0f)
+            gain = 0.0f;
+        new_step = 1.0f/pitch_overlap;
         old_step = new_step*gain;
         new_weight = new_step;
-        old_weight = (1.0 - new_step)*gain;
+        old_weight = (1.0f - new_step)*gain;
         for (i = 0;  i < pitch_overlap;  i++)
         {
             amp[i] = fsaturate(old_weight*s->pitchbuf[s->pitch_offset] + new_weight*amp[i]);
@@ -164,8 +164,8 @@ int plc_rx(plc_state_t *s, int16_t amp[], int len)
                 s->pitch_offset = 0;
             new_weight += new_step;
             old_weight -= old_step;
-            if (old_weight < 0.0)
-                old_weight = 0.0;
+            if (old_weight < 0.0f)
+                old_weight = 0.0f;
         }
         s->missing_samples = 0;
     }
@@ -202,11 +202,11 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
         for (i = 0;  i < s->pitch - pitch_overlap;  i++)
             s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i];
         /* The last 1/4 of the cycle is overlapped with the end of the previous cycle */
-        new_step = 1.0/pitch_overlap;
+        new_step = 1.0f/pitch_overlap;
         new_weight = new_step;
         for (  ;  i < s->pitch;  i++)
         {
-            s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i]*(1.0 - new_weight) + s->history[PLC_HISTORY_LEN - 2*s->pitch + i]*new_weight;
+            s->pitchbuf[i] = s->history[PLC_HISTORY_LEN - s->pitch + i]*(1.0f - new_weight) + s->history[PLC_HISTORY_LEN - 2*s->pitch + i]*new_weight;
             new_weight += new_step;
         }
         /* We should now be ready to fill in the gap with repeated, decaying cycles
@@ -215,11 +215,11 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
         /* We need to OLA the first 1/4 wavelength of the synthetic data, to smooth
            it into the previous real data. To avoid the need to introduce a delay
            in the stream, reverse the last 1/4 wavelength, and OLA with that. */
-        gain = 1.0;
-        new_step = 1.0/pitch_overlap;
+        gain = 1.0f;
+        new_step = 1.0f/pitch_overlap;
         old_step = new_step;
         new_weight = new_step;
-        old_weight = 1.0 - new_step;
+        old_weight = 1.0f - new_step;
         for (i = 0;  i < pitch_overlap && i < len;  i++)
         {
             amp[i] = fsaturate(old_weight*s->history[PLC_HISTORY_LEN - 1 - i] + new_weight*s->pitchbuf[i]);
@@ -232,12 +232,12 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
     }
     else
     {
-        gain = 1.0 - s->missing_samples*ATTENUATION_INCREMENT;
+        gain = 1.0f - s->missing_samples*ATTENUATION_INCREMENT;
         i = 0;
     }
     for (  ;  gain > 0.0  &&  i < len;  i++)
     {
-        amp[i] = s->pitchbuf[s->pitch_offset]*gain;
+        amp[i] = (int16_t)(s->pitchbuf[s->pitch_offset]*gain);
         gain -= ATTENUATION_INCREMENT;
         if (++s->pitch_offset >= s->pitch)
             s->pitch_offset = 0;

@@ -24,17 +24,22 @@ extern "C" {
 /* This is the internal include file for IAXCLIENT -- externally
  * accessible APIs should be declared in iaxclient.h */
 
+#ifndef _MSC_VER
+#include <stdint.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
-#include "winpoop.h" // Win32 Support Functions
+void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <winsock.h>
 #if !defined(_WIN32_WCE)
 #include <process.h>
 #endif
 #include <stddef.h>
 #include <time.h>
+
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -44,7 +49,13 @@ extern "C" {
 #endif
 
 #if (SPEEX_PREPROCESS == 1)
-#include "speex/speex_preprocess.h"
+#include <speex/speex_preprocess.h>
+#endif
+#include "sox/sox.h"
+
+#ifdef USE_FFMPEG
+// To access to check_ff function
+#include "codec_ffmpeg.h"
 #endif
 
 #include <stdlib.h>
@@ -54,7 +65,7 @@ extern "C" {
 
 
 /* os-dependent macros, etc */
-#if defined(WIN32)  ||  defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE)
 #define THREAD HANDLE
 #define THREADID unsigned
 #define THREADCREATE(func, args, thread, id) \
@@ -68,6 +79,7 @@ extern "C" {
 #define MUTEX CRITICAL_SECTION
 #define MUTEXINIT(m) InitializeCriticalSection(m)
 #define MUTEXLOCK(m) EnterCriticalSection(m)
+#define MUTEXTRYLOCK(m) (!TryEnterCriticalSection(m))
 #define MUTEXUNLOCK(m) LeaveCriticalSection(m)
 #define MUTEXDESTROY(m) DeleteCriticalSection(m)
 
@@ -83,6 +95,7 @@ pthread_create(&thread, NULL, func, args)
 #define MUTEX pthread_mutex_t
 #define MUTEXINIT(m) pthread_mutex_init(m, NULL) //TODO: check error
 #define MUTEXLOCK(m) pthread_mutex_lock(m)
+#define MUTEXTRYLOCK(m) pthread_mutex_trylock(m)
 #define MUTEXUNLOCK(m) pthread_mutex_unlock(m)
 #define MUTEXDESTROY(m) pthread_mutex_destroy(m)
 #endif
@@ -102,14 +115,11 @@ pthread_create(&thread, NULL, func, args)
 /* millisecond interval to time out calls */
 #define IAXC_CALL_TIMEOUT 30000
 
-#include "iax-client.h" // LibIAX functions
-
 
 void os_init(void);
 void iaxc_usermsg(int type, const char *fmt, ...);
-long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
-void iaxc_handle_network_event(struct iax_event *e, int callNo);
 void iaxc_do_levels_callback(float input, float output);
+void iaxc_do_audio_callback(int callNo, int remote, int encoded, int format, int size, unsigned char *data);
 
 #include "iaxclient.h"
 
@@ -161,8 +171,8 @@ struct iaxc_video_driver {
 	/* methods */
 	int (*initialize)(struct iaxc_video_driver *d, int w, int h, int framerate);
 	int (*destroy)(struct iaxc_video_driver *d);  /* free resources */
-	int (*select_devices)(struct iaxc_video_driver *d, int input, int output);
-	int (*selected_devices)(struct iaxc_video_driver *d, int *input, int *output);
+	int (*select_device)(struct iaxc_video_driver *d, int input);
+	int (*selected_device)(struct iaxc_video_driver *d, int *input);
 
 	/* 
 	 * select_ring ? 
@@ -171,8 +181,19 @@ struct iaxc_video_driver {
 
 	int (*start)(struct iaxc_video_driver *d);
 	int (*stop)(struct iaxc_video_driver *d);
-	int (*output)(struct iaxc_video_driver *d, unsigned char *data);
-	int (*input)(struct iaxc_video_driver *d, unsigned char **data);
+	int (*input)(struct iaxc_video_driver *d, char **data);
+	
+	int (*is_camera_working)(struct iaxc_video_driver *d);
+	
+	// HACK ALERT!!!
+	// If the requested size of the video is not 320x240, then we
+	// resize the image in software rather than relying on the camera
+	// to provide an adequate frame
+	int needs_resize;
+	int req_width;
+	int req_height;
+	
+	int camera_working; /* true if the camera is working */
 }; 
 
 struct iaxc_audio_codec {
@@ -186,13 +207,31 @@ struct iaxc_audio_codec {
 	void (*destroy) ( struct iaxc_audio_codec *codec);
 };
 
+#define MAX_TRUNK_LEN	(1<<16)
+#define MAX_NO_SLICES	32
+
+struct slice_set_t
+{
+	int	num_slices;
+	int	key_frame;
+	int	size[MAX_NO_SLICES];
+	char	data[MAX_NO_SLICES][MAX_TRUNK_LEN];
+};
+
 struct iaxc_video_codec {
 	char name[256];
 	int format;
+	int width;
+	int height;
+	int framerate;
+	int bitrate;
+	int fragsize;
+	int params_changed;
 	void *encstate;
 	void *decstate;
-	int (*encode) ( struct iaxc_video_codec *codec, int *inlen, char *in, int *outlen, char *out );
-	int (*decode) ( struct iaxc_video_codec *codec, int *inlen, char *in, int *outlen, char *out );
+	struct iaxc_video_stats video_stats;
+	int (*encode) ( struct iaxc_video_codec *codec, int inlen, char *in, struct slice_set_t *out );
+	int (*decode) ( struct iaxc_video_codec *codec, int inlen, char *in, int *outlen, char *out );
 	void (*destroy) ( struct iaxc_video_codec *codec);
 };
 
@@ -202,11 +241,9 @@ struct iaxc_call {
 	/* to be replaced with codec-structures, with codec-private data  */
 	struct iaxc_audio_codec *encoder;
 	struct iaxc_audio_codec *decoder;
-
-#ifdef IAXC_VIDEO
 	struct iaxc_video_codec *vencoder;
 	struct iaxc_video_codec *vdecoder;
-#endif
+	int vformat;
 
 	/* the "state" of this call */
 	int state;
@@ -234,23 +271,18 @@ struct iaxc_call {
 
 #include "audio_encode.h"
 #include "audio_portaudio.h"
-#include "audio_file.h"
 
-#ifdef IAXC_VIDEO
-#include "video_portvideo.h"
-#endif
+#include "videoLib/video_grab.h"
 
-
-/* our format capabilities */
-extern int audio_format_capability;
-
-/* our preferred audio format */
-extern int audio_format_preferred;
+int iaxc_video_initialize();
+int iaxc_video_destroy();
+int iaxc_receive_video(struct iaxc_call * call, int sel_call,
+		void * encoded_video, int encoded_video_len, int format);
+int iaxc_send_video(struct iaxc_call *, int);
 
 extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
 
-/* post_event_callback */
 int post_event_callback(iaxc_event e);
 
 /* post an event to the application */
@@ -266,6 +298,13 @@ extern int iaxc_prioboostend(void);
 
 /* get the raw in/out levels, as int */
 extern int iaxc_get_inout_volumes(int *input, int *output);
+
+void iaxc_reset_vcodec_stats(struct iaxc_video_codec *vcodec);
+void iaxc_reset_stats(struct iaxc_call *call);
+int iaxc_get_video_stats(struct iaxc_call *call, struct iaxc_video_stats *stats, int reset);
+
+long iaxc_usecdiff(struct timeval *t0, struct timeval *t1);
+long iaxc_msecdiff(struct timeval *t0, struct timeval *t1);
 
 #ifdef __cplusplus
 }

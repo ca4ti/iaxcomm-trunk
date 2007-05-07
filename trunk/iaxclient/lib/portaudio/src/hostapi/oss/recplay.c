@@ -53,7 +53,7 @@ main (int argc, char *argv[])
     }
 
     /* Record in blocks */
-    printf("Begin recording.\n");
+    fprintf(stderr, "Begin recording.\n");
     numLeft = NUM_BYTES;
     ptr = buffer;
     while( numLeft >= BLOCK_SIZE )
@@ -65,7 +65,7 @@ main (int argc, char *argv[])
         }
         else
         {
-            printf("Read %d bytes\n", num);
+            fprintf(stderr, "Read %d bytes\n", num);
             ptr += num;
             numLeft -= num;
         }
@@ -92,7 +92,7 @@ main (int argc, char *argv[])
     }
 
     /* Play in blocks */
-    printf("Begin playing.\n");
+    fprintf(stderr, "Begin playing.\n");
     numLeft = NUM_BYTES;
     ptr = buffer;
     while( numLeft >= BLOCK_SIZE )
@@ -104,7 +104,7 @@ main (int argc, char *argv[])
         }
         else
         {
-            printf("Wrote %d bytes\n", num);
+            fprintf(stderr, "Wrote %d bytes\n", num);
             ptr += num;
             numLeft -= num;
         }

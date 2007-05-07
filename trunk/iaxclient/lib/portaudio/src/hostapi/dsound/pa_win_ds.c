@@ -1237,7 +1237,7 @@ static HRESULT InitOutputBuffer( PaWinDsStream *stream, unsigned long nFrameRate
         return hr;
     }
     stream->dsw_framesWritten = stream->outputBufferWriteOffsetBytes / stream->bytesPerOutputFrame;
-    /* printf("DSW_InitOutputBuffer: playCursor = %d, writeCursor = %d\n", playCursor, dsw->dsw_WriteOffset ); */
+    /* fprintf(stderr, "DSW_InitOutputBuffer: playCursor = %d, writeCursor = %d\n", playCursor, dsw->dsw_WriteOffset ); */
     return DS_OK;
 }
 

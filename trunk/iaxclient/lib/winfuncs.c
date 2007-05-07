@@ -41,7 +41,7 @@ void gettimeofday( struct timeval* tv, void* tz )
 	struct _timeb curSysTime;
 
 	_ftime(&curSysTime);
-	tv->tv_sec = curSysTime.time;
+	tv->tv_sec = (long)curSysTime.time;
 	tv->tv_usec = curSysTime.millitm * 1000;
 }
 #endif
@@ -64,10 +64,10 @@ EXPORT void iaxc_millisleep(long ms)
 
 int post_event_callback(iaxc_event ev) {
 	iaxc_event *e;
-	e = malloc(sizeof(ev));
+	e = (iaxc_event *)malloc(sizeof(ev));
 	*e = ev;
 
-	if (!PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e))
+	if (!PostMessage((HWND)post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e))
 		free(e);
 	return 0;
 }

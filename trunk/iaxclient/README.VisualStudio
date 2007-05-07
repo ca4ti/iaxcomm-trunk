@@ -1,0 +1,10 @@
+To build under MS Visual Studio
+
+1) Set environment variables:
+%DXSDK_DIR%	- points to DirectX SDK
+%PSDK_DIR%	- points to Platform SDK
+
+2) Open "Solution" file:
+lib/iaxclient.sln
+
+3) Build "Solution"

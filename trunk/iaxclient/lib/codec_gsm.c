@@ -11,6 +11,7 @@
 
 #include "codec_gsm.h"
 #include "iaxclient_lib.h"
+#include "gsm.h"
 
 struct state {
     gsm gsmstate;
@@ -89,7 +90,7 @@ struct iaxc_audio_codec *iaxc_audio_codec_gsm_new() {
   
   struct state * encstate;
   struct state * decstate;
-  struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
+  struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(sizeof(struct iaxc_audio_codec),1);
 
   
   if(!c) return c;

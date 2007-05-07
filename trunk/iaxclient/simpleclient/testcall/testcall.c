@@ -20,7 +20,9 @@
 #include <stdio.h>
 #include <time.h>
 #include <ctype.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <signal.h>
 
 #include "iaxclient.h"
@@ -32,8 +34,6 @@ static char *output_filename = NULL;
 static char *username = NULL;
 static char *password = NULL;
 static char *host = NULL;
-static char *snd_filename = NULL;
-static int  reg = 0;
 int do_levels = 0;
 int intercom = 0;
 int initialized = 0;
@@ -44,25 +44,24 @@ NOTE: If all this isnt done, the system doesnt not handle this
 cleanly and has to be rebooted. What a pile of doo doo!! */
 void killem(void)
 {
-	if (initialized) iaxc_shutdown();
-	if (reg_id)
-	{
-		iaxc_unregister(reg_id);
+	if (initialized)
+		iaxc_shutdown();
+	if (reg_id){
+		   iaxc_unregister(reg_id);
 	}
 	return;
 }
 
 void signal_handler(int signum)
 {
-	if ( signum == SIGTERM || signum == SIGINT )
+	if ( signum == SIGTERM || signum == SIGINT ) 
 	{
 		killem();
 		exit(0);
 	}
 }
 
-void fatal_error(char *err)
-{
+void fatal_error(char *err) {
 	killem();
 	fprintf(stderr, "FATAL ERROR: %s\n", err);
 	exit(1);
@@ -73,45 +72,11 @@ void mysleep(void)
 	iaxc_millisleep(10);
 }
 
-/*
- * Load a sound file to be played when pressing p
- * the file should be signed 16 bit, 8000 Hz, big endian, raw format
- * returns NULL if error
- */
-struct iaxc_sound * load_sound(const char *filename)
-{
-	struct iaxc_sound	*snd = NULL;
-	FILE			*f = NULL;
-	long			i, len = 0;
-
-	if ( (f = fopen(filename, "r")) == NULL ) return NULL;
-
-	// Find file length
-	fseek(f, 0, SEEK_END);
-	len = ftell(f) / 2; // len is the number of samples, not bytes
-	fseek(f, 0, SEEK_SET);
-	
-	snd = (struct iaxc_sound *) calloc(1, sizeof(struct iaxc_sound));
-	snd->data = (short *) calloc(len, 2);
-	snd->len = fread((void *)snd->data, 2, len, f);
-	
-	// For some reason, on Cygwin, fread does not return the correct number of elements read
-	// We need to set the record straight here
-	snd->len = len;
-	
-	for ( i=0 ; i<len ; i++ ) snd->data[i] = ntohs(snd->data[i]);
-
-	fclose(f);
-
-	return snd;
-}
-
-int state_event_callback(struct iaxc_ev_call_state call)
-{
+int state_event_callback(struct iaxc_ev_call_state call){
     if((call.state & IAXC_CALL_STATE_RINGING))
     {
 		printf("Receiving Incoming Call Request...\n");
-		if ( intercom )
+		if ( intercom ) 
 		{
 			printf("Intercom mode, answer automatically\n");
 			return iaxc_select_call(call.callNo);
@@ -119,9 +84,7 @@ int state_event_callback(struct iaxc_ev_call_state call)
     }
     return 0;
 }
-
-int levels_callback(float input, float output)
-{
+int levels_callback(float input, float output) {
     if(do_levels) fprintf(stderr, "IN: %f OUT: %f\n", input, output);
     return 0;
 }
@@ -189,27 +152,25 @@ void list_devices()
 }
 
 void usage()
-{
-    fprintf(stderr, "Usage: testcall [-?] [-v] [-i] [-t SILENCE_THRESHOLD] [-s SOUND_FILENAME] [-f OUTPUT_FILENAME] [-u USERNAME -p PASSWORD -h HOST]\n");
+{ 
+    fprintf(stderr, "Usage: testcall [-?] [-v] [-i] [-s SILENCE_THRESHOLD] [-u USERNAME -p PASSWORD -h HOST]\n");
     exit(1);
 }
 
 int main(int argc, char **argv)
 {
-	FILE			*f;
-	char			c;
-	int			i;
-	char			*dest = NULL;
-	double			silence_threshold = -99;
-	double			level;
-	struct iaxc_sound	*snd = NULL;
-
+	FILE *f;
+	char c;
+	int i;
+	char *dest = NULL;
+	double silence_threshold = -99;
+	double level;
 
 	f = stdout;
 
 	for(i=1;i<argc;i++)
 	{
-	   if(argv[i][0] == '-')
+	   if(argv[i][0] == '-') 
 	   {
 	      switch(tolower(argv[i][1]))
 	      {
@@ -222,13 +183,9 @@ int main(int argc, char **argv)
 		case 'i':
 		  intercom = 1;
 		  break;
-		case 't':
+		case 's':
 		  if(i+1 >= argc) usage();
 		  silence_threshold = atof(argv[++i]);
-		  break;
-		case 'f':
-		  if(i+1 >= argc) usage();
-		  output_filename = argv[++i];
 		  break;
 		case 'u':
 		  if(i+1 >= argc) usage();
@@ -242,10 +199,7 @@ int main(int argc, char **argv)
 		  if(i+1 >= argc) usage();
 		  host = argv[++i];
 		  break;
-		case 's':
-		  if (i+1 >= argc) usage();
-		  snd_filename = argv[++i];
-		  break;
+
 		default:
 		  usage();
 	      }
@@ -258,37 +212,21 @@ int main(int argc, char **argv)
 	printf("settings: \n");
 	printf("\tsilence threshold: %f\n", silence_threshold);
 	printf("\tlevel output: %s\n", do_levels ? "on" : "off");
-	printf("\tsound filename: %s\n", snd_filename);
 
 	/* activate the exit handler */
 	atexit(killem);
-
+	
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
-
-	if(output_filename) {
-	  FILE *outfile;
-	  if(iaxc_initialize(AUDIO_INTERNAL_FILE,1))
-	    fatal_error("cannot initialize iaxclient!");
-	  initialized = 1;
-	  outfile = fopen(output_filename,"w");
-	  iaxc_set_files(NULL, outfile);
-	} else {
-	  if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
-	    fatal_error("cannot initialize iaxclient!");
-	  initialized = 1;
-	}
 	
-	if ( snd_filename )
-	{
-		snd = load_sound(snd_filename);
-	}
+	if ( iaxc_initialize(1) ) fatal_error("cannot initialize iaxclient!");
+	initialized = 1;
 
 //	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
-	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
-//	iaxc_set_formats(IAXC_FORMAT_GSM,IAXC_FORMAT_GSM);
-//	iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
+//	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
+	iaxc_set_formats(IAXC_FORMAT_GSM,IAXC_FORMAT_GSM);
+	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
 	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ILBC|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -311,14 +249,12 @@ int main(int argc, char **argv)
 	    b: decrease input level\n\
 	    h: increase output level\n\
 	    n: decrease output level\n\
-	    p: play sound file\n\
 	    Enter: display current audio levels\n");
+	if(dest) {
+	    fprintf(f, "Calling %s\n", dest);
 
-	if(dest)
-	{
-		fprintf(f, "Calling %s\n", dest);
-		iaxc_call(dest);
-	} 
+	    iaxc_call(dest);
+	}
 
 	iaxc_start_processing_thread();
 
@@ -367,16 +303,6 @@ int main(int argc, char **argv)
 	    	printf("Decreasing output level to %f\n", level);
 	    	iaxc_output_level_set(level);
 	    	break;
-	    case 'p':
-	    	if ( snd )
-	    	{
-			printf("Playing sound %s\n", snd_filename);
-			iaxc_play_sound(snd, 0);
-		} else
-		{
-			printf("No sound file loaded\n");
-		}
-		break;
 	    case 'q':
 			printf("Hanging up and exiting\n");
 			iaxc_dump_call();

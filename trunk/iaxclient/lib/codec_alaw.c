@@ -11,11 +11,17 @@
 #include "codec_alaw.h"
 #include "iaxclient_lib.h"
 
+#if defined(_MSC_VER)
+#define INLINE __inline
+#else
+#define INLINE inline
+#endif
+
 struct state {
     plc_state_t plc;
 };
 
-static inline short int alawdecode (unsigned char alaw)
+static INLINE short int alawdecode (unsigned char alaw)
 {
 	int value;
 	int segment;
@@ -45,7 +51,7 @@ static inline short int alawdecode (unsigned char alaw)
 	return (alaw & 0x80) ? value : -value;
 }
 
-static inline unsigned char alawencode (short int linear)
+static INLINE unsigned char alawencode (short int linear)
 {
 	int mask = 0x55;
 	int segment;
@@ -87,10 +93,11 @@ static inline unsigned char alawencode (short int linear)
 
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, unsigned char *in, int *outlen, short *out ) {
-    struct state *state = c->decstate;
+    struct state *state = (struct state *)(c->decstate);
     short *orig_out = out;
     short sample;
 
+	
     if(*inlen == 0) {
 	int interp_len = 160;
 	if(*outlen < interp_len) interp_len = *outlen;
@@ -105,7 +112,7 @@ static int decode ( struct iaxc_audio_codec *c,
 	*(out++) = sample;
 	(*inlen)--; (*outlen)--;
     }
-    plc_rx(&state->plc,orig_out,out-orig_out);
+    plc_rx(&state->plc, orig_out, (int)(out - orig_out));
 
     return 0;
 }
@@ -127,7 +134,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
 
 struct iaxc_audio_codec *iaxc_audio_codec_alaw_new() {
 
-  struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
+  struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(1, sizeof(struct iaxc_audio_codec));
   
   if(!c) return c;
 

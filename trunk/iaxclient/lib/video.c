@@ -10,28 +10,39 @@
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
  */
+#include <assert.h>
 
 #include "iaxclient_lib.h"
+#include "iax-client.h"
+#ifdef USE_FFMPEG
 #include "codec_ffmpeg.h"
+#endif
 #include "codec_theora.h"
+#ifdef USE_H264_VSS
+#include "codec_h264_vss.h"
+#endif
 
 #define VIDEO_BUFSIZ (1<<19)
 
-static struct iaxc_video_driver video;
-static int iaxc_video_width = 352;
-static int iaxc_video_height = 288;
-//static int iaxc_video_width = 176;
-//static int iaxc_video_height = 144;
-static int iaxc_video_framerate = 15;
-static int iaxc_video_bitrate = 90000;
-int iaxc_video_format_preferred = IAXC_FORMAT_H263_PLUS;
-static int iaxc_video_format_allowed = IAXC_FORMAT_H263_PLUS|IAXC_FORMAT_H263|IAXC_FORMAT_MPEG4|IAXC_FORMAT_H264|IAXC_FORMAT_THEORA;
+extern int selected_call;
+extern struct iaxc_call * calls;
 
-// a fake call to hold encode/decode stuff when no call is in progress.
-static struct iaxc_call idle_call;
+static int iaxc_video_width = 320;
+static int iaxc_video_height = 240;
+static int iaxc_video_framerate = 10; //15;
+static int iaxc_video_bitrate = 150000;
+static int iaxc_video_fragsize = 1500;
+static int iaxc_video_format_preferred = 0;
+static int iaxc_video_format_allowed = 0;
+static struct iaxc_video_driver video_driver = {0};
 
-int iaxc_video_mode = IAXC_VIDEO_MODE_NONE;
+/* Set the default so that the local and remote raw video is
+ * sent to the client application and encoded video is sent out.
+ */
+static int iaxc_video_prefs = IAXC_VIDEO_PREF_RECV_LOCAL_RAW |
+                              IAXC_VIDEO_PREF_RECV_REMOTE_RAW;
 
+#if 0
 /* debug: check a yuv420p buffer to ensure it's within the CCIR range */
 static int check_ccir_yuv(char *data) {
     int i;
@@ -53,220 +64,844 @@ static int check_ccir_yuv(char *data) {
 	}
     }
     return err;
-}  
-
-
-EXPORT int iaxc_video_mode_set(int mode) {
-  return iaxc_video_mode = mode;
 }
-
-EXPORT int iaxc_video_mode_get() {
-  return iaxc_video_mode;
-}
-
-EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate, int bitrate, int width, int height) {
-  iaxc_video_format_preferred = preferred;
-  iaxc_video_format_allowed = allowed;
-  iaxc_video_framerate = framerate;
-  iaxc_video_bitrate = bitrate;
-  iaxc_video_width = width;
-  iaxc_video_height = height;
-}
-
-
-
-static struct iaxc_video_codec *create_codec(int format, int encode) {
-    struct iaxc_video_codec *vc;
-    // XXX fixme: format
-    //return iaxc_video_codec_ffmpeg_new("h264",iaxc_video_width,iaxc_video_height,iaxc_video_framerate,iaxc_video_bitrate);  
-    switch(format) {
-    case IAXC_FORMAT_H261:
-    case IAXC_FORMAT_H263:
-    case IAXC_FORMAT_H263_PLUS:
-    case IAXC_FORMAT_MPEG4:
-#ifdef LINUX  /* XXX presently, I don't have modern ffmpeg built on OSX or
-		 Win32 */
-	return iaxc_video_codec_ffmpeg_new(format,iaxc_video_width,iaxc_video_height,iaxc_video_framerate,iaxc_video_bitrate);  
-#else
-	return NULL;
 #endif
-    break;
-    case IAXC_FORMAT_H264:
-#if 0
-	if(encode)
-	  return iaxc_video_codec_h264_new(format,iaxc_video_width,iaxc_video_height,iaxc_video_framerate,iaxc_video_bitrate);  
+
+EXPORT uint32_t iaxc_get_video_prefs(void)
+{
+	return iaxc_video_prefs;
+}
+
+EXPORT int iaxc_set_video_prefs(uint32_t prefs)
+{
+	const uint32_t prefs_mask =
+		IAXC_VIDEO_PREF_RECV_LOCAL_RAW      |
+		IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED  |
+		IAXC_VIDEO_PREF_RECV_REMOTE_RAW     |
+		IAXC_VIDEO_PREF_RECV_REMOTE_ENCODED |
+		IAXC_VIDEO_PREF_SEND_DISABLE        |
+		IAXC_VIDEO_PREF_RECV_RGB32          |
+		IAXC_VIDEO_PREF_CAPTURE_DISABLE;
+
+	if ( prefs & ~prefs_mask )
+		return -1;
+
+	/* Not sending any video and not needing any form of
+	 * local video implies that we do not need to capture
+	 * video.
+	 */
+	if ( prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE ||
+			((prefs & IAXC_VIDEO_PREF_SEND_DISABLE) &&
+			 !(prefs & IAXC_VIDEO_PREF_RECV_LOCAL_RAW) &&
+			 !(prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED)) )
+	{
+		/* Note that in both the start and stop cases, we
+		 * rely on the start/stop function to be idempotent.
+		 */
+		if (video_driver.stop)
+			video_driver.stop(&video_driver);
+	}
 	else
-#endif
-#ifdef LINUX  /* XXX presently, I don't have modern ffmpeg built on OSX or
-		 Win32 */
-	return iaxc_video_codec_ffmpeg_new(format,iaxc_video_width,iaxc_video_height,iaxc_video_framerate,iaxc_video_bitrate);  
-#else
-	return NULL;
-#endif
-    break;
-    case IAXC_FORMAT_THEORA:
-	return iaxc_video_codec_theora_new(format,iaxc_video_width,iaxc_video_height,iaxc_video_framerate,iaxc_video_bitrate);  
-    break;
-    }
+	{
+		if ( video_driver.start )
+		{
+			video_driver.start(&video_driver);
+
+			// Driver may fail to start
+			if ( !video_driver.camera_working )
+				return -1;
+		}
+	}
+
+	iaxc_video_prefs = prefs;
+
+	return 0;
 }
 
+EXPORT void iaxc_video_format_set_cap(int preferred, int allowed)
+{
+	iaxc_video_format_preferred = preferred;
+	iaxc_video_format_allowed = allowed;
+}
 
-static void show_video_frame(void *videobuf) {
-      iaxc_event e;
-      e.type = IAXC_EVENT_VIDEO;
-      // XXX e.ev.video.format = 
-      e.ev.video.width = iaxc_video_width;
-      e.ev.video.height = iaxc_video_height;
-      e.ev.video.data = videobuf;
-      iaxc_post_event(e);
+EXPORT void iaxc_video_format_get_cap(int *preferred, int *allowed)
+{
+	*preferred = iaxc_video_format_preferred;
+	*allowed = iaxc_video_format_allowed;
+}
+
+EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
+		int bitrate, int width, int height, int fs)
+{
+	int real_pref = 0;
+	int real_allowed = 0;
+
+	// Make sure resolution is in range
+	if ( width < IAXC_VIDEO_MIN_WIDTH )
+		width = IAXC_VIDEO_MIN_WIDTH;
+	else if ( width > IAXC_VIDEO_MAX_WIDTH )
+		width = IAXC_VIDEO_MAX_WIDTH;
+
+	if ( height < IAXC_VIDEO_MIN_HEIGHT )
+		height = IAXC_VIDEO_MIN_HEIGHT;
+	else if ( height > IAXC_VIDEO_MAX_HEIGHT )
+		height = IAXC_VIDEO_MAX_HEIGHT;
+
+	iaxc_video_framerate = framerate;
+	iaxc_video_bitrate = bitrate;
+	iaxc_video_width = width;
+	iaxc_video_height = height;
+	iaxc_video_fragsize = fs;
+
+	iaxc_video_format_allowed = 0;
+	iaxc_video_format_preferred = 0;
+
+	if ( preferred && (preferred & ~IAXC_VIDEO_FORMAT_MASK) )
+	{
+		fprintf(stderr, "ERROR: Preferred video format invalid.\n");
+		preferred = 0;
+	}
+
+	/* This check:
+	 * 1. Check if preferred is a supported and compiled in codec. If
+	 *    not, switch to the default preferred format.
+	 * 2. Check if allowed contains a list of all supported and compiled
+	 *    in codec. If there are some unavailable codec, remove it from
+	 *    this list.
+	 */
+
+	if ( preferred & IAXC_FORMAT_THEORA )
+		real_pref = IAXC_FORMAT_THEORA;
+
+#ifdef USE_FFMPEG
+	if ( iaxc_video_codec_ffmpeg_check_codec(preferred) )
+		real_pref = preferred;
+#endif
+
+#ifdef USE_H264_VSS
+	if ( preferred & IAXC_FORMAT_H264 )
+		real_pref = IAXC_FORMAT_H264;
+#endif
+
+	if ( !real_pref )
+	{
+		// If preferred codec is not available switch to the
+		// supported default codec.
+		fprintf(stderr, "Preferred codec is not available. Switching to default");
+		real_pref = IAXC_FORMAT_THEORA;
+	}
+
+	/* Check on allowed codecs availability */
+
+	if ( allowed & IAXC_FORMAT_THEORA )
+		real_allowed |= IAXC_FORMAT_THEORA;
+
+#ifdef USE_FFMPEG
+	/* TODO: This iaxc_video_codec_ffmpeg_check_codec stuff is bogus. We
+	 * need a standard interface in our codec wrappers that allows us to
+	 * (1) test if a selected codec is valid and/or (2) return the set of
+	 * available valid codecs. With that, we should be able to come up
+	 * with a more elegant algorithm here for determining the video codec.
+	 */
+	if ( iaxc_video_codec_ffmpeg_check_codec(allowed) )
+		real_allowed |= allowed;
+#endif
+
+#ifdef USE_H264_VSS
+	if ( allowed & IAXC_FORMAT_H264 )
+		real_allowed |= IAXC_FORMAT_H264;
+#endif
+
+	if ( !real_pref )
+	{
+		fprintf(stderr, "Audio-only client!\n");
+	} else
+	{
+		iaxc_video_format_preferred = real_pref;
+
+		/*
+		 * When a client use a 'preferred' format, it can force to
+		 * use allowed formats using a non-zero value for 'allowed'
+		 * parameter. If it is left 0, the client will use all
+		 * capabilities set by default in this code.
+		 */
+		if ( real_allowed )
+		{
+			iaxc_video_format_allowed = real_allowed;
+		} else
+		{
+#ifdef USE_FFMPEG
+			iaxc_video_format_allowed |= IAXC_FORMAT_H263_PLUS
+				| IAXC_FORMAT_H263
+				| IAXC_FORMAT_MPEG4
+				| IAXC_FORMAT_H264;
+#endif
+#ifdef USE_H264_VSS
+			iaxc_video_format_allowed |= IAXC_FORMAT_H264;
+#endif
+			iaxc_video_format_allowed |= IAXC_FORMAT_THEORA;
+		}
+	}
+}
+
+void iaxc_video_params_change(int framerate, int bitrate, int width,
+		int height, int fs)
+{
+	struct iaxc_call *call;
+
+	/* set default video params */
+	if ( framerate > 0 )
+		iaxc_video_framerate = framerate;
+	if ( bitrate > 0 )
+		iaxc_video_bitrate = bitrate;
+	if ( width > 0 )
+		iaxc_video_width = width;
+	if ( height > 0 )
+		iaxc_video_height = height;
+	if ( fs > 0 )
+		iaxc_video_fragsize = fs;
+
+	if ( selected_call < 0 )
+		return;
+
+	call = &calls[selected_call];
+
+	if ( !call || !call->vencoder )
+		return;
+
+	call->vencoder->params_changed = 1;
+
+	if ( framerate > 0 )
+		call->vencoder->framerate = framerate;
+	if ( bitrate > 0 )
+		call->vencoder->bitrate = bitrate;
+	if ( width > 0 )
+		call->vencoder->width = width;
+	if ( height > 0 )
+		call->vencoder->height = height;
+	if ( fs > 0 )
+		call->vencoder->fragsize = fs;
+}
+
+/* TODO: The encode parameter to this function is unused within this
+ * function. However, clients of this function still use this parameter.
+ * What ends up happening is we instantiate the codec encoder/decoder
+ * pairs multiple times. This seems not the best. For example, it is
+ * not clear that all codecs are idempotent to the extent that they can
+ * be initialized multiple times. Furthermore, within iaxclient itself,
+ * we have a nasty habit of using global statically allocated data.
+ * Multiple iaxc_video_codec_*_new calls could easily result in race
+ * conditions or more blatantly bad problems.
+ *
+ * Splitting encoder and decoder creation has some merit.
+ *
+ *  - Avoid allocating encoder or decoder resources when not needed.
+ *  - Allows using different codecs for sending and receiving.
+ *  - Allows different codec parameters for sending and receiving.
+ *
+ */
+static struct iaxc_video_codec *create_codec(int format, int encode)
+{
+	iaxc_usermsg(IAXC_TEXT_TYPE_NOTICE, "Creating codec format 0x%x",
+			format);
+	switch ( format )
+	{
+	case IAXC_FORMAT_H261:
+	case IAXC_FORMAT_H263:
+	case IAXC_FORMAT_H263_PLUS:
+	case IAXC_FORMAT_MPEG4:
+#ifdef USE_FFMPEG
+		return iaxc_video_codec_ffmpeg_new(format,
+				iaxc_video_width,
+				iaxc_video_height,
+				iaxc_video_framerate,
+				iaxc_video_bitrate,
+				iaxc_video_fragsize);
+#else
+		return NULL;
+#endif
+
+	case IAXC_FORMAT_H264:
+#ifdef USE_H264_VSS
+		return iaxc_video_codec_h264_new(format,
+				iaxc_video_width,
+				iaxc_video_height,
+				iaxc_video_framerate,
+				iaxc_video_bitrate,
+				iaxc_video_fragsize);
+#endif
+#ifdef USE_FFMPEG
+		return iaxc_video_codec_ffmpeg_new(format,
+				iaxc_video_width,
+				iaxc_video_height,
+				iaxc_video_framerate,
+				iaxc_video_bitrate,
+				iaxc_video_fragsize);
+#else
+		return NULL;
+#endif
+
+	case IAXC_FORMAT_THEORA:
+		return iaxc_video_codec_theora_new(format,
+				iaxc_video_width,
+				iaxc_video_height,
+				iaxc_video_framerate,
+				iaxc_video_bitrate,
+				iaxc_video_fragsize);
+	}
+
+	// Must never happen...
+	return NULL;
+}
+
+/*
+ * show_video_frame - returns video data to the main application
+ * using the callback mechanism
+ * This function creates a dynamic copy of the video data.  The memory is freed
+ * in iaxc_post_event. This is because the event we post may be queued and the
+ * frame data must live until after it is dequeued.
+ * Parameters: - videobuf: buffer containing raw or encoded video data
+ *             - size - size of video data block
+ *             - cn - call number
+ *             - source - either IAXC_SOURCE_LOCAL or IAXC_SOURCE_REMOTE
+ *             - encoded - true if data is encoded
+ *             - rgb32 - if true, convert data to RGB32 before showing
+ */
+void show_video_frame(char *videobuf, int size, int cn, int source, int encoded, int rgb32)
+{
+	iaxc_event e;
+	char * buffer;
+
+	e.type = IAXC_EVENT_VIDEO;
+
+	if ( size <= 0 )
+		fprintf(stderr, "WARNING: size %d in show_video_frame\n", size);
+
+	if ( !encoded && rgb32 )
+	{
+		e.ev.video.size = iaxc_video_height * iaxc_video_width * 4;
+		buffer = (char *)malloc(e.ev.video.size);
+		assert(buffer);
+		e.ev.video.data = buffer;
+		iaxc_YUV420_to_RGB32(iaxc_video_width, iaxc_video_height,
+				videobuf, buffer);
+	} else
+	{
+		buffer = (char *)malloc(size);
+		assert(buffer);
+		memcpy(buffer, videobuf, size);
+		e.ev.video.data = buffer;
+		e.ev.video.size = size;
+	}
+
+	e.ev.video.format = iaxc_video_format_preferred;
+	e.ev.video.width = iaxc_video_width;
+	e.ev.video.height = iaxc_video_height;
+	e.ev.video.callNo = cn;
+	e.ev.video.encoded = encoded;
+	assert(source == IAXC_SOURCE_REMOTE || source == IAXC_SOURCE_LOCAL);
+	e.ev.video.source = source;
+
+	iaxc_post_event(e);
 }
 
 /* try to get the next frame, encode and send */
-int iaxc_send_video(struct iaxc_call *call)
+int iaxc_send_video(struct iaxc_call *call, int sel_call)
 {
-	unsigned char *videobuf;
-	char encoded_video[VIDEO_BUFSIZ/2];
-	int encoded_video_len = sizeof(encoded_video);
+	static struct slice_set_t slice_set;
 	int format = iaxc_video_format_preferred;
-     
-	if(format == 0) {
-		fprintf(stderr, "encode_video: Format is zero (should't happen)!\n");
+	int i = 0;
+	const int inlen = iaxc_video_width * iaxc_video_height * 6 / 4;
+	char * videobuf;
+	struct timeval now;
+	long time;
+
+	video_driver.input(&video_driver, &videobuf);
+
+	/* It is okay if we do not get any video; video capture may be
+	 * disabled.
+	 */
+	if ( !videobuf || 
+	     (iaxc_video_prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE)
+	   )
+		return 0;
+
+	// Send the raw frame to the main app, if necessary
+	if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_RAW )
+	{
+		show_video_frame(videobuf, inlen, -1, IAXC_SOURCE_LOCAL, 0,
+				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
+	}
+
+	if ( sel_call < 0 || !call || !(call->state & IAXC_CALL_STATE_COMPLETE) )
+		return -1;
+
+	if ( format == 0 )
+	{
+		fprintf(stderr, "iaxc_send_video: Format is zero (should't happen)!\n");
 		return -1;
 	}
 
-	if(!call) call = &idle_call;
-
-	/* destroy vencoder if it is incorrect type */
-	if(call->vencoder && call->vencoder->format != format)
+	// If we don't need to send encoded video to the network or back
+	// to the main application, just return here.
+	if ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED) &&
+	     (iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE) )
 	{
-	    call->vencoder->destroy(call->vencoder);
-	    call->vencoder = NULL;
-	}
-
-	/* create encoder if necessary */
-	if(!call->vencoder) {
-	    call->vencoder = create_codec(format, 1);
-	}
-
-	if(!call->vencoder) {
-	    /* ERROR: no codec */
-	    fprintf(stderr, "ERROR: Video codec could not be created: %d\n", format);
-	    return -1;
-	}
-
-	// try to get the next frame
-	video.start(&video);
-	video.input(&video, &videobuf);
-	if(!videobuf) {
-	    fprintf(stderr, "iaxc_send_video: no frame\n");
-	    return 0;
-	}
-	//fprintf(stderr, "Got frame\n");
-
-	// debug.
-	//if(check_ccir_yuv(videobuf)) {
-	    //exit(1);
-	//}
-
-
-	// encode the frame
-	{
-	    int inlen, outlen;
-	    inlen = iaxc_video_width * iaxc_video_height * 6 / 4;
-	    outlen = encoded_video_len;
-	    if(call->vencoder->encode(call->vencoder,&inlen,videobuf,&outlen,encoded_video)) {
-		fprintf(stderr, "iaxc_send_video: encode failed\n");
-		return -1;
-	    }
-	    encoded_video_len = encoded_video_len - outlen;
-#if 1
-	    {   // some stats here..
-		fprintf(stderr, "iaxc_send_video: %d bits\n", encoded_video_len * 8);
-	    }
-#endif
-	}
-
-#if 0
-	{ 
-	  int i;
-	  fprintf(stderr, "encoded video:");
-	  for(i=0;i<32;i++) {
-	      fprintf(stderr, " %02hhx", (unsigned char)encoded_video[i]);
-	  }
-	  fprintf(stderr, "\n");
-	}
-#endif
-
-	if(iaxc_video_mode > IAXC_VIDEO_MODE_ACTIVE) {
-	    if(iaxc_video_mode == IAXC_VIDEO_MODE_PREVIEW_RAW) {
-		show_video_frame(videobuf);
-	    } else if(iaxc_video_mode == IAXC_VIDEO_MODE_PREVIEW_ENCODED) {
-		if(iaxc_receive_video(call, encoded_video, encoded_video_len, format, 1))
+		if ( call->vencoder )
 		{
-		    fprintf(stderr, "iaxc_send_video: encoded preview decode failed\n");
-		    return -1;
+			// We don't need to encode video so just destroy the encoder
+			fprintf(stderr, "Destroying codec %s\n", call->vencoder->name);
+			call->vencoder->destroy(call->vencoder);
+			call->vencoder = NULL;
 		}
-	    }
+		return 0;
+	}else
+	{
+		/* destroy vencoder if it is incorrect type */
+		if ( call->vencoder &&
+		     (call->vencoder->format != format || call->vencoder->params_changed)
+		   )
+		{
+			call->vencoder->destroy(call->vencoder);
+			call->vencoder = NULL;
+		}
+
+		/* create encoder if necessary */
+		if ( !call->vencoder )
+		{
+			call->vencoder = create_codec(format, 1);
+			fprintf(stderr,"Created codec %s\n",call->vencoder->name);
+		}
+
+		if ( !call->vencoder )
+		{
+			fprintf(stderr,
+				"ERROR: Video codec could not be created: 0x%08x\n",
+				format);
+			return -1;
+		}
+
+		// encode the frame
+		if ( call->vencoder->encode(call->vencoder, inlen, videobuf,
+					&slice_set) )
+		{
+			fprintf(stderr, "iaxc_send_video: encode failed\n");
+			return -1;
+		}
 	}
+
+	// Statistics
+	gettimeofday(&now, NULL);
+	call->vencoder->video_stats.outbound_frames++;
+	time = iaxc_msecdiff(&now, &call->vencoder->video_stats.start_time);
+	if ( time > 0 )
+		call->vencoder->video_stats.avg_outbound_fps =
+			(float)call->vencoder->video_stats.outbound_frames *
+			1000 / time;
 
 	// send the frame!
-	
+
+	if ( !call->session )
+		return -1;
+
+	for ( i = 0; i < slice_set.num_slices; i++ )
+	{
+		//Pass the encoded frame to the main app
+		// TODO: fix the call number
+		if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED )
+		{
+			show_video_frame(slice_set.data[i], slice_set.size[i],
+					-1, IAXC_SOURCE_LOCAL, 1, 0);
+		}
+
+		if ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE) )
+		{
+			if ( iax_send_video_trunk(call->session, format,
+						slice_set.data[i],
+						slice_set.size[i],
+						0, i) == -1 )
+			{
+				fprintf(stderr, "Failed to send a slice, call %d, size %d\n",
+						sel_call, slice_set.size[i]);
+				return -1;
+			}
+
+			// Statistics
+			call->vencoder->video_stats.sent_slices++;
+			call->vencoder->video_stats.acc_sent_size +=
+				slice_set.size[i];
+			if ( time > 0 )
+				call->vencoder->video_stats.avg_outbound_bps =
+					call->vencoder->video_stats.acc_sent_size *
+					8000 / time;
+		}
+	}
+
 	return 0;
 }
 
 /* process an incoming video frame */
-int iaxc_receive_video(struct iaxc_call *call, void *encoded_video, int encoded_video_len, int format, int preview)
+int iaxc_receive_video(struct iaxc_call *call, int sel_call,
+		void *encoded_video, int encoded_video_len, int format)
 {
-	char videobuf[VIDEO_BUFSIZ];
+	static char videobuf[VIDEO_BUFSIZ];
 	int outsize = VIDEO_BUFSIZ;
-	int insize = encoded_video_len;
+	int ret_dec;
+	struct timeval now;
+	long time;
 
-	if(!call) call = &idle_call;
+	if ( !call )
+		return 0;
 
-	// if we're not in normal mode, and this isn't a preview-display frame, skip it.
-	if(iaxc_video_mode != IAXC_VIDEO_MODE_ACTIVE && !preview ) return 0;
-
-	if(format == 0) {
-		fprintf(stderr, "decode_video: Format is zero (should't happen)!\n");
+	if ( format == 0 )
+	{
+		fprintf(stderr, "iaxc_receive_video: Format is zero (should't happen)!\n");
 		return -1;
 	}
 
-	/* destroy vdecoder if it is incorrect type */
-	if(call->vdecoder && call->vdecoder->format != format)
+	// Send the encoded frame to the main app if necessary
+	if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_REMOTE_ENCODED )
 	{
-	    call->vdecoder->destroy(call->vdecoder);
-	    call->vdecoder = NULL;
+		show_video_frame((char *)encoded_video, encoded_video_len, -1,
+				IAXC_SOURCE_REMOTE, 1, 0);
 	}
+
+	/* destroy vdecoder if it is incorrect type */
+	if ( call->vdecoder && call->vdecoder->format != format )
+	{
+		call->vdecoder->destroy(call->vdecoder);
+		call->vdecoder = NULL;
+	}
+
+	/* If the user does not need decoded video, then do not decode. */
+	if ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_REMOTE_RAW) )
+		return 0;
 
 	/* create decoder if necessary */
-	if(!call->vdecoder) {
-	    call->vdecoder = create_codec(format, 0);
+	if ( !call->vdecoder )
+	{
+		call->vdecoder = create_codec(format, 0);
+		fprintf(stderr,"Created codec %s\n",call->vdecoder->name);
 	}
 
-	if(!call->vdecoder) {
-		  /* ERROR: no codec */
-		  fprintf(stderr, "ERROR: Video codec could not be created: %d\n", format);
-		  return -1;
+	if ( !call->vdecoder )
+	{
+		fprintf(stderr, "ERROR: Video codec could not be created: %d\n",
+				format);
+		return -1;
 	}
 
-	if(call->vdecoder->decode(call->vdecoder, &insize, encoded_video, &outsize, videobuf)) {
-		  /* ERROR: codec error */
-		  fprintf(stderr, "ERROR: decode error: %d\n", format);
-		  return -1;
+	/* Statistics */
+	gettimeofday(&now, NULL);
+	time = iaxc_msecdiff(&now, &call->vdecoder->video_stats.start_time);
+	call->vdecoder->video_stats.received_slices++;
+	call->vdecoder->video_stats.acc_recv_size += encoded_video_len;
+	if ( time > 0 )
+		call->vdecoder->video_stats.avg_inbound_bps =
+			call->vdecoder->video_stats.acc_recv_size * 8000 / time;
+
+	ret_dec = call->vdecoder->decode(call->vdecoder, encoded_video_len,
+			(char *)encoded_video, &outsize, videobuf);
+
+	if ( ret_dec < 0 )
+	{
+		fprintf(stderr, "ERROR: decode error\n");
+		return -1;
+	}
+	else if ( ret_dec > 0 )
+	{
+		/* This indicates that a complete frame cannot yet
+		 * be decoded. This is okay.
+		 */
+		return 0;
 	}
 
-	
-	//fprintf(stderr, "video: decode succeeded, displaying\n");
-	show_video_frame(videobuf);
+	/* Statistics */
+	call->vdecoder->video_stats.inbound_frames++;
+	if ( time > 0 )
+		call->vdecoder->video_stats.avg_inbound_fps =
+			call->vdecoder->video_stats.inbound_frames *
+			1000.0F / time;
+
+	if ( outsize > 0 )
+	{
+		show_video_frame(videobuf, outsize, sel_call,
+				IAXC_SOURCE_REMOTE, 0,
+				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
+	}
 
 	return 0;
 }
 
-int iaxc_video_initialize(void) {
-       if(pv_initialize(&video, iaxc_video_width, iaxc_video_height, iaxc_video_framerate)) {
-	     fprintf(stderr, "can't initialize pv\n");
-	     return -1;
-       }
-       return 0;
+int iaxc_video_initialize()
+{
+	if ( pv_initialize(&video_driver, iaxc_video_width, iaxc_video_height,
+			iaxc_video_framerate) )
+	{
+		fprintf(stderr, "ERROR: cannot initialize pv\n");
+		return -1;
+	}
+
+	/* We reset the existing video preferences to yield the side-effect
+	 * of potentially starting or stopping the video capture.
+	 */
+	iaxc_set_video_prefs(iaxc_video_prefs);
+
+	return 0;
 }
-		 
+
+int iaxc_video_destroy()
+{
+	if ( video_driver.destroy )
+		return video_driver.destroy(&video_driver);
+	else
+		return -1;
+
+}
+
+/*
+ * YUV to RGB conversion
+ */
+
+#define CLIP_SIZE   811
+#define CLIP_OFFSET 277
+
+#define YMUL  298
+#define RMUL  409
+#define BMUL  516
+#define G1MUL -100
+#define G2MUL -208
+
+static int           yuv2rgb_y[256];
+static int           yuv2rgb_r[256];
+static int           yuv2rgb_b[256];
+static int           yuv2rgb_g1[256];
+static int           yuv2rgb_g2[256];
+static unsigned long yuv2rgb_clip[CLIP_SIZE];
+static unsigned long yuv2rgb_clip8[CLIP_SIZE];
+static unsigned long yuv2rgb_clip16[CLIP_SIZE];
+static int           yuv2rgb_tables_initialized = 0;
+
+#define RED(y, v)     yuv2rgb_clip16[CLIP_OFFSET + yuv2rgb_y[y] + yuv2rgb_r[v]]
+#define GREEN(y,v,u)  yuv2rgb_clip8[CLIP_OFFSET + yuv2rgb_y[y] + yuv2rgb_g1[v] + yuv2rgb_g2[u]]
+#define BLUE(y,u)     yuv2rgb_clip[CLIP_OFFSET + yuv2rgb_y[y] + yuv2rgb_b[u]]
+
+static void iaxc_init_yuv2rgb_tables(void)
+{
+	int i;
+
+	for (i = 0; i < 256; i++)
+	{
+		yuv2rgb_y[i] = (YMUL * (i - 16) + 128) >> 8;
+		yuv2rgb_r[i] = (RMUL * (i - 128)) >> 8;
+		yuv2rgb_b[i] = (BMUL * (i - 128)) >> 8;
+		yuv2rgb_g1[i] = (G1MUL * (i - 128)) >> 8;
+		yuv2rgb_g2[i] = (G2MUL * (i - 128)) >> 8;
+	}
+	for ( i = 0 ; i < CLIP_OFFSET ; i++ )
+	{
+		yuv2rgb_clip[i] = 0;
+		yuv2rgb_clip8[i] = 0;
+		yuv2rgb_clip16[i] = 0;
+	}
+	for ( ; i < CLIP_OFFSET + 256 ; i++ )
+	{
+		yuv2rgb_clip[i] = i - CLIP_OFFSET;
+		yuv2rgb_clip8[i] = (i - CLIP_OFFSET) << 8;
+		yuv2rgb_clip16[i] = (i - CLIP_OFFSET) << 16;
+	}
+	for ( ; i < CLIP_SIZE ; i++ )
+	{
+		yuv2rgb_clip[i] = 255;
+		yuv2rgb_clip8[i] = 255 << 8;
+		yuv2rgb_clip16[i] = 255 << 16;
+	}
+	
+	yuv2rgb_tables_initialized = 1;
+}
+
+
+/*
+ * Faster function to convert YUV420 images to RGB32
+ * RGB32: 0xFFRRGGBB
+ * This function uses precalculated tables that are initialized 
+ * on the first run.
+ * Make sure the src and dest buffers have enough room
+ * dest should be width * height * 4 bytes in size
+ * Based on the formulas found at http://en.wikipedia.org/wiki/YUV
+ */
+void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
+{
+	unsigned char *y, *u, *v;
+	unsigned int *dst;
+	int i;
+	
+	if ( !yuv2rgb_tables_initialized )
+		iaxc_init_yuv2rgb_tables();
+	
+	dst = (unsigned int *)dest;
+	y  = (unsigned char *)src;
+	u  = y + width * height;
+	v  = u + width * height / 4;
+	
+	for (i = 0; i < height; i++)
+	{
+		unsigned char *uu,*vv;
+		unsigned int *d;
+		int j;
+	
+		d = dst;
+		uu = u;
+		vv = v;
+		for ( j = 0; j < width >> 1; j++ )
+		{
+			*(d++) = 0xff000000 |
+			         RED(*y,*vv) |
+			         GREEN(*y,*vv,*uu) |
+			         BLUE(*y,*uu);
+			y++;
+			*(d++) = 0xff000000 |
+			         RED(*y,*vv) |
+			         GREEN(*y,*vv,*uu) |
+			         BLUE(*y,*uu);
+			y++;
+			uu++;
+			vv++;
+		}
+		if ( i & 1 )
+		{
+			u += width >> 1;
+			v += width >> 1;
+		}
+		dst += width;
+	}
+}
+
+/*
+ * Original function that converts YUV420 images to RGB32
+ * RGB32: 0xFFRRGGBB
+ * Make sure the src and dest buffers have enough room
+ * dest should be width * height * 4 bytes in size
+ * Based on the formulas found at http://en.wikipedia.org/wiki/YUV
+ */
+// void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
+// {
+// 	int i;
+// 	unsigned char * y = (unsigned char *)src;
+// 	unsigned char * u = y + width * height;
+// 	unsigned char * v = u + width * height / 4;
+// 	unsigned int * dst = (unsigned int *)dest;
+// 
+// 	for ( i = 0; i < height; i++ )
+// 	{
+// 		int j;
+// 
+// 		unsigned char * uu = u;
+// 		unsigned char * vv = v;
+// 
+// 		for ( j = 0; j < width; j++ )
+// 		{
+// 			int yyy =  *y -  16;
+// 			int uuu = *uu - 128;
+// 			int vvv = *vv - 128;
+// 
+// 			int r = ( 298*yyy + 409*vvv + 128) >> 8;
+// 			int g = ( 298*yyy - 100*uuu - 208*vvv + 128) >> 8;
+// 			int b = ( 298*yyy + 516*uuu + 128) >> 8;
+// 
+// 			// Clip values to make sure they fit in range
+// 			if ( r < 0 )
+// 				r = 0;
+// 			else if ( r > 255 )
+// 				r = 255;
+// 
+// 			if ( g < 0 )
+// 				g = 0;
+// 			else if ( g > 255 )
+// 				g = 255;
+// 
+// 			if ( b < 0 )
+// 				b = 0;
+// 			else if ( b > 255 )
+// 				b = 255;
+// 
+// 			*(dst++) = 0xff000000 |
+// 				((unsigned char)r << 16) |
+// 				((unsigned char)g << 8) |
+// 				((unsigned char)b << 0);
+// 
+// 			y++;
+// 
+// 			if ( j & 1 )
+// 			{
+// 				uu++;
+// 				vv++;
+// 			}
+// 		}
+// 
+// 		if ( i & 1 )
+// 		{
+// 			u += width >> 1;
+// 			v += width >> 1;
+// 		}
+// 	}
+// }
+
+int iaxc_is_camera_working()
+{
+	return video_driver.is_camera_working(&video_driver);
+}
+
+// Collect and return video statistics
+// Also reset statistics if required;
+// Returns a pointer to the data
+// Right now we use two different codecs for encoding and decoding. We need to collate information
+// from both and wrap it into one nice struct
+int iaxc_get_video_stats(struct iaxc_call *call, struct iaxc_video_stats *stats,
+		int reset)
+{
+	if ( !call || !stats )
+		return -1;
+
+	memset(stats, 0, sizeof(*stats));
+
+	if ( call->vencoder != NULL )
+	{
+		stats->sent_slices = call->vencoder->video_stats.sent_slices;
+		stats->acc_sent_size = call->vencoder->video_stats.acc_sent_size;
+		stats->outbound_frames = call->vencoder->video_stats.outbound_frames;
+		stats->avg_outbound_bps = call->vencoder->video_stats.avg_outbound_bps;
+		stats->avg_outbound_fps = call->vencoder->video_stats.avg_outbound_fps;
+	}
+
+	if ( call->vdecoder != NULL )
+	{
+		stats->received_slices = call->vdecoder->video_stats.received_slices;
+		stats->acc_recv_size = call->vdecoder->video_stats.acc_recv_size;
+		stats->inbound_frames = call->vdecoder->video_stats.inbound_frames;
+		stats->dropped_frames = call->vdecoder->video_stats.dropped_frames;
+		stats->avg_inbound_bps = call->vdecoder->video_stats.avg_inbound_bps;
+		stats->avg_inbound_fps = call->vdecoder->video_stats.avg_inbound_fps;
+	}
+
+	if ( reset )
+		iaxc_reset_stats(call);
+
+	return 0;
+}
+
+void iaxc_reset_vcodec_stats(struct iaxc_video_codec *vcodec)
+{
+	if ( vcodec == NULL ) return;
+
+	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
+	gettimeofday(&vcodec->video_stats.start_time, NULL);
+}
+
+void iaxc_reset_stats(struct iaxc_call *call)
+{
+	if ( call == NULL ) return;
+
+	iaxc_reset_vcodec_stats(call->vdecoder);
+	iaxc_reset_vcodec_stats(call->vencoder);
+}

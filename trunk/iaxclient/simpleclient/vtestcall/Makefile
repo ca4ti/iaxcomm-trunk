@@ -1,20 +1,24 @@
+USE_FFMPEG=0
 
-USE_VIDEO=1
+CPPFLAGS = -I../../lib
 
-CFLAGS=-I../../lib -I../../lib/libiax2/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+# Uncomment one set of flags below
+# Deployment flags
+#CFLAGS += -O2 -Wall
+# Debug & Profile flags
+CFLAGS += -g -Wall
 
-#debug
-CFLAGS:= $(CFLAGS) -g 
+CFLAGS += `sdl-config --cflags`
 
-OBJS=	testcall.o
+OBJS = vtestcall.o
 
-
-EXEEXT=
+EXEEXT =
 
 # glean the platform
 # We will define this as either Linux, Win32, or MacOSX
 ifneq (,$(findstring Linux,$(shell uname)))
 OSTYPE=LINUX
+CFLAGS:= $(CFLAGS) -DLINUX
 else
 ifneq (,$(findstring Darwin,$(shell uname)))
 OSTYPE=MACOSX
@@ -41,20 +45,27 @@ endif
 endif
 endif
 
-VIDEO_LIBS=../../lib/PortVideoSDL/linux/libccvt.a -lraw1394 -ldc1394_control -lavcodec ../../../../theora/trunk/lib/.libs/libtheora.a -logg  `sdl-config --libs`
+LDLIBS = -L../../lib -liaxclient
 
-LIBS:= ../../lib/libiaxclient.a 
+ifeq ($(OSTYPE),LINUX)
+ CPPFLAGS += -DPOSIXSLEEP
+ LDLIBS += `sdl-config --libs` -logg -lspeex -ltheora
+endif
 
-ifeq ($(USE_VIDEO),1)
- CFLAGS:= $(CFLAGS) -DUSE_VIDEO 
- ifeq ($(OSTYPE),LINUX)
-  LIBS:= $(LIBS) ../../lib/PortVideoSDL/linux/libccvt.a -lraw1394 -ldc1394_control -lavcodec ../../../../theora/trunk/lib/.libs/libtheora.a -logg  `sdl-config --libs`
-  CFLAGS:= $(CFLAGS) `sdl-config --cflags`
- endif
- ifeq ($(OSTYPE),MACOSX)
-  LIBS:= $(LIBS) -framework QuickTime -framework Carbon ../../../theora/lib/.libs/libtheora.a  -L/sw/lib -logg  `sdl-config --libs`
-  CFLAGS:= $(CFLAGS) `sdl-config --cflags`
- endif
+ifeq ($(OSTYPE),MACOSX)
+ CPPFLAGS += -DPOSIXSLEEP
+ LDLIBS += -framework QuickTime \
+           -framework Carbon \
+	   -framework AudioUnit \
+	   -framework CoreAudio \
+	   -framework AudioToolbox \
+           `sdl-config --libs` \
+	   -logg -lspeex -ltheora
+SYSLIBS=
+endif
+
+ifeq ($(USE_FFMPEG),1)
+ CPPFLAGS += -DUSE_FFMPEG
 endif
 
 ifeq ($(OSTYPEREAL),FREEBSD)
@@ -64,46 +75,41 @@ MAKE=make
 endif
 
 ifeq ($(OSTYPE),WIN32)
-EXEEXT=.exe
-SYSLIBS=-lwinmm -lwsock32 
+EXEEXT = .exe
+LDLIBS += -lwinmm -lwsock32
 endif
 
 ifeq ($(OSTYPE),LINUX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP 
 ifeq ($(OSTYPEREAL),FREEBSD)
-SYSLIBS=-lc_r -lm 
+LDLIBS += -lc_r -lm
 else
-SYSLIBS=-lpthread -lm 
+LDLIBS += -lpthread -lm -lasound
 endif
-endif
-
-ifeq ($(OSTYPE),MACOSX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-SYSLIBS=-framework CoreAudio -framework AudioToolbox
 endif
 
 ifeq ($(OSTYPE),SOLARIS)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-SYSLIBS= -lsocket -lnsl -lpthread -lrt -lresolv -lm 
-MAKE=gmake
+CPPFLAGS += -DPOSIXSLEEP
+LDLIBS += -lsocket -lnsl -lpthread -lrt -lresolv -lm
+MAKE = gmake
 endif
 
-PROGS= testcall$(EXEEXT)
+PROG = vtestcall$(EXEEXT)
 
-all: makelib $(PROGS)
+CC = $(CXX)
 
-clean: 
-	rm -f $(OBJS) $(PROGS)
+all: makelib $(PROG)
 
+.PHONY: clean
+clean:
+	$(RM) $(OBJS) $(PROG)
+
+.PHONY: distclean
+distclean: clean
+	$(MAKE) -C ../../lib clean
+
+.PHONY: makelib
 makelib:
-	(cd ../../lib; $(MAKE) libiaxclient.a)
+	$(MAKE) -C ../../lib
 
-../../lib/libiaxclient.a: 
-	(cd ../../lib; $(MAKE) libiaxclient.a)
-
-testcall$(EXEEXT): makelib $(OBJS) 
-	g++ $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
-
-testcall-jb$(EXEEXT): makelib testcall-jb.o
-	g++ testcall-jb.o $(LIBS) $(SYSLIBS) -o testcall-jb$(EXEEXT)
+$(PROG): $(OBJS)
 
