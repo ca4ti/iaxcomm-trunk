@@ -1,3 +1,24 @@
+Problems:
+- Thread creation does not have any safeguards, so in theory one can
+create an unlimited number of processing threads.
+- There is a producer/consumer race condition in the iaxclient event 
+queue. When the library is locked, incoming events are queued by the
+iaxc_post_event() method and delivered in sequence, once the lock is 
+released. The event queue is not synchronized. Ocasionally, this will 
+cause the delivery of an event with type 0, which is filtered out and 
+an error is reported.  This has no apparent negative impact on the 
+overall operation of the library, but should be addresses nonetheless.
+One possible way of solving this would be to lock queue access with 
+a separate mutex, but care should be exercised to avoid deadlocks.
+- The framerate is hardcoded to 15 fps in iax.c.  This should be 
+rectified.
+- Linux framegrabber is slow (around 9 fps). 
+- Mac framegrabber eats too much CPU.
+- iaxclient crashes sometimes.  Suspect a concurency issue.
+
+The items beloware old.  Most of them have already been implemented. 
+I am keeping this here for historical and reference reasons
+
 TODO items:
 
 

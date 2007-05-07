@@ -14,7 +14,7 @@
 # the GNU Lesser (Library) General Public License
 #
 
-
+PRODUCTION_BUILD ?= 0
 
 CODEC_ILBC=0
 
@@ -23,11 +23,13 @@ SPAN_EC=0
 SPEEX_EC=1
 MEC2_EC=0
 
-USE_NEWJB=1
+#Enable only ONE of the following
+#Enable this if using ffmpeg
+USE_FFMPEG=0
+# Enable this if using Vanguard Softare Solutions H.264 codec
+USE_H264_VSS=0
 
-USE_VIDEO=0
-
-# For Linux, you can choose between portaudio with OSS, Alsa and Jack backend, 
+# For Linux, you can choose between portaudio with OSS, Alsa and Jack backend,
 # and native Alsa
 # Choice is inclusive
 USE_PA_OSS=1
@@ -35,28 +37,32 @@ USE_PA_ALSA=1
 USE_PA_JACK=0
 AUDIO_ALSA=0
 
-CFLAGS= -I. -Igsm/inc \
-	-Iportaudio/include -Iportaudio/src/common -Iportaudio/pablio -Iportmixer/px_common \
-	-Ilibspeex/include --std=c99 -Wall -Wmissing-noreturn
+CPPFLAGS += -I. \
+	-Igsm/inc \
+	-Iportaudio/include \
+	-Iportaudio/src/common \
+	-Iportaudio/pablio \
+	-Iportmixer/px_common
 
-#CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-CFLAGS:= $(CFLAGS) -g -O2
+CFLAGS += -Wall -Wmissing-noreturn
 
-CFLAGS:= $(CFLAGS) -DLIBVER='"SVN $(shell svnversion .)"'
-
-ifeq ($(SPEEX_PREPROCESS),1)
-CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
+ifeq ($(PRODUCTION_BUILD),1)
+CFLAGS += -O2 -Wpointer-arith
+else
+CFLAGS += -g -O2
 endif
 
-ifeq ($(USE_NEWJB),1)
-CFLAGS:= $(CFLAGS) -DNEWJB
+CPPFLAGS += -DLIBVER='"SVN $(shell svnversion .)"'
+
+ifeq ($(SPEEX_PREPROCESS),1)
+CPPFLAGS += -DSPEEX_PREPROCESS=1
 endif
 
 # debug flags
-# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG 
-# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
+# CPPFLAGS += -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG
+# CPPFLAGS += -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
 # enable this for API level debug info for PortAudio
-# CFLAGS:= $(CFLAGS) -DPA_LOG_API_CALLS
+# CPPFLAGS += -DPA_LOG_API_CALLS
 
 OBJS=\
 	portaudio/src/common/pa_allocation.o \
@@ -71,12 +77,14 @@ OBJS=\
 	spandsp/plc.o \
 	audio_encode.o \
 	audio_portaudio.o \
-	audio_file.o \
 	codec_gsm.o \
 	codec_ulaw.o \
 	codec_alaw.o \
 	codec_speex.o \
-	iaxclient_lib.o 
+	iaxclient_lib.o \
+	video.o \
+	videoLib/video_grab.o \
+	codec_theora.o
 
 OBJS_GSM=\
 	gsm/src/add.o \
@@ -97,43 +105,6 @@ OBJS_GSM=\
 	gsm/src/rpe.o \
 	gsm/src/short_term.o \
 	gsm/src/table.o
-
-OBJS_LIBSPEEX=\
-        libspeex/nb_celp.o \
-        libspeex/sb_celp.o \
-        libspeex/lpc.o \
-        libspeex/ltp.o \
-        libspeex/lsp.o \
-        libspeex/quant_lsp.o \
-        libspeex/lsp_tables_nb.o \
-        libspeex/gain_table.o \
-        libspeex/gain_table_lbr.o \
-        libspeex/cb_search.o \
-        libspeex/filters.o \
-        libspeex/bits.o \
-        libspeex/modes.o \
-        libspeex/speex.o \
-        libspeex/vq.o \
-        libspeex/high_lsp_tables.o \
-        libspeex/vbr.o \
-        libspeex/hexc_table.o \
-        libspeex/exc_5_256_table.o \
-        libspeex/exc_5_64_table.o \
-        libspeex/exc_8_128_table.o \
-        libspeex/exc_10_32_table.o \
-        libspeex/exc_10_16_table.o \
-        libspeex/exc_20_32_table.o \
-        libspeex/hexc_10_32_table.o \
-        libspeex/misc.o \
-        libspeex/speex_header.o \
-        libspeex/speex_callbacks.o \
-        libspeex/math_approx.o \
-        libspeex/stereo.o \
-        libspeex/preprocess.o \
-        libspeex/smallft.o \
-        libspeex/lbr_48k_tables.o \
-        libspeex/jitter.o \
-        libspeex/mdf.o
 
 OBJS_ILBC=\
 	iLBC/anaFilter.o\
@@ -160,20 +131,11 @@ OBJS_ILBC=\
 	iLBC/iCBConstruct.o\
 	iLBC/lsf.o
 
-OBJS_VIDEO=\
-	video.o\
-	video_portvideo.o\
-	PortVideoSDL/common/cameraTool.o\
-	PortVideoSDL/common/RingBuffer.o\
-	PortVideoSDL/common/FrameInverter.o\
-	codec_theora.o
-
-
-OBJS:= $(OBJS) $(OBJS_GSM) $(OBJS_LIBSPEEX) 
+OBJS:= $(OBJS) $(OBJS_GSM)
 
 ifeq ($(CODEC_ILBC),1)
 OBJS:= $(OBJS) $(OBJS_ILBC) codec_ilbc.o
-CFLAGS:= $(CFLAGS) -DCODEC_ILBC
+CPPFLAGS += -DCODEC_ILBC
 endif
 
 OBJS_WIN32=\
@@ -184,17 +146,24 @@ OBJS_WIN32=\
 	portaudio/src/os/win/pa_win_util.o \
 	portaudio/pablio/ringbuffer.o
 
+OBJS_LIBFG = \
+	videoLib/linux/linuxgrab.o \
+	videoLib/linux/libfg/capture.o \
+	videoLib/linux/libfg/frame.o
+
 OBJS_LINUX=\
 	unixfuncs.o \
 	portmixer/px_unix_oss/px_unix_oss.o \
 	portaudio/src/os/unix/pa_unix_util.o \
-	portaudio/src/os/unix/pa_unix_hostapis.o
+	portaudio/src/os/unix/pa_unix_hostapis.o \
+	portaudio/pablio/ringbuffer.o \
+	$(OBJS_LIBFG)
 
 OBJS_SOLARIS=\
 	unixfuncs.o \
 	portmixer/px_solaris/px_solaris.o \
 	portaudio/pa_unix_oss/pa_unix_solaris.o \
-	portaudio/pa_unix_oss/pa_unix.o 
+	portaudio/pa_unix_oss/pa_unix.o
 
 OBJS_MACOSX=\
 	unixfuncs.o \
@@ -204,13 +173,16 @@ OBJS_MACOSX=\
 	portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.o \
 	portaudio/src/os/unix/pa_unix_util.o \
 	portaudio/src/os/mac_osx/pa_mac_hostapis.o \
-	portaudio/src/hostapi/coreaudio/ringbuffer.o
+	portaudio/src/hostapi/coreaudio/ringbuffer.o \
+	videoLib/macosx/SSUtility.o \
+	videoLib/macosx/vdigGrab.o \
+	videoLib/macosx/macgrab.o
 
 OBJS_IAX2=\
-        libiax2/src/md5.o \
-        libiax2/src/iax.o \
-        libiax2/src/iax2-parser.o \
-        libiax2/src/jitterbuf.o
+	libiax2/src/md5.o \
+	libiax2/src/iax.o \
+	libiax2/src/iax2-parser.o \
+	libiax2/src/jitterbuf.o
 
 
 LIB=libiaxclient.a
@@ -247,139 +219,148 @@ endif
 
 # Setup platform-specific stuff based on gleaning
 ifeq ($(OSTYPE),WIN32)
-OBJS:= $(OBJS) $(OBJS_WIN32) 
-CFLAGS:= -mno-cygwin -DPA_NO_DS -DPA_NO_ASIO $(CFLAGS)
-DYNLDFLAGS= -mno-cygwin -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
-   -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -Wl,--output-def,iaxclient.def,--add-stdcall-alias,--enable-stdcall-fixup,--out-implib,libiaxclient.a
-DYNCFLAGS=-DBUILDING_DLL
-DYNLIB=iaxclient.dll
+    OBJS += $(OBJS_WIN32)
+    CPPFLAGS += -DPA_NO_DS -DPA_NO_ASIO \
+                -IPortVideoSDL/win32/dslib/include \
+                -Ic:/DX90SDK/include-gcc \
+                -Ic:/DX90SDK/Samples/C++/DirectShow/BaseClasses
+    CFLAGS += -mno-cygwin
+    DYNLDFLAGS = -mno-cygwin -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 \
+                 -lole32 -lcomctl32 -lctl3d32 -lstdc++ -lshell32 -loleaut32 \
+                 -ladvapi32 -luuid \
+                 -Wl,--output-def,iaxclient.def,--add-stdcall-alias,--enable-stdcall-fixup,--out-implib,$(LIB)
+    DYNCFLAGS = -DBUILDING_DLL
+    DYNLIB = iaxclient.dll
 endif
 
 ifeq ($(OSTYPE),LINUX)
-CFLAGS:= $(CFLAGS) -Iportaudio/src/os/unix
-DYNCFLAGS=-fPIC
-DYNLIB=libiaxclient.so
-ifeq ($(USE_PA_OSS),1)
-OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/oss/pa_unix_oss.o
-CFLAGS:= $(CFLAGS) -DPA_USE_OSS
+    CPPFLAGS += -Iportaudio/src/os/unix -IvideoLib/linux/libfg
+    DYNCFLAGS = -fPIC
+    DYNLIB = libiaxclient.so
+    ifeq ($(USE_PA_OSS),1)
+        OBJS_LINUX += portaudio/src/hostapi/oss/pa_unix_oss.o
+        CPPFLAGS += -DPA_USE_OSS
+    endif
+    ifeq ($(USE_PA_ALSA),1)
+        OBJS_LINUX += portaudio/src/hostapi/alsa/pa_linux_alsa.o
+        CPPFLAGS += -DPA_USE_ALSA
+    endif
+    ifeq ($(USE_PA_JACK),1)
+        OBJS_LINUX += portaudio/src/hostapi/jack/pa_jack.o
+        CPPFLAGS += -DPA_USE_JACK
+    endif
+    OBJS += $(OBJS_LINUX)
 endif
-ifeq ($(USE_PA_ALSA),1)
-OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/alsa/pa_linux_alsa.o
-CFLAGS:= $(CFLAGS) -DPA_USE_ALSA
-endif
-ifeq ($(USE_PA_JACK),1)
-OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/jack/pa_jack.o
-CFLAGS:= $(CFLAGS) -DPA_USE_JACK
-endif
-OBJS_LINUX:= $(OBJS_LINUX) portaudio/pablio/ringbuffer.o
-OBJS:= $(OBJS) $(OBJS_LINUX) 
-endif # linux
 
 ifeq ($(OSTYPE),SOLARIS)
-OBJS:= $(OBJS) $(OBJS_SOLARIS) 
-# only SPARC solaris machines need the alignment stuff
-ifeq (sparc,$(findstring sparc,$(shell uname -a)))
-CFLAGS:= $(CFLAGS) -DALIGN32 
-endif
-DYNCFLAGS=-fPIC
-DYNLIB=libiaxclient.so
-CC=gcc
+    OBJS += $(OBJS_SOLARIS)
+    # only SPARC solaris machines need the alignment stuff
+    ifeq (sparc,$(findstring sparc,$(shell uname -a)))
+        CPPFLAGS += -DALIGN32
+    endif
+    DYNCFLAGS = -fPIC
+    DYNLIB = libiaxclient.so
+    CC = gcc
 endif
 
 ifeq ($(OSTYPE),MACOSX)
-OBJS:= $(OBJS) $(OBJS_MACOSX) 
-RANLIB= ranlib
-# comment these lines in to build against version  10.2.7.
-#CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
-CFLAGS:= $(CFLAGS) -DPA_USE_COREAUDIO=1 -Iportaudio/src/hostapi/coreaudio
+    OBJS += $(OBJS_MACOSX)
 
-#architecture
-CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ gcc -arch i386 -arch ppc
+    RANLIB = ranlib
+    CPPFLAGS += -DPA_USE_COREAUDIO=1 -Iportaudio/src/hostapi/coreaudio \
+                -I../../theora/include -I/sw/include
 
+    ifeq ($(PRODUCTION_BUILD),1)
+        CFLAGS += -arch i386 -arch ppc
+    else
+        # gcc will only generate dependencies with these options when not
+        # using multiple -arch options (as used above).
+        CFLAGS += -MP -MD
+    endif
 
-#CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
-# Build Universal Binaries on MacOSX
-CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ MACOSX_DEPLOYMENT_TARGET=10.3 gcc -arch i386 -arch ppc
-DYNLIB=libiaxclient.dylib
+    export MACOSX_DEPLOYMENT_TARGET=10.3
+    export NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk
+
+    DYNLIB = libiaxclient.dylib
+
+    # Uncomment these lines in to build against version 10.2.7.
+    #export MACOSX_DEPLOYMENT_TARGET=10.2
+    #export NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk
 endif
 
-ifeq ($(USE_VIDEO),1)
-	OBJS:= $(OBJS) $(OBJS_VIDEO) 
-	CFLAGS:= $(CFLAGS) -DIAXC_VIDEO
-	LIBS:= $(LIBS) -lavcodec -ltheora
-  ifeq ($(OSTYPE),LINUX)
-	OBJS:= $(OBJS) PortVideoSDL/linux/linuxfwCamera.o PortVideoSDL/linux/v4linuxCamera.o
-  endif
-  ifeq ($(OSTYPE),WIN32)
-	CFLAGS:= $(CFLAGS) -IPortVideoSDL/win32/dslib/include -Ic:/DX90SDK/include-gcc -Ic:/DX90SDK/Samples/C++/DirectShow/BaseClasses
-	OBJS:= $(OBJS) PortVideoSDL/win32/dslibCamera.cpp
-  endif
-  ifeq ($(OSTYPE),MACOSX)
-        CFLAGS:= $(CFLAGS) -I../../theora/include -I/sw/include
-        OBJS:= $(OBJS) PortVideoSDL/macosx/macvdCamera.o PortVideoSDL/macosx/vdigGrab.o
-  endif
+ifneq ($(OSTYPE),MACOSX)
+    CFLAGS += -MP -MD
 endif
 
+ifeq ($(USE_FFMPEG),1)
+    OBJS += codec_ffmpeg.o
+    CPPFLAGS += -DUSE_FFMPEG
+endif
+
+ifeq ($(USE_H264_VSS),1)
+    OBJS += codec_h264_vss.o
+    CPPFLAGS += -Ivssh_sdk/include -DUSE_H264_VSS
+endif
 
 ifeq ($(AUDIO_ALSA),1)
-OBJS:= $(OBJS) audio_alsa.o
-CFLAGS:= $(CFLAGS) -DAUDIO_ALSA
+    OBJS += audio_alsa.o
+    CPPFLAGS += -DAUDIO_ALSA
 endif
 
-
-OBJS:= $(OBJS) $(OBJS_IAX2)
-#CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
-CFLAGS:= $(CFLAGS) -Ilibiax2/src -DLIBIAX 
+OBJS += $(OBJS_IAX2)
+#CPPFLAGS += -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT
+CPPFLAGS += -Ilibiax2/src -DLIBIAX
 
 ifeq ($(SPAN_EC),1)
-OBJS:= $(OBJS) ec/echo.o
-CFLAGS:= $(CFLAGS) -DSPAN_EC=1
+    OBJS += ec/echo.o
+    CPPFLAGS += -DSPAN_EC=1
 endif
 
 ifeq ($(SPEEX_EC),1)
-CFLAGS:= $(CFLAGS) -DSPEEX_EC=1
+    CPPFLAGS += -DSPEEX_EC=1
 endif
 
 ifeq ($(MEC2_EC),1)
-CFLAGS:= $(CFLAGS) -DUSE_MEC2=1
+    CPPFLAGS += -DUSE_MEC2=1
 endif
 
-CFLAGS:= $(CFLAGS) -D$(OSTYPE)
+CPPFLAGS += -D$(OSTYPE)
 
+CXXFLAGS = $(CFLAGS)
+
+CFLAGS += -std=gnu99
 
 # Treat some included libraries specially:
 # compile gsm w/o warnings, because it was written to less strict warning systems.
 gsm/%.o: gsm/%.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -w $< -o $@
 
-# pa_linux_alsa and pa_jack don't compile with c99
-portaudio/src/hostapi/alsa/pa_linux_alsa.o: portaudio/src/hostapi/alsa/pa_linux_alsa.c
-	$(CC) -c $(CFLAGS) --std=gnu89 $< -o $@
-portaudio/src/hostapi/jack/pa_jack.o: portaudio/src/hostapi/jack/pa_jack.c
-	$(CC) -c $(CFLAGS) --std=gnu89 $< -o $@
-
+# These objects are kinda wimpy and so we use the less awesome gnu89
+# instead of the more awesome default c99.
+$(OBJS_LIBFG) \
+portaudio/src/hostapi/jack/pa_jack.o \
+portaudio/src/hostapi/alsa/pa_linux_alsa.o \
+    : CFLAGS += --std=gnu89
 
 $(LIB): $(OBJS)
-	rm -f $(LIB)
+	$(RM) $(LIB)
 	ar cru $(LIB) $(OBJS)
 	$(RANLIB) $(LIB)
 
 #	libtool -static -o $(LIB) $(OBJS) portaudio/lib/libportaudio.a
-#	ar cru $(LIB) $(OBJS) 
+#	ar cru $(LIB) $(OBJS)
 
 
 MSLIB=iaxclient.lib
 MGLIBDIR=c:/mingw/lib
 GCCLIBDIR=$(MGLIBDIR)/gcc-lib/mingw32/3.2/
 
-GCCLIB=$(GCCLIBDIR)/libgcc.a 
-
-CXXFLAGS=$(CFLAGS)
+GCCLIB=$(GCCLIBDIR)/libgcc.a
 
 $(MSLIB): $(OBJS)
 #	rm -f $(MSLIB)
 	cp $(GCCLIB) $(MSLIB)
-	ar rs $(MSLIB) $(OBJS) 
+	ar rs $(MSLIB) $(OBJS)
 
 
 #shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
@@ -391,12 +372,12 @@ $(MSLIB): $(OBJS)
 #	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
 #endif
 
-
-
 plat:
 	echo Platform is $(OSTYPE)
 	echo OBJS are $(OBJS)
 	echo OBJS_LINUX are $(OBJS_LINUX)
 
 clean:
-	rm -f $(OBJS) $(LIB)
+	rm -f $(OBJS) $(LIB) $(addsuffix .d,$(basename $(OBJS)))
+
+-include *.d

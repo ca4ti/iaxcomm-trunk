@@ -388,7 +388,7 @@ static PaDeviceIndex GetEnvDefaultDeviceID( char *envName )
 #ifndef WIN32_PLATFORM_PSPC /* no GetEnvironmentVariable on PocketPC */
 
     /* Let user determine default device by setting environment variable. */
-    hresult = GetEnvironmentVariable( envName, envbuf, PA_ENV_BUF_SIZE_ );
+    hresult = GetEnvironmentVariableA( envName, envbuf, PA_ENV_BUF_SIZE_ );
     if( (hresult > 0) && (hresult < PA_ENV_BUF_SIZE_) )
     {
         recommendedIndex = atoi( envbuf );
@@ -554,6 +554,7 @@ static void DetectDefaultSampleRate( PaWinMmeDeviceInfo *winMmeDeviceInfo, int w
 static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeHostApi,
         PaWinMmeDeviceInfo *winMmeDeviceInfo, UINT winMmeInputDeviceId, int *success )
 {
+	int nameLen, rc;
     PaError result = paNoError;
     char *deviceName; /* non-const ptr */
     MMRESULT mmresult;
@@ -581,26 +582,64 @@ static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeH
     if( winMmeInputDeviceId == WAVE_MAPPER )
     {
         /* Append I/O suffix to WAVE_MAPPER device. */
+        nameLen=wcslen( wic.szPname ) + 1 + sizeof(constInputMapperSuffix_);
         deviceName = (char *)PaUtil_GroupAllocateMemory(
-                    winMmeHostApi->allocations, strlen( wic.szPname ) + 1 + sizeof(constInputMapperSuffix_) );
+                    winMmeHostApi->allocations, nameLen);
         if( !deviceName )
         {
             result = paInsufficientMemory;
             goto error;
         }
-        strcpy( deviceName, wic.szPname );
-        strcat( deviceName, constInputMapperSuffix_ );
+
+        rc = WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             wic.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             deviceName,                //LPSTR lpMultiByteStr, 
+             nameLen,                   //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+        );
+        if(!rc)
+        {
+            printf("Problem with conversion to UTF-8\n");
+            result = paNotInitialized;
+            goto error;
+        }
+        //strcpy( deviceName, wic.szPname );
+
+        strcat_s( deviceName, nameLen, constInputMapperSuffix_ );
     }
     else
     {
+        nameLen=wcslen( wic.szPname ) + 1;
         deviceName = (char*)PaUtil_GroupAllocateMemory(
-                    winMmeHostApi->allocations, strlen( wic.szPname ) + 1 );
+                    winMmeHostApi->allocations, nameLen);
         if( !deviceName )
         {
             result = paInsufficientMemory;
             goto error;
         }
-        strcpy( deviceName, wic.szPname  );
+
+        rc = WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             wic.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             deviceName,                //LPSTR lpMultiByteStr, 
+             nameLen,                   //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+        );
+        if(!rc)
+        {
+            printf("Problem with conversion to UTF-8\n");
+            result = paNotInitialized;
+            goto error;
+        }
+        //strcpy( deviceName, wic.szPname  );
+
     }
     deviceInfo->name = deviceName;
 
@@ -630,6 +669,7 @@ error:
 static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeHostApi,
         PaWinMmeDeviceInfo *winMmeDeviceInfo, UINT winMmeOutputDeviceId, int *success )
 {
+	int nameLen, rc;
     PaError result = paNoError;
     char *deviceName; /* non-const ptr */
     MMRESULT mmresult;
@@ -657,26 +697,64 @@ static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMme
     if( winMmeOutputDeviceId == WAVE_MAPPER )
     {
         /* Append I/O suffix to WAVE_MAPPER device. */
+        nameLen = wcslen( woc.szPname ) + 1 + sizeof(constOutputMapperSuffix_);
         deviceName = (char *)PaUtil_GroupAllocateMemory(
-                    winMmeHostApi->allocations, strlen( woc.szPname ) + 1 + sizeof(constOutputMapperSuffix_) );
+                    winMmeHostApi->allocations, nameLen);
         if( !deviceName )
         {
             result = paInsufficientMemory;
             goto error;
         }
-        strcpy( deviceName, woc.szPname );
-        strcat( deviceName, constOutputMapperSuffix_ );
+
+        rc = WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             woc.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             deviceName,                //LPSTR lpMultiByteStr, 
+             nameLen,                   //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+        );
+        if(!rc)
+        {
+            printf("Problem with conversion to UTF-8\n");
+            result = paNotInitialized;
+            goto error;
+        }
+        //strcpy( deviceName, woc.szPname );
+
+        strcat_s( deviceName, nameLen, constOutputMapperSuffix_ );
     }
     else
     {
+        nameLen = wcslen( woc.szPname ) + 1;
         deviceName = (char*)PaUtil_GroupAllocateMemory(
-                    winMmeHostApi->allocations, strlen( woc.szPname ) + 1 );
+                    winMmeHostApi->allocations, nameLen);
         if( !deviceName )
         {
             result = paInsufficientMemory;
             goto error;
         }
-        strcpy( deviceName, woc.szPname  );
+
+        rc = WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             woc.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             deviceName,                //LPSTR lpMultiByteStr, 
+             nameLen,                   //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+        );
+        if(!rc)
+        {
+            printf("Problem with conversion to UTF-8\n");
+            result = paNotInitialized;
+            goto error;
+        }
+        //strcpy( deviceName, woc.szPname  );
+
     }
     deviceInfo->name = deviceName;
 

@@ -15,7 +15,11 @@
 #define _BSD_SOURCE
 #include <unistd.h>
 #include <sys/time.h>
+
+#ifndef __USE_POSIX199309
 #define __USE_POSIX199309
+#endif
+
 #include <time.h>
 #include "iaxclient_lib.h"
 
@@ -33,8 +37,8 @@ void iaxc_millisleep(long ms)
 {
 	struct timespec req;
 
-        req.tv_nsec = (ms%1000)*1000*1000;
-        req.tv_sec = ms/1000;
+	req.tv_nsec = (ms%1000)*1000*1000;
+	req.tv_sec = ms/1000;
 
         /* yes, it can return early.  We don't care */
         nanosleep(&req,NULL);
@@ -42,16 +46,17 @@ void iaxc_millisleep(long ms)
 
 
 /* TODO: Implement for X/MacOSX? */
-int post_event_callback(iaxc_event ev) {
+int post_event_callback(iaxc_event ev)
+{
 #if 0
-  iaxc_event *e;
-  e = malloc(sizeof(ev));
-  *e = ev;
+	iaxc_event *e;
+	e = malloc(sizeof(ev));
+	*e = ev;
 
-  /* XXX Test return value? */
-  PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
+	/* XXX Test return value? */
+	PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
 #endif
-  return 0;
+	return 0;
 }
 
 #ifdef MACOSX
@@ -64,35 +69,38 @@ int post_event_callback(iaxc_event ev) {
 /* include mach stuff for declaration of thread_policy stuff */
 #include <mach/mach.h>
 
-int iaxc_prioboostbegin() {
-      struct thread_time_constraint_policy ttcpolicy;
-      int params [2] = {CTL_HW,HW_BUS_FREQ};
-      int hzms;
-      size_t sz;
-      int ret;
+int iaxc_prioboostbegin()
+{
+	struct thread_time_constraint_policy ttcpolicy;
+	int params [2] = {CTL_HW,HW_BUS_FREQ};
+	int hzms;
+	size_t sz;
+	int ret;
 
-      /* get hz */
-      sz = sizeof (hzms);
-      sysctl (params, 2, &hzms, &sz, NULL, 0);
+	/* get hz */
+	sz = sizeof (hzms);
+	sysctl (params, 2, &hzms, &sz, NULL, 0);
 
-      /* make hzms actually hz per ms */
-      hzms /= 1000;
+	/* make hzms actually hz per ms */
+	hzms /= 1000;
 
-      /* give us at least how much? 6-8ms every 10ms (we generally need less) */
-      ttcpolicy.period = 10 * hzms; /* 10 ms */
-      ttcpolicy.computation = 2 * hzms;
-      ttcpolicy.constraint = 3 * hzms;
-      ttcpolicy.preemptible = 1;
+	/* give us at least how much? 6-8ms every 10ms (we generally need less) */
+	ttcpolicy.period = 10 * hzms; /* 10 ms */
+	ttcpolicy.computation = 2 * hzms;
+	ttcpolicy.constraint = 3 * hzms;
+	ttcpolicy.preemptible = 1;
 
-      if ((ret=thread_policy_set(mach_thread_self(),
-        THREAD_TIME_CONSTRAINT_POLICY, (int *)&ttcpolicy,
-        THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS) {
-            fprintf(stderr, "thread_policy_set failed: %d.\n", ret);
-      }    
-      return 0;
+	if ( (ret = thread_policy_set(mach_thread_self(),
+			THREAD_TIME_CONSTRAINT_POLICY, (int *)&ttcpolicy,
+			THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS )
+	{
+		fprintf(stderr, "thread_policy_set failed: %d.\n", ret);
+	}    
+	return 0;
 }
 
-int iaxc_prioboostend() {
+int iaxc_prioboostend()
+{
     /* TODO */
     return 0;
 }
@@ -175,210 +183,212 @@ typedef struct {
 
 static prioboost *pb;
 
-static int CanaryProc( prioboost   *b)
+static int CanaryProc( prioboost *b)
 {
-    int   result = 0;
-    struct sched_param    schat = { 0 };
+	int result = 0;
+	struct sched_param schat = { 0 };
 
-    /* set us up with normal priority, please */
-    if( pthread_setschedparam(pthread_self(), SCHED_OTHER, &schat) != 0)
-	return 1;
+	/* set us up with normal priority, please */
+	if( pthread_setschedparam(pthread_self(), SCHED_OTHER, &schat) != 0)
+		return 1;
 
-    while( b->CanaryRun) {
-      usleep( WATCHDOG_INTERVAL_USEC );
-      gettimeofday( &b->CanaryTime, NULL );
-    }
+	while( b->CanaryRun)
+	{
+		usleep( WATCHDOG_INTERVAL_USEC );
+		gettimeofday( &b->CanaryTime, NULL );
+	}
 
-    return result;
+	return result;
 }
 
-static int WatchDogProc( prioboost   *b )
+static int WatchDogProc( prioboost *b )
 {
-    struct sched_param    schp = { 0 };
-    int                   maxPri;
+	struct sched_param    schp = { 0 };
+	int                   maxPri;
 
-/* Run at a priority level above main thread so we can still run if it hangs. */
-/* Rise more than 1 because of rumored off-by-one scheduler bugs. */
-    schp.sched_priority = b->priority + 4;
-    maxPri = sched_get_priority_max(SCHEDULER_POLICY);
-    if( schp.sched_priority > maxPri ) schp.sched_priority = maxPri;
+	/* Run at a priority level above main thread so we can still run if it hangs. */
+	/* Rise more than 1 because of rumored off-by-one scheduler bugs. */
+	schp.sched_priority = b->priority + 4;
+	maxPri = sched_get_priority_max(SCHEDULER_POLICY);
+	if( schp.sched_priority > maxPri ) schp.sched_priority = maxPri;
 
-    if (pthread_setschedparam(pthread_self(), SCHEDULER_POLICY, &schp) != 0)
-    {
-        ERR_RPT("WatchDogProc: cannot set watch dog priority!\n");
-        goto killAudio;
-    }
+	if (pthread_setschedparam(pthread_self(), SCHEDULER_POLICY, &schp) != 0)
+	{
+		ERR_RPT("WatchDogProc: cannot set watch dog priority!\n");
+		goto killAudio;
+	}
 
-    DBUG("prioboost: WatchDog priority set to level %d!\n", schp.sched_priority);        
+	DBUG("prioboost: WatchDog priority set to level %d!\n", schp.sched_priority);        
 
-    /* Compare watchdog time with audio and canary thread times. */
-    /* Sleep for a while or until thread cancelled. */
-    while( b->WatchDogRun )
-    {
+	/* Compare watchdog time with audio and canary thread times. */
+	/* Sleep for a while or until thread cancelled. */
+	while( b->WatchDogRun )
+	{
 
-        int              delta;
-        struct timeval   currentTime;
+		int              delta;
+		struct timeval   currentTime;
 
-        usleep( WATCHDOG_INTERVAL_USEC );
-        gettimeofday( &currentTime, NULL );
+		usleep( WATCHDOG_INTERVAL_USEC );
+		gettimeofday( &currentTime, NULL );
 
 #if 0
-        /* If audio thread is not advancing, then it must be hung so kill it. */
-        delta = currentTime.tv_sec - b->EntryTime.tv_sec;
-        DBUG(("WatchDogProc: audio delta = %d\n", delta ));
-        if( delta > WATCHDOG_MAX_SECONDS )
-        {
-            goto killAudio;
-        }
+		/* If audio thread is not advancing, then it must be hung so kill it. */
+		delta = currentTime.tv_sec - b->EntryTime.tv_sec;
+		DBUG(("WatchDogProc: audio delta = %d\n", delta ));
+		if( delta > WATCHDOG_MAX_SECONDS )
+		{
+			goto killAudio;
+		}
 #endif
 
-        /* If canary died, then lower audio priority and halt canary. */
-        delta = currentTime.tv_sec - b->CanaryTime.tv_sec;
-    DBUG("WatchDogProc: dogging, delta = %ld, mysec=%d\n", delta, currentTime.tv_sec);
-        if( delta > WATCHDOG_MAX_SECONDS )
-        {
-            ERR_RPT("WatchDogProc: canary died!\n");
-            goto lowerAudio;
-        }
-    }
+		/* If canary died, then lower audio priority and halt canary. */
+		delta = currentTime.tv_sec - b->CanaryTime.tv_sec;
+		DBUG("WatchDogProc: dogging, delta = %ld, mysec=%d\n", delta, currentTime.tv_sec);
+		if( delta > WATCHDOG_MAX_SECONDS )
+		{
+			ERR_RPT("WatchDogProc: canary died!\n");
+			goto lowerAudio;
+		}
+	}
 
-    DBUG("WatchDogProc: exiting.\n");
-    return 0;
+	DBUG("WatchDogProc: exiting.\n");
+	return 0;
 
 lowerAudio:
-    {
-        struct sched_param    schat = { 0 };
-        if( pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schat) != 0)
-        {
-            ERR_RPT("WatchDogProc: failed to lower audio priority. errno = %d\n", errno );
-            /* Fall through into killing audio thread. */
-        }
-        else
-        {
-            ERR_RPT("WatchDogProc: lowered audio priority to prevent hogging of CPU.\n");
-            goto cleanup;
-        }
-    }
+	{
+		struct sched_param    schat = { 0 };
+		if( pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schat) != 0)
+		{
+			ERR_RPT("WatchDogProc: failed to lower audio priority. errno = %d\n", errno );
+			/* Fall through into killing audio thread. */
+		}
+		else
+		{
+			ERR_RPT("WatchDogProc: lowered audio priority to prevent hogging of CPU.\n");
+			goto cleanup;
+		}
+	}
 
 killAudio:
-    ERR_RPT("WatchDogProc: killing hung audio thread!\n");
-    //pthread_cancel( b->ThreadID);
-    //pthread_join( b->ThreadID);
-    exit(1);
+	ERR_RPT("WatchDogProc: killing hung audio thread!\n");
+	//pthread_cancel( b->ThreadID);
+	//pthread_join( b->ThreadID);
+	exit(1);
 
 cleanup:
-    b->CanaryRun = 0;
-    DBUG("WatchDogProc: cancel Canary\n");
-    pthread_cancel( b->CanaryThread );
-    DBUG("WatchDogProc: join Canary\n");
-    pthread_join( b->CanaryThread, NULL );
-    DBUG("WatchDogProc: forget Canary\n");
-    b->IsCanaryThreadValid = 0;
-
+	b->CanaryRun = 0;
+	DBUG("WatchDogProc: cancel Canary\n");
+	pthread_cancel( b->CanaryThread );
+	DBUG("WatchDogProc: join Canary\n");
+	pthread_join( b->CanaryThread, NULL );
+	DBUG("WatchDogProc: forget Canary\n");
+	b->IsCanaryThreadValid = 0;
 
 #ifdef GNUSTEP
-    GSUnregisterCurrentThread();  /* SB20010904 */
+	GSUnregisterCurrentThread();  /* SB20010904 */
 #endif
-    return 0;
+	return 0;
 }
 
-
-static void StopWatchDog( prioboost   *b )
+static void StopWatchDog( prioboost *b )
 {
-/* Cancel WatchDog thread if there is one. */
-    if( b->IsWatchDogThreadValid )
-    {
-        b->WatchDogRun = 0;
-        DBUG("StopWatchDog: cancel WatchDog\n");
-        pthread_cancel( b->WatchDogThread );
-        pthread_join( b->WatchDogThread, NULL );
-        b->IsWatchDogThreadValid = 0;
-    }
-/* Cancel Canary thread if there is one. */
-    if( b->IsCanaryThreadValid )
-    {
-        b->CanaryRun = 0;
-        DBUG("StopWatchDog: cancel Canary\n");
-        pthread_cancel( b->CanaryThread );
-        DBUG("StopWatchDog: join Canary\n");
-        pthread_join( b->CanaryThread, NULL );
-        b->IsCanaryThreadValid = 0;
-    }
+	/* Cancel WatchDog thread if there is one. */
+	if( b->IsWatchDogThreadValid )
+	{
+		b->WatchDogRun = 0;
+		DBUG("StopWatchDog: cancel WatchDog\n");
+		pthread_cancel( b->WatchDogThread );
+		pthread_join( b->WatchDogThread, NULL );
+		b->IsWatchDogThreadValid = 0;
+	}
+	/* Cancel Canary thread if there is one. */
+	if( b->IsCanaryThreadValid )
+	{
+		b->CanaryRun = 0;
+		DBUG("StopWatchDog: cancel Canary\n");
+		pthread_cancel( b->CanaryThread );
+		DBUG("StopWatchDog: join Canary\n");
+		pthread_join( b->CanaryThread, NULL );
+		b->IsCanaryThreadValid = 0;
+	}
 }
 
 
-static int StartWatchDog( prioboost *b) {
-    int  hres;
-    int  result = 0;
+static int StartWatchDog( prioboost *b)
+{
+	int  hres;
+	int  result = 0;
 
-    /* The watch dog watches for these timer updates */
-    gettimeofday( &b->CanaryTime, NULL );
+	/* The watch dog watches for these timer updates */
+	gettimeofday( &b->CanaryTime, NULL );
 
-    /* Launch a canary thread to detect priority abuse. */
-    b->CanaryRun = 1;
-    hres = pthread_create(&(b->CanaryThread),
-                      NULL /*pthread_attr_t * attr*/,
-                      (pthread_function_t)CanaryProc, b);
-    if( hres != 0 )
-    {
-        b->IsCanaryThreadValid = 0;
-        result = 1;
-        goto error;
-    }
-    b->IsCanaryThreadValid = 1;
+	/* Launch a canary thread to detect priority abuse. */
+	b->CanaryRun = 1;
+	hres = pthread_create(&(b->CanaryThread),
+			NULL /*pthread_attr_t * attr*/,
+			(pthread_function_t)CanaryProc, b);
+	if( hres != 0 )
+	{
+		b->IsCanaryThreadValid = 0;
+		result = 1;
+		goto error;
+	}
+	b->IsCanaryThreadValid = 1;
 
-    /* Launch a watchdog thread to prevent runaway audio thread. */
-    b->WatchDogRun = 1;
-    hres = pthread_create(&(b->WatchDogThread),
-                      NULL /*pthread_attr_t * attr*/,
-                      (pthread_function_t)WatchDogProc, b);
-    if( hres != 0 )     {
-        b->IsWatchDogThreadValid = 0;
-        result = 1;
-        goto error;
-    }
-    b->IsWatchDogThreadValid = 1;
-    return result;
+	/* Launch a watchdog thread to prevent runaway audio thread. */
+	b->WatchDogRun = 1;
+	hres = pthread_create(&(b->WatchDogThread),
+			NULL /*pthread_attr_t * attr*/,
+			(pthread_function_t)WatchDogProc, b);
+	if( hres != 0 )     {
+		b->IsWatchDogThreadValid = 0;
+		result = 1;
+		goto error;
+	}
+	b->IsWatchDogThreadValid = 1;
+	return result;
 
 error:
-    StopWatchDog( b );
-    return result;
+	StopWatchDog( b );
+	return result;
 }
 
-int iaxc_prioboostbegin() {
-    struct sched_param   schp = { 0 };
-    prioboost *b = calloc(sizeof(*b),1);
+int iaxc_prioboostbegin()
+{
+	struct sched_param   schp = { 0 };
+	prioboost *b = calloc(sizeof(*b),1);
 
-    int result = 0;    
+	int result = 0;    
 
-    b->priority = (sched_get_priority_max(SCHEDULER_POLICY) -
-                                  sched_get_priority_min(SCHEDULER_POLICY)) / 2;
-    schp.sched_priority = b->priority;
+	b->priority = (sched_get_priority_max(SCHEDULER_POLICY) -
+			sched_get_priority_min(SCHEDULER_POLICY)) / 2;
+	schp.sched_priority = b->priority;
 
-    b->ThreadID = pthread_self();
+	b->ThreadID = pthread_self();
 
-    if (pthread_setschedparam(b->ThreadID, SCHEDULER_POLICY, &schp) != 0)
-    {
-        DBUG("prioboost: only superuser can use real-time priority.\n");
-    }
-    else
-    {
-        DBUG("prioboost: priority set to level %d!\n", schp.sched_priority);        /* We are running at high priority so we should have a watchdog in case audio goes wild. */
-        result = StartWatchDog( b );
-    }
+	if (pthread_setschedparam(b->ThreadID, SCHEDULER_POLICY, &schp) != 0)
+	{
+		DBUG("prioboost: only superuser can use real-time priority.\n");
+	}
+	else
+	{
+		DBUG("prioboost: priority set to level %d!\n", schp.sched_priority);        /* We are running at high priority so we should have a watchdog in case audio goes wild. */
+		result = StartWatchDog( b );
+	}
 
-    if(result == 0)  {
-      pb = b;
-    } else {
-      pb = NULL;
-      schp.sched_priority = 0;
-      pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schp);
-    }
+	if(result == 0)  {
+		pb = b;
+	} else {
+		pb = NULL;
+		schp.sched_priority = 0;
+		pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schp);
+	}
 
-    return result; 
+	return result; 
 }
 
-int iaxc_prioboostend()  {
+int iaxc_prioboostend()
+{
 	if(pb) StopWatchDog(pb);
 	return 0;
 }

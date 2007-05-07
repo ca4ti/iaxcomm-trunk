@@ -10,4 +10,4 @@
  */
 
 
-struct iaxc_video_codec *iaxc_video_codec_theora_new(int format, int w, int h, int framerate, int bitrate);
+struct iaxc_video_codec *iaxc_video_codec_theora_new(int format, int w, int h, int framerate, int bitrate, int fragsize);

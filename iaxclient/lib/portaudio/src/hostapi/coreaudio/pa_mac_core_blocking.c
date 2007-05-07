@@ -194,10 +194,10 @@ PaError resetBlioRingBuffers( PaMacBlio *blio )
          goto error;
 #endif
 /*
-      printf( "------%d\n" ,  blio->framesPerBuffer );
-      printf( "------%d\n" ,  blio->outChan );
-      printf( "------%d\n" ,  blio->outputSampleSize );
-      printf( "------%d\n" ,  blio->framesPerBuffer*blio->outChan*blio->outputSampleSize );
+      fprintf(stderr, "------%d\n" ,  blio->framesPerBuffer );
+      fprintf(stderr, "------%d\n" ,  blio->outChan );
+      fprintf(stderr, "------%d\n" ,  blio->outputSampleSize );
+      fprintf(stderr,  "------%d\n" ,  blio->framesPerBuffer*blio->outChan*blio->outputSampleSize );
 */
    }
    if( blio->inputRingBuffer.buffer ) {
@@ -334,7 +334,7 @@ PaError ReadStream( PaStream* stream,
        do {
           avail = RingBuffer_GetReadAvailable( &blio->inputRingBuffer );
 /*
-          printf( "Read Buffer is %%%g full: %ld of %ld.\n",
+          fprintf(stderr, "Read Buffer is %%%g full: %ld of %ld.\n",
                   100 * (float)avail / (float) blio->inputRingBuffer.bufferSize,
                   avail, blio->inputRingBuffer.bufferSize );
 */
@@ -413,7 +413,7 @@ PaError WriteStream( PaStream* stream,
        do {
           avail = RingBuffer_GetWriteAvailable( &blio->outputRingBuffer );
 /*
-          printf( "Write Buffer is %%%g full: %ld of %ld.\n",
+          fprintf(stderr, "Write Buffer is %%%g full: %ld of %ld.\n",
                   100 - 100 * (float)avail / (float) blio->outputRingBuffer.bufferSize,
                   avail, blio->outputRingBuffer.bufferSize );
 */

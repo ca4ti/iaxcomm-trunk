@@ -88,7 +88,7 @@ int alsa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 		    continue;
 		}
                 if (r < 0) {
-		    printf("r=%d\n",r);
+		    fprintf(stderr, "r=%d\n",r);
 		}
                 samples += r * 2;
                 nSamples -= r;
@@ -188,12 +188,12 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
     }
     err = snd_pcm_sw_params_set_start_threshold(stream_out, sw_params, 80);
     if (err < 0) {
-        printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
+        fprintf(stderr, "Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
         return err;
     }
     err = snd_pcm_sw_params(stream_out, sw_params);
     if (err < 0) {
-        printf("Unable to set sw params for playback: %s\n", snd_strerror(err));
+        fprintf(stderr, "Unable to set sw params for playback: %s\n", snd_strerror(err));
         return err;
     }
 
@@ -240,12 +240,12 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
     }
     err = snd_pcm_sw_params_set_start_threshold(stream_in, sw_params, 80);
     if (err < 0) {
-        printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
+        fprintf(stderr, "Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
         return err;
     }
     err = snd_pcm_sw_params(stream_in, sw_params);
     if (err < 0) {
-        printf("Unable to set sw params for playback: %s\n", snd_strerror(err));
+        fprintf(stderr, "Unable to set sw params for playback: %s\n", snd_strerror(err));
         return err;
     }
     

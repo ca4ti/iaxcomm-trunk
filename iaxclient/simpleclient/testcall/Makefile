@@ -8,7 +8,7 @@ CFLAGS:= $(CFLAGS) -g
 
 OBJS=	testcall.o
 
-LIBS=	../../lib/libiaxclient.a 
+LIBS=	../../lib/libiaxclient.a ../../lib/libtheora/lib/.libs/libtheora.a -logg
 
 EXEEXT=
 

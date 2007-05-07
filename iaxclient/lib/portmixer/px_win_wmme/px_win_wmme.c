@@ -427,7 +427,7 @@ PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
 	}
 
   mono_vol = (unsigned short)vol;
-  return (PxVolume)mono_vol/65535.0;
+  return (PxVolume)mono_vol/65535.0F;
 }
 
 void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
@@ -655,7 +655,7 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = (LPMIXERCONTROL)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	LPMIXERCONTROL mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
 	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
@@ -678,7 +678,7 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	//
 
 	DWORD boost_id = -1 ;
-	int x = 0 ;
+	DWORD x = 0 ;
 	
 	for ( ; x < mixerLineControls.cControls ; ++x )
 	{
@@ -779,7 +779,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = (LPMIXERCONTROL)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	LPMIXERCONTROL mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
 	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
@@ -802,7 +802,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	//
 
 	DWORD boost_id = -1 ;
-	int x = 0 ;
+	DWORD x = 0 ;
 	
 	for ( ; x < mixerLineControls.cControls ; ++x )
 	{

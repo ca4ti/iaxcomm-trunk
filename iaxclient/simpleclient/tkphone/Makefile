@@ -74,8 +74,8 @@ endif
 endif
 
 ifeq ($(OSTYPE),MACOSX)
-CFLAGS:= $(CFLAGS) -DMACOSX -DPOSIXSLEEP
-SYSLIBS=-framework CoreAudio -framework AudioToolbox
+CFLAGS:= $(CFLAGS) -DMACOSX -DPOSIXSLEEP -arch i386 -arch ppc
+SYSLIBS=-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices -arch i386 -arch ppc
 ifeq ($(USE_HOTKEY),1)
 SYSLIBS:= $(SYSLIBS) -framework Carbon
 endif
@@ -113,4 +113,4 @@ $(ROOT)/lib/libiaxclient.a:
 	(cd $(ROOT)/lib; $(MAKE) libiaxclient.a)
 
 iaxcli$(EXEEXT): $(OBJS) $(LIBS)
-	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o iaxcli$(EXEEXT)
+	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o iaxcli$

@@ -87,7 +87,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
 
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, unsigned char *in, int *outlen, short *out ) {
-    struct state *state = c->decstate;
+    struct state *state = (struct state *)c->decstate;
     short *orig_out = out;
     short sample;
 
@@ -104,7 +104,7 @@ static int decode ( struct iaxc_audio_codec *c,
 	*(out++) = sample;
 	(*inlen)--; (*outlen)--;
     }
-    plc_rx(&state->plc,orig_out,out-orig_out);
+    plc_rx(&state->plc, orig_out, (int)(out - orig_out));
 
     return 0;
 }
@@ -123,7 +123,7 @@ static int encode ( struct iaxc_audio_codec *c,
 
 struct iaxc_audio_codec *iaxc_audio_codec_ulaw_new() {
 
-  struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
+  struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(sizeof(struct iaxc_audio_codec),1);
   
   if(!c) return c;
 
