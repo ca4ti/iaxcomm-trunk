@@ -1091,10 +1091,10 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	{
 		fr = iax_frame_new(DIRECTION_OUTGRESS, f->datalen);
 		if ( fr == NULL )
-	{
-		IAXERROR "Out of memory\n");
-		return -1;
-	}
+		{
+			IAXERROR "Out of memory\n");
+			return -1;
+		}
 	}
 	
 	/* Copy our prospective frame into our immediate or retransmitted wrapper */
@@ -1655,7 +1655,8 @@ int iax_send_video_trunk(struct iax_session *session, int format,
 {
 	static int my_lastts = 0;
 
-	if ( ntrunk==0 ) my_lastts = calc_timestamp(session, 0, NULL);
+	if ( ntrunk == 0 )
+		my_lastts = calc_timestamp(session, 0, NULL);
 
 	if ( !session->quelch )
 	{
@@ -2443,13 +2444,15 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 	struct iax_event *e;
 	struct iax_sched *sch;
 	unsigned int ts;
-	int subclass = uncompress_subclass(fh->csub);
+	int subclass;
 	int nowts;
 	int updatehistory = 1;
 	ts = ntohl(fh->ts);
 
 	if (fh->type==AST_FRAME_VIDEO)
 		subclass = uncompress_subclass(fh->csub & ~0x40) | ((fh->csub >> 6) & 0x1);
+	else
+		subclass = uncompress_subclass(fh->csub);
 
 	/* don't run last_ts backwards; i.e. for retransmits and the like */
 	if (ts > session->last_ts &&
@@ -2584,6 +2587,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 		case AST_FRAME_VOICE:
 			e->etype = IAX_EVENT_VOICE;
 			e->subclass = subclass;
+			e->ts = ts;
 			session->voiceformat = subclass;
 			if (datalen) {
 				memcpy(e->data, fh->iedata, datalen);
@@ -2842,17 +2846,11 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 			break;
 		case AST_FRAME_VIDEO:
 			e->etype = IAX_EVENT_VIDEO;
-			//e->subclass = subclass;
-			// Taken from chan_iax in asterisk 1.0.7
-			// Prima uguagliavo a: uncompress_subclass(fh->csub & ~0x40) | ((fh->csub >> 6) & 0x1);
-			// adesso lo faccio all'inizio della funzione
-			e->subclass = subclass & ~0x1;
+			e->subclass = subclass;
+			e->ts = ts;
 			session->videoformat = e->subclass;
-			//session->voiceformat = -1;
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-				e->datalen = datalen;
-			}
+			memcpy(e->data, fh->iedata, datalen);
+			e->datalen = datalen;
 			e = schedule_delivery(e, ts, updatehistory);
 			break;
 		case AST_FRAME_TEXT:
@@ -2914,12 +2912,9 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 
 /* Some parts taken from iax_miniheader_to_event and from from chan_iax2.c. We must inform Mark Spencer? */
 static struct iax_event *iax_videoheader_to_event(struct iax_session *session,
-						struct ast_iax2_video_hdr *vh,
-						int datalen)
+		struct ast_iax2_video_hdr *vh, int datalen)
 {
 	struct iax_event * e;
-	unsigned int ts;
-	int updatehistory = 1;
 
 	if ( session->videoformat <= 0 )
 	{
@@ -2941,42 +2936,38 @@ static struct iax_event *iax_videoheader_to_event(struct iax_session *session,
 	e->subclass = session->videoformat | (ntohs(vh->ts) & 0x8000 ? 1 : 0);
 	e->datalen = datalen;
 	memcpy(e->data, vh->data, e->datalen);
-	ts = (session->last_ts & 0xFFFF8000L) | (ntohs(vh->ts) & 0x7fff);
-	e->ts = ts;
+	e->ts = (session->last_ts & 0xFFFF8000L) | (ntohs(vh->ts) & 0x7fff);
 
-	return schedule_delivery(e, ts, updatehistory);
+	return schedule_delivery(e, e->ts, 1);
 }
 
 static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
-						struct ast_iax2_mini_hdr *mh,
-						int datalen)
+		struct ast_iax2_mini_hdr *mh, int datalen)
 {
-	struct iax_event *e;
-	unsigned int ts;
-	int updatehistory = 1;
+	struct iax_event * e;
+
+	if ( session->voiceformat <= 0 )
+	{
+		DEBU(G "No last format received on session %d\n", session->callno);
+		return 0;
+	}
+
 	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen);
-	if (e) {
-		if (session->voiceformat > 0) {
-			e->etype = IAX_EVENT_VOICE;
-			e->session = session;
-			e->subclass = session->voiceformat;
-			e->datalen = datalen;
-			if (datalen) {
-#ifdef EXTREME_DEBUG
-				DEBU(G "%d bytes of voice\n", datalen);
-#endif
-				memcpy(e->data, mh->data, datalen);
-			}
-			ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
-			return schedule_delivery(e, ts, updatehistory);
-		} else {
-			DEBU(G "No last format received on session %d\n", session->callno);
-			free(e);
-			e = NULL;
-		}
-	} else
+
+	if ( !e )
+	{
 		DEBU(G "Out of memory\n");
-	return e;
+		return 0;
+	}
+
+	e->etype = IAX_EVENT_VOICE;
+	e->session = session;
+	e->subclass = session->voiceformat;
+	e->datalen = datalen;
+	memcpy(e->data, mh->data, datalen);
+	e->ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
+
+	return schedule_delivery(e, e->ts, 1);
 }
 
 void iax_destroy(struct iax_session *session)
@@ -3078,9 +3069,14 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 			return NULL;
 		}
 		/* We have a full header, process appropriately */
-		session = iax_find_session(sin, ntohs(fh->scallno) & ~IAX_FLAG_FULL, ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS, 1);
+		session = iax_find_session(sin,
+				ntohs(fh->scallno) & ~IAX_FLAG_FULL,
+				ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS, 1);
 		if (!session)
-			session = iax_txcnt_session(fh, len-sizeof(struct ast_iax2_full_hdr), sin, ntohs(fh->scallno) & ~IAX_FLAG_FULL, ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS);
+			session = iax_txcnt_session(fh,
+					len - sizeof(struct ast_iax2_full_hdr),
+					sin, ntohs(fh->scallno) & ~IAX_FLAG_FULL,
+					ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS);
 		if (session)
 			return iax_header_to_event(session, fh, len - sizeof(struct ast_iax2_full_hdr), sin);
 		DEBU(G "No session?\n");
@@ -3099,12 +3095,12 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 			if (session)
 				return iax_videoheader_to_event(session, vh,
 						len - sizeof(struct ast_iax2_video_hdr));
-		} else
-		{
-		  // audio frame??
-		session = iax_find_session(sin, ntohs(fh->scallno), 0, 0);
-		if (session)
-			return iax_miniheader_to_event(session, mh, len - sizeof(struct ast_iax2_mini_hdr));
+		} else {
+			/* audio frame */
+			session = iax_find_session(sin, ntohs(fh->scallno), 0, 0);
+			if (session)
+				return iax_miniheader_to_event(session, mh,
+						len - sizeof(struct ast_iax2_mini_hdr));
 		}
 		DEBU(G "No session?\n");
 		return NULL;
