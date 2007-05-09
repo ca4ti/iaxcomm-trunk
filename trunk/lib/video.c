@@ -367,12 +367,14 @@ static struct iaxc_video_codec *create_codec(int format, int encode)
  *             - encoded - true if data is encoded
  *             - rgb32 - if true, convert data to RGB32 before showing
  */
-void show_video_frame(char *videobuf, int size, int cn, int source, int encoded, int rgb32)
+void show_video_frame(char *videobuf, int size, int cn, int source, int encoded,
+		unsigned int ts, int rgb32)
 {
 	iaxc_event e;
 	char * buffer;
 
 	e.type = IAXC_EVENT_VIDEO;
+	e.ev.video.ts = ts;
 
 	if ( size <= 0 )
 		fprintf(stderr, "WARNING: size %d in show_video_frame\n", size);
@@ -429,7 +431,7 @@ int iaxc_send_video(struct iaxc_call *call, int sel_call)
 	// Send the raw frame to the main app, if necessary
 	if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_RAW )
 	{
-		show_video_frame(videobuf, inlen, -1, IAXC_SOURCE_LOCAL, 0,
+		show_video_frame(videobuf, inlen, -1, IAXC_SOURCE_LOCAL, 0, 0,
 				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
 	}
 
@@ -511,7 +513,7 @@ int iaxc_send_video(struct iaxc_call *call, int sel_call)
 		if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED )
 		{
 			show_video_frame(slice_set.data[i], slice_set.size[i],
-					-1, IAXC_SOURCE_LOCAL, 1, 0);
+					-1, IAXC_SOURCE_LOCAL, 1, 0, 0);
 		}
 
 		if ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE) )
@@ -542,7 +544,8 @@ int iaxc_send_video(struct iaxc_call *call, int sel_call)
 
 /* process an incoming video frame */
 int iaxc_receive_video(struct iaxc_call *call, int sel_call,
-		void *encoded_video, int encoded_video_len, int format)
+		void *encoded_video, int encoded_video_len,
+		unsigned int ts, int format)
 {
 	static char videobuf[VIDEO_BUFSIZ];
 	int outsize = VIDEO_BUFSIZ;
@@ -563,7 +566,7 @@ int iaxc_receive_video(struct iaxc_call *call, int sel_call,
 	if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_REMOTE_ENCODED )
 	{
 		show_video_frame((char *)encoded_video, encoded_video_len, -1,
-				IAXC_SOURCE_REMOTE, 1, 0);
+				IAXC_SOURCE_REMOTE, 1, ts, 0);
 	}
 
 	/* destroy vdecoder if it is incorrect type */
@@ -626,7 +629,7 @@ int iaxc_receive_video(struct iaxc_call *call, int sel_call,
 	if ( outsize > 0 )
 	{
 		show_video_frame(videobuf, outsize, sel_call,
-				IAXC_SOURCE_REMOTE, 0,
+				IAXC_SOURCE_REMOTE, 0, ts,
 				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
 	}
 
