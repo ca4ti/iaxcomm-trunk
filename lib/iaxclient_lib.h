@@ -119,7 +119,8 @@ pthread_create(&thread, NULL, func, args)
 void os_init(void);
 void iaxc_usermsg(int type, const char *fmt, ...);
 void iaxc_do_levels_callback(float input, float output);
-void iaxc_do_audio_callback(int callNo, int remote, int encoded, int format, int size, unsigned char *data);
+void iaxc_do_audio_callback(int callNo, unsigned int ts, int remote,
+		int encoded, int format, int size, unsigned char *data);
 
 #include "iaxclient.h"
 
@@ -277,7 +278,8 @@ struct iaxc_call {
 int iaxc_video_initialize();
 int iaxc_video_destroy();
 int iaxc_receive_video(struct iaxc_call * call, int sel_call,
-		void * encoded_video, int encoded_video_len, int format);
+		void * encoded_video, int encoded_video_len,
+		unsigned int ts, int format);
 int iaxc_send_video(struct iaxc_call *, int);
 
 extern double iaxc_silence_threshold;

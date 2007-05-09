@@ -319,7 +319,7 @@ int send_encoded_audio(struct iaxc_call *call, int callNo, void *data, int forma
 	// Send the encoded audio data back to the app if required
 	// TODO: fix the stupid way in which the encoded audio size is returned
 	if ( iaxc_get_audio_prefs() & IAXC_AUDIO_PREF_RECV_LOCAL_ENCODED )
-		iaxc_do_audio_callback(callNo, IAXC_SOURCE_LOCAL, 1,
+		iaxc_do_audio_callback(callNo, 0, IAXC_SOURCE_LOCAL, 1,
 				call->encoder->format & IAXC_AUDIO_FORMAT_MASK,
 				sizeof(outbuf) - outsize, outbuf);
 

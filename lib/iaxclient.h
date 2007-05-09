@@ -216,6 +216,7 @@ struct iaxc_ev_url {
 
 struct iaxc_ev_video {
 	int callNo;
+	unsigned int ts;
 	int format;
 	int width;
 	int height;
@@ -227,12 +228,13 @@ struct iaxc_ev_video {
 
 struct iaxc_ev_audio
 {
-	int		callNo;
-	int 		format;
-	int		encoded;
-	int		source;
-	int		size;
-	unsigned char	*data;
+	int callNo;
+	unsigned int ts;
+	int format;
+	int encoded;
+	int source;
+	int size;
+	unsigned char *data;
 };
 
 struct iaxc_ev_registration {

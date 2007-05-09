@@ -342,12 +342,13 @@ void iaxc_do_registration_callback(int id, int reply, int msgcount)
 	iaxc_post_event(e);
 }
 
-void iaxc_do_audio_callback(int callNo, int source, int encoded, int format,
-		int size, unsigned char *data)
+void iaxc_do_audio_callback(int callNo, unsigned int ts, int source,
+		int encoded, int format, int size, unsigned char *data)
 {
 	iaxc_event e;
 
 	e.type = IAXC_EVENT_AUDIO;
+	e.ev.audio.ts = ts;
 	e.ev.audio.encoded = encoded;
 	assert(source == IAXC_SOURCE_REMOTE || source == IAXC_SOURCE_LOCAL);
 	e.ev.audio.source = source;
@@ -899,7 +900,7 @@ static int service_audio()
 				break;
 
 			if ( audio_prefs & IAXC_AUDIO_PREF_RECV_LOCAL_RAW )
-				iaxc_do_audio_callback(selected_call,
+				iaxc_do_audio_callback(selected_call, 0,
 						IAXC_SOURCE_LOCAL, 0, 0,
 						to_read * 2, (unsigned char *)buf);
 
@@ -1077,8 +1078,8 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 
 		/* Pass encoded audio back to the app if required */
 		if ( audio_prefs & IAXC_AUDIO_PREF_RECV_REMOTE_ENCODED )
-			iaxc_do_audio_callback(callNo, IAXC_SOURCE_REMOTE, 1,
-					format & IAXC_AUDIO_FORMAT_MASK,
+			iaxc_do_audio_callback(callNo, e->ts, IAXC_SOURCE_REMOTE,
+					1, format & IAXC_AUDIO_FORMAT_MASK,
 					e->datalen - total_consumed,
 					e->data + total_consumed);
 
@@ -1099,8 +1100,8 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 			// the number to obtain the size in bytes.
 			// format will also be 0 since this is raw audio
 			int size = (fr_samples - samples - mainbuf_delta) * 2;
-			iaxc_do_audio_callback(callNo, IAXC_SOURCE_REMOTE, 0, 0,
-					size, (unsigned char *)fr);
+			iaxc_do_audio_callback(callNo, e->ts, IAXC_SOURCE_REMOTE,
+					0, 0, size, (unsigned char *)fr);
 		}
 
 		if ( iaxc_audio_output_mode != 0 )
@@ -1135,7 +1136,7 @@ static void handle_video_event(struct iax_event *e, int callNo)
 	if ( call->vformat )
 	{
 		if ( iaxc_receive_video(call, selected_call, e->data,
-					e->datalen, call->vformat) < 0 )
+					e->datalen, e->ts, call->vformat) < 0 )
 		{
 			iaxc_usermsg(IAXC_STATUS,
 				"Bad or incomplete video packet. Unable to decode.");
