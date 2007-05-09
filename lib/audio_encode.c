@@ -25,10 +25,10 @@
 	#include "codec_ilbc.h"
 #endif
 
-double iaxc_silence_threshold = -9e99;
+float iaxc_silence_threshold = -9e99f;
 
-static double input_level = 0.0;
-static double output_level = 0.0;
+static float input_level = 0.0f;
+static float output_level = 0.0f;
 
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
@@ -50,49 +50,39 @@ static struct iaxc_speex_settings speex_settings =
 };
 
 
-static double vol_to_db(double vol)
+static float vol_to_db(float vol)
 {
 	/* avoid calling log10() on zero which yields inf or
 	 * negative numbers which yield nan */
 	if ( vol <= 0.0 )
 		return 0.0;
 	else
-		return log10(vol) * 20;
-}
-
-/* just get the current input/output volumes, and return them. */
-int iaxc_get_inout_volumes(int *input, int *output)
-{
-	if(input)
-		*input = (int)vol_to_db(input_level);
-	if(output)
-		*output = (int)vol_to_db(output_level);
-
-	return 0;
+		return log10f(vol) * 20;
 }
 
 static int do_level_callback()
 {
 	static struct timeval last = {0,0};
 	struct timeval now;
-	double input_db;
-	double output_db;
+	float input_db;
+	float output_db;
 
-	gettimeofday(&now,NULL);
-	if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000)
+	gettimeofday(&now, 0);
+
+	if ( last.tv_sec != 0 && iaxc_usecdiff(&now, &last) < 100000 )
 		return 0;
 
 	last = now;
 
 	/* if input has not been processed in the last second, set to silent */
-	input_db = ( iaxc_usecdiff( &now, &timeLastInput ) < 1000000 )
-		? vol_to_db( input_level ) : -99.9;
+	input_db = iaxc_usecdiff(&now, &timeLastInput) < 1000000 ?
+			vol_to_db(input_level) : -99.9f;
 
 	/* if output has not been processed in the last second, set to silent */
-	output_db = ( iaxc_usecdiff( &now, &timeLastOutput ) < 1000000 )
-		? vol_to_db( output_level ) : -99.9;
+	output_db = iaxc_usecdiff(&now, &timeLastOutput) < 1000000 ?
+		vol_to_db(output_level) : -99.9f;
 
-	iaxc_do_levels_callback((float) input_db, (float) output_db);
+	iaxc_do_levels_callback(input_db, output_db);
 
 	return 0;
 }
@@ -120,7 +110,7 @@ void iaxc_set_speex_filters()
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &f);
 }
 
-static void calculate_level(short *audio, int len, double *level)
+static void calculate_level(short *audio, int len, float *level)
 {
 	int big_sample = 0;
 	int i;
@@ -132,17 +122,19 @@ static void calculate_level(short *audio, int len, double *level)
 			sample : big_sample;
 	}
 
-	*level += ((double)big_sample / 32767.0 - *level) / 5.0;
+	*level += ((float)big_sample / 32767.0f - *level) / 5.0f;
 }
 
 static int input_postprocess(void *audio, int len, int rate)
 {
-	double volume;
-	static double lowest_volume = 1.0;
-	int silent=0;
+	static float lowest_volume = 1.0f;
+	float volume;
+	int silent = 0;
 
-	if(!st || (speex_state_size != len) || (speex_state_rate != rate)) {
-		if (st) speex_preprocess_state_destroy(st);
+	if ( !st || speex_state_size != len || speex_state_rate != rate )
+	{
+		if (st)
+			speex_preprocess_state_destroy(st);
 		st = speex_preprocess_state_init(len,rate);
 		speex_state_size = len;
 		speex_state_rate = rate;
@@ -152,58 +144,62 @@ static int input_postprocess(void *audio, int len, int rate)
 	calculate_level((short *)audio, len, &input_level);
 
 	/* only preprocess if we're interested in VAD, AGC, or DENOISE */
-	if((iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) || iaxc_silence_threshold > 0)
+	if ( (iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) ||
+			iaxc_silence_threshold > 0.0f )
 		silent = !speex_preprocess(st, (spx_int16_t *)audio, NULL);
 
 	/* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
 	/* use a higher continuation threshold for AAGC than for VAD itself */
-	if(!silent &&
-			(iaxc_silence_threshold != 0) &&
+	if ( !silent &&
+			iaxc_silence_threshold != 0.0f &&
 			(iaxc_filters & IAXC_FILTER_AGC) &&
 			(iaxc_filters & IAXC_FILTER_AAGC) &&
-			(st->speech_prob > 0.20)
-	  )
+			st->speech_prob > 0.20f )
 	{
 		static int i = 0;
 
 		i++;
 
-		if((i&0x3f) == 0) {
+		if ( (i & 0x3f) == 0 )
+		{
 			const float loudness = st->loudness2;
-			if((loudness > 8000.0) || (loudness < 4000.0)) {
-				const double level = iaxc_input_level_get();
-				/* fprintf(stderr, "loudness = %f, level = %f\n", loudness, level); */
-				/* lower quickly if we're really too hot */
-				if((loudness > 16000.0) && (level > 0.5)) {
-					/* fprintf(stderr, "lowering quickly level\n"); */
-					iaxc_input_level_set(level - 0.2);
+
+			if ( loudness > 8000.0f || loudness < 4000.0f )
+			{
+				const float level = iaxc_input_level_get();
+
+				if ( loudness > 16000.0f && level > 0.5f )
+				{
+					/* lower quickly if we're really too hot */
+					iaxc_input_level_set(level - 0.2f);
 				}
-				/* lower less quickly if we're a bit too hot */
-				else if((loudness > 8000.0) && (level >= 0.15)) {
-					/* fprintf(stderr, "lowering slowly level\n"); */
-					iaxc_input_level_set(level - 0.1);
+				else if ( loudness > 8000.0f && level >= 0.15f )
+				{
+					/* lower less quickly if we're a bit too hot */
+					iaxc_input_level_set(level - 0.1f);
 				}
-				/* raise slowly if we're cold */
-				else if((loudness < 4000.0) && (level <= 0.9)) {
-					/* fprintf(stderr, "raising level\n"); */
-					iaxc_input_level_set(level + 0.1);
+				else if ( loudness < 4000.0f && level <= 0.9f )
+				{
+					/* raise slowly if we're cold */
+					iaxc_input_level_set(level + 0.1f);
 				}
 			}
 		}
 	}
 
-	/* this is ugly.  Basically just don't get volume level if speex thought
-	 * we were silent.  just set it to 0 in that case */
-	if(iaxc_silence_threshold > 0 && silent)
-		input_level = 0;
+	/* This is ugly. Basically just don't get volume level if speex thought
+	 * we were silent. Just set it to 0 in that case */
+	if ( iaxc_silence_threshold > 0.0f && silent )
+		input_level = 0.0f;
 
 	do_level_callback();
 
 	volume = vol_to_db(input_level);
 
-	if(volume < lowest_volume) lowest_volume = volume;
+	if ( volume < lowest_volume )
+		lowest_volume = volume;
 
-	if(iaxc_silence_threshold > 0)
+	if ( iaxc_silence_threshold > 0.0f )
 		return silent;
 	else
 		return volume < iaxc_silence_threshold;

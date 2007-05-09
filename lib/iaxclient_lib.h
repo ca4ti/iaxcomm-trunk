@@ -148,10 +148,10 @@ struct iaxc_audio_driver {
 	int (*input)(struct iaxc_audio_driver *d, void *samples, int *nSamples);
 
 	/* levels */
-	double (*input_level_get)(struct iaxc_audio_driver *d);
-	double (*output_level_get)(struct iaxc_audio_driver *d);
-	int (*input_level_set)(struct iaxc_audio_driver *d, double level);
-	int (*output_level_set)(struct iaxc_audio_driver *d, double level);
+	float (*input_level_get)(struct iaxc_audio_driver *d);
+	float (*output_level_get)(struct iaxc_audio_driver *d);
+	int (*input_level_set)(struct iaxc_audio_driver *d, float level);
+	int (*output_level_set)(struct iaxc_audio_driver *d, float level);
 
 	/* sounds */
 	int (*play_sound)(struct iaxc_sound *s, int ring);
@@ -282,7 +282,7 @@ int iaxc_receive_video(struct iaxc_call * call, int sel_call,
 		unsigned int ts, int format);
 int iaxc_send_video(struct iaxc_call *, int);
 
-extern double iaxc_silence_threshold;
+extern float iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
 
 int post_event_callback(iaxc_event e);

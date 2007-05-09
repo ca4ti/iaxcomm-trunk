@@ -145,8 +145,8 @@ static MUTEX sound_lock;
 /* forward declarations */
 static int pa_start (struct iaxc_audio_driver *d );
 static void handle_paerror(PaError err, char * where);
-static int pa_input_level_set(struct iaxc_audio_driver *d, double level);
-static double pa_input_level_get(struct iaxc_audio_driver *d);
+static int pa_input_level_set(struct iaxc_audio_driver *d, float level);
+static float pa_input_level_get(struct iaxc_audio_driver *d);
 
 /* scan devices and stash pointers to dev structures.
  *  But, these structures only remain valid while Pa is initialized,
@@ -748,9 +748,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 
 static int pa_start(struct iaxc_audio_driver *d)
 {
-	PaError err;
-	static int errcnt=0;
-	double level;
+	static int errcnt = 0;
 
 	if ( running )
 		return 0;
@@ -793,14 +791,14 @@ static int pa_start(struct iaxc_audio_driver *d)
 
 	errcnt = 0; // only count consecutive errors.
 
-	err = Pa_StartStream(iStream);
-	if(err != paNoError) return -1;
+	if ( Pa_StartStream(iStream) != paNoError )
+		return -1;
 
 	iMixer = Px_OpenMixer(iStream, 0);
 
 	if ( !oneStream )
 	{
-		err = Pa_StartStream(oStream);
+		PaError err = Pa_StartStream(oStream);
 		oMixer = Px_OpenMixer(oStream, 0);
 		if ( err != paNoError )
 		{
@@ -821,8 +819,7 @@ static int pa_start(struct iaxc_audio_driver *d)
 	if ( auxStream )
 	{
 		pa_openauxstream(d);
-		err = Pa_StartStream(aStream);
-		if(err != paNoError)
+		if ( Pa_StartStream(aStream) != paNoError )
 		{
 			auxStream = 0;
 		}
@@ -846,17 +843,17 @@ static int pa_start(struct iaxc_audio_driver *d)
 			}
 		}
 
-		/* try to set the microphone boost -- we just turn off this "boost" feature, because
-		   it often leads to clipping, which we can't fix later -- but we can deal with low input levels
-		   much more gracefully */
+		/* try to set the microphone boost -- we just turn off this
+		 * "boost" feature, because it often leads to clipping, which
+		 * we can't fix later -- but we can deal with low input levels
+		 * much more gracefully */
 		Px_SetMicrophoneBoost( iMixer, 0 );
 
-		/* if the input level is very low, raise it up a bit.
+		/* If the input level is very low, raise it up a bit.
 		 * Otherwise, AGC cannot detect speech, and cannot adjust
 		 * levels */
-		level = pa_input_level_get(d);
-		if ( level < 0.5 )
-			pa_input_level_set(d, 0.6);
+		if ( pa_input_level_get(d) < 0.5f )
+			pa_input_level_set(d, 0.6f);
 		mixers_initialized = 1;
 	}
 
@@ -980,10 +977,11 @@ static int pa_destroy(struct iaxc_audio_driver *d)
 	return Pa_Terminate();
 }
 
-static double pa_input_level_get(struct iaxc_audio_driver *d)
+static float pa_input_level_get(struct iaxc_audio_driver *d)
 {
 	/* iMixer should be non-null if we using either one or two streams */
-	if(!iMixer) return -1;
+	if ( !iMixer )
+		return -1;
 
 	/* make sure this device supports input volume controls */
 	if ( Px_GetNumInputSources( iMixer ) == 0 )
@@ -992,7 +990,7 @@ static double pa_input_level_get(struct iaxc_audio_driver *d)
 	return Px_GetInputVolume(iMixer);
 }
 
-static double pa_output_level_get(struct iaxc_audio_driver *d)
+static float pa_output_level_get(struct iaxc_audio_driver *d)
 {
 	PxMixer *mix;
 
@@ -1002,65 +1000,63 @@ static double pa_output_level_get(struct iaxc_audio_driver *d)
 
 	if ( oMixer )
 		mix = oMixer;
-	else if (iMixer)
+	else if ( iMixer )
 		mix = iMixer;
 	else
 		return -1;
 
 	/* prefer the pcm output, but default to the master output */
-	if ( Px_SupportsPCMOutputVolume( mix ) )
-		return Px_GetPCMOutputVolume( mix );
+	if ( Px_SupportsPCMOutputVolume(mix) )
+		return Px_GetPCMOutputVolume(mix);
 	else
-		return Px_GetMasterVolume( mix );
+		return Px_GetMasterVolume(mix);
 }
 
-static int pa_input_level_set(struct iaxc_audio_driver *d, double level)
+static int pa_input_level_set(struct iaxc_audio_driver *d, float level)
 {
-	if(!iMixer) return -1;
-
 	/* make sure this device supports input volume controls */
-	if ( Px_GetNumInputSources( iMixer ) == 0 )
+	if ( !iMixer || Px_GetNumInputSources(iMixer) == 0 )
 		return -1;
 
-	//fprintf(stderr, "setting input level to %f\n", level);
-	Px_SetInputVolume(iMixer, (float) level);
+	Px_SetInputVolume(iMixer, level);
+
 	return 0;
 }
 
-static int pa_output_level_set(struct iaxc_audio_driver *d, double level)
+static int pa_output_level_set(struct iaxc_audio_driver *d, float level)
 {
 	PxMixer *mix;
 
-	if(oMixer)
+	if ( oMixer )
 		mix = oMixer;
-	else if (iMixer)
+	else if ( iMixer )
 		mix = iMixer;
 	else
 		return -1;
 
 	/* prefer the pcm output, but default to the master output */
-	if ( Px_SupportsPCMOutputVolume( mix ) )
-		Px_SetPCMOutputVolume(mix, (float) level);
+	if ( Px_SupportsPCMOutputVolume(mix) )
+		Px_SetPCMOutputVolume(mix, level);
 	else
-		Px_SetMasterVolume(mix, (float) level);
+		Px_SetMasterVolume(mix, level);
 
 	return 0;
 }
 
 static int pa_mic_boost_get(struct iaxc_audio_driver* d)
 {
-	int enable = -1;
-	if ( iMixer != NULL )
-		enable = Px_GetMicrophoneBoost( iMixer );
-	return enable;
+	if ( !iMixer )
+		return -1;
+
+	return Px_GetMicrophoneBoost(iMixer);
 }
 
 int pa_mic_boost_set(struct iaxc_audio_driver* d, int enable)
 {
-	int err = -1;
-	if ( iMixer != NULL )
-		err = Px_SetMicrophoneBoost(iMixer, enable);
-	return err;
+	if ( !iMixer )
+		return -1;
+
+	return Px_SetMicrophoneBoost(iMixer, enable);
 }
 
 /* initialize audio driver */
