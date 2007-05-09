@@ -303,7 +303,7 @@ EXPORT void iaxc_send_dtmf(char digit);
 EXPORT void iaxc_send_text(char *text);
 EXPORT void iaxc_send_url(char *url, int link); /* link == 1 ? AST_HTML_LINKURL : AST_HTML_URL */
 EXPORT void iaxc_millisleep(long ms);
-EXPORT void iaxc_set_silence_threshold(double thr);
+EXPORT void iaxc_set_silence_threshold(float thr);
 EXPORT void iaxc_set_audio_output(int mode);
 EXPORT int iaxc_select_call(int callNo);
 EXPORT int iaxc_first_free_call();
@@ -351,10 +351,10 @@ struct iaxc_audio_device {
 EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring);
 EXPORT int iaxc_audio_devices_set(int input, int output, int ring);
 
-EXPORT double iaxc_input_level_get();
-EXPORT double iaxc_output_level_get();
-EXPORT int iaxc_input_level_set(double level);
-EXPORT int iaxc_output_level_set(double level);
+EXPORT float iaxc_input_level_get();
+EXPORT float iaxc_output_level_get();
+EXPORT int iaxc_input_level_set(float level);
+EXPORT int iaxc_output_level_set(float level);
 
 
 struct iaxc_sound {

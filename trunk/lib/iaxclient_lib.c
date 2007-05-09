@@ -142,7 +142,7 @@ static void put_iaxc_lock()
 	}
 }
 
-EXPORT void iaxc_set_silence_threshold(double thr)
+EXPORT void iaxc_set_silence_threshold(float thr)
 {
 	iaxc_silence_threshold = thr;
 	iaxc_set_speex_filters();
@@ -1777,22 +1777,22 @@ EXPORT int iaxc_audio_devices_set(int input, int output, int ring)
 	return ret;
 }
 
-EXPORT double iaxc_input_level_get()
+EXPORT float iaxc_input_level_get()
 {
 	return audio_driver.input_level_get(&audio_driver);
 }
 
-EXPORT double iaxc_output_level_get()
+EXPORT float iaxc_output_level_get()
 {
 	return audio_driver.output_level_get(&audio_driver);
 }
 
-EXPORT int iaxc_input_level_set(double level)
+EXPORT int iaxc_input_level_set(float level)
 {
 	return audio_driver.input_level_set(&audio_driver, level);
 }
 
-EXPORT int iaxc_output_level_set(double level)
+EXPORT int iaxc_output_level_set(float level)
 {
 	return audio_driver.output_level_set(&audio_driver, level);
 }
