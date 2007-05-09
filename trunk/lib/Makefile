@@ -49,7 +49,7 @@ CFLAGS += -Wall -Wmissing-noreturn
 ifeq ($(PRODUCTION_BUILD),1)
 CFLAGS += -O2 -Wpointer-arith
 else
-CFLAGS += -g -O2
+CFLAGS += -g -O0
 endif
 
 CPPFLAGS += -DLIBVER='"SVN $(shell svnversion .)"'
