@@ -1,10 +1,43 @@
-To build under MS Visual Studio
+These are instructions to build iaxclient with Microsoft Visual Studio
+2005. The solution file and project files are located in the
+contrib/win/vs2005 directory.
 
-1) Set environment variables:
-%DXSDK_DIR%	- points to DirectX SDK
-%PSDK_DIR%	- points to Platform SDK
+ 1) The following environment variables must be set. Use the "System"
+    properties dialog in the Windows Control Panel to set these
+    variables either for the user or system-wide.
 
-2) Open "Solution" file:
-lib/iaxclient.sln
+    %DXSDK_DIR%
 
-3) Build "Solution"
+    Path to the DirectX SDK. The December 2006 version of the DirectX
+    SDK has been known to work.
+
+    %PSDK_DIR%
+    
+    Path to the Platform SDK. The Platform SDK for Windows Server
+    2003 Release 2 has been known to work.
+
+ 2) Open the solution file: contrib/win/vs2005/iaxclient.sln
+
+ 3) Build the solution. This will build the several libraries (.lib
+    files) that must be linked with the end application:
+
+      Release\libgsm\libgsm.lib
+      Release\libiax2\libiax2.lib
+      Release\libiaxclient\libiaxclient.lib
+      Release\libportaudio\libportaudio.lib
+      Release\libportmixer\libportmixer.lib
+      Release\libvideolib\libvideolib.lib
+
+ 4) In addition to the above libraries that are built as part of the
+    iaxclient build, there are several other third-party library
+    dependencies that must be met:
+
+      speex
+      libtheora
+      libogg
+
+    These standard Windows-provided libraries must also be linked in:
+
+      strmiids.lib
+      Wininet.lib
+      comsuppw.lib
