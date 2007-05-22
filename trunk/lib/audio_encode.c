@@ -25,7 +25,7 @@
 	#include "codec_ilbc.h"
 #endif
 
-float iaxc_silence_threshold = -9e99f;
+float iaxc_silence_threshold = -99.0f;
 
 static float input_level = 0.0f;
 static float output_level = 0.0f;
