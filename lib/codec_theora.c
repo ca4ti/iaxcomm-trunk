@@ -41,13 +41,13 @@
  *     conference applications this number is transmitted in big endian
  *     format over the wire
  *
- *   - index of slice in the frame, starting at 0
- *
- *   - total number of slices in the frame
- *
  *   - frame index number - used to detect a new frame when some of the
  *     slices of the current frame are missing (only the least significant
  *     4 bits are used)
+ *
+ *   - index of slice in the frame, starting at 0
+ *
+ *   - total number of slices in the frame
  *
  * Other miscellaneous comments:
  *
