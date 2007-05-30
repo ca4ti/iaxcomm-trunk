@@ -97,7 +97,7 @@ typedef int socklen_t;
 #define IAXC_FORMAT_H264         (1 << 21)       /* H264 Video */
 #define IAXC_FORMAT_MPEG4        (1 << 22)       /* MPEG4 Video */
 #define IAXC_FORMAT_THEORA       (1 << 24)       /* Theora Video */
-
+#define IAXC_FORMAT_MAX_VIDEO    (1 << 24)       /* Maximum Video Format */
 
 #define IAXC_EVENT_TEXT          1
 #define IAXC_EVENT_LEVELS        2

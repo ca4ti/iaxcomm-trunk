@@ -297,7 +297,7 @@ void iaxc_usermsg(int type, const char *fmt, ...)
 
 	e.type = IAXC_EVENT_TEXT;
 	e.ev.text.type = type;
-
+	e.ev.text.callNo = -1;
 	va_start(args, fmt);
 	vsnprintf(e.ev.text.message, IAXC_EVENT_BUFSIZ, fmt, args);
 	va_end(args);
@@ -774,7 +774,11 @@ static void iaxc_send_video_stats()
 	iaxc_event e;
 	struct timeval now;
 	long time;
-	
+
+	// make sure there is a call to do stats on
+	if (selected_call < 0)
+		return;
+
 	gettimeofday(&now, NULL);
 	time = iaxc_msecdiff(&now, &video_stats_start);
 	if ( time > VIDEO_STATS_INTERVAL )
@@ -795,10 +799,16 @@ static void iaxc_send_video_stats()
 static THREADFUNCDECL(video_proc_thread_func)
 {
 	gettimeofday(&video_stats_start, NULL);
-	
+
+	struct iaxc_call *call;
 	while ( !video_proc_thread_flag )
 	{
-		iaxc_send_video(&calls[selected_call], selected_call);
+		if (selected_call >= 0)
+			call = &calls[selected_call];
+		else
+			call = NULL;
+
+		iaxc_send_video(call, selected_call);
 
 		iaxc_send_video_stats();
 		
@@ -1166,7 +1176,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		iaxc_clear_call(callNo);
 		break;
 	case IAX_EVENT_ACCEPT:
-		calls[callNo].format = e->ies.format;
+		calls[callNo].format = e->ies.format & IAXC_AUDIO_FORMAT_MASK;
 		calls[callNo].vformat = e->ies.format & IAXC_VIDEO_FORMAT_MASK;
 		if ( !(e->ies.format & IAXC_VIDEO_FORMAT_MASK) )
 		{
@@ -1657,10 +1667,6 @@ static void iaxc_handle_connect(struct iax_event * e)
 					"Could not negotiate common audio and video codec");
 			return;
 		}
-	}
-	else
-	{
-		iaxc_video_format_set_cap(video_format, video_format);
 	}
 
 	calls[callno].vformat = video_format;

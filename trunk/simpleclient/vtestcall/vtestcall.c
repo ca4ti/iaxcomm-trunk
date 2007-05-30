@@ -36,14 +36,18 @@
 
 #define MAX_CALLS 6
 
-static int video;
+static int video = 0;
 
-int format = IAXC_FORMAT_THEORA | IAXC_FORMAT_SPEEX;
+//int format = IAXC_FORMAT_THEORA | IAXC_FORMAT_SPEEX;
+int format = IAXC_FORMAT_H263 | IAXC_FORMAT_H263_PLUS | IAXC_FORMAT_H264 | IAXC_FORMAT_MPEG4 | IAXC_FORMAT_THEORA;
+int formatp = IAXC_FORMAT_H264; //IAXC_FORMAT_THEORA;
 int framerate = 15;
 int bitrate = 400000;
 int width = 320;
 int height = 240;
 int fragsize = 4000;
+
+int preview = 1;
 
 // Forward declaration
 int display_video(struct iaxc_ev_video v, int remote);
@@ -190,6 +194,7 @@ int state_callback(struct iaxc_ev_call_state s)
 		fprintf(stderr, "Mihai: answer call vformat=0x%x\n", s.vformat);
 		//iaxc_unquelch(s.callNo);
 		iaxc_millisleep(1000);
+		iaxc_answer_call(s.callNo);
 		iaxc_select_call(s.callNo);
 		//iaxc_millisleep(1000);
 		return 0;
@@ -375,13 +380,22 @@ int display_video(struct iaxc_ev_video v, int remote)
 		}
 		local_data = (unsigned char *)malloc(v.size);
 		memcpy(local_data, v.data, v.size);
-		
+
 		SDL_LockYUVOverlay(lolay);
 		lolay->pixels[0] = local_data;
 		lolay->pixels[1] = local_data  + (v.width * v.height);
 		lolay->pixels[2] = local_data  + (v.width * v.height * 5 / 4 );
 		SDL_UnlockYUVOverlay(lolay);
-		SDL_DisplayYUVOverlay(lolay, &Rrect);
+
+		if (remote_data != NULL)
+		{
+			SDL_DisplayYUVOverlay(rolay, &rect);
+			if (preview)
+				SDL_DisplayYUVOverlay(lolay, &Rrect);
+		}
+		else
+			SDL_DisplayYUVOverlay(lolay, &Rrect);
+
 	} else 
 	{
 		// Remote video
@@ -401,9 +415,10 @@ int display_video(struct iaxc_ev_video v, int remote)
 		rolay->pixels[2] = remote_data + (v.width * v.height * 5/4);
 		SDL_UnlockYUVOverlay(rolay);
 		SDL_DisplayYUVOverlay(rolay, &rect);
-		
+
 		// Display the current local frame as well, to minimize flicker
-		SDL_DisplayYUVOverlay(lolay, &Rrect);
+		if (preview)
+			SDL_DisplayYUVOverlay(lolay, &Rrect);
 	}
 
 	if( SDL_mutexV(mut) == -1 ) 
@@ -440,13 +455,16 @@ int main(int argc, char **argv)
 				break;
 			case 'F': /* set video formats */
 				{
-					format = 1<<atoi(argv[++i]);
+					formatp = 1<<atoi(argv[++i]);
 					framerate = atoi(argv[++i]);
 					bitrate = atoi(argv[++i]);
 					width = atoi(argv[++i]);
 					height = atoi(argv[++i]);
 					fragsize = atoi(argv[++i]);
 				}
+				break;
+			case 'P': /* */
+				preview = 0;
 				break;
 			case 's':
 				if(i+1 >= argc) usage();
@@ -485,7 +503,7 @@ int main(int argc, char **argv)
 	}	
 
 	// To receive calls...
-	iaxc_video_format_set(format, format, framerate, bitrate, width, height, fragsize);
+	iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
 
 	fprintf(stderr,">>> Forcing video mode!\n");
 	video=1;
@@ -540,7 +558,11 @@ int main(int argc, char **argv)
 		sprintf(caption, "Calling to %s", dest);
 		fprintf(stderr, "Calling to %s\n", dest);
 		my_safe_caption(caption);
-		iaxc_call(dest);
+		int callNo = iaxc_call(dest);
+		if (callNo <= 0)
+			iaxc_select_call(callNo);
+		else
+			fprintf(stderr, "Failed to make call to '%s'", dest);
 	}
 
 	/* process keyboard input received by the video window */
@@ -584,8 +606,8 @@ int main(int argc, char **argv)
 						iaxc_video_format_set(0, 0, framerate, bitrate, width, height, fragsize);
 					}
 					else {
-						fprintf(stderr,"format_set a %d,%d,%d,%d,%d,%d,%d\n",format, format, framerate, bitrate, width, height, fragsize);
-						iaxc_video_format_set(format, format, framerate, bitrate, width, height, fragsize);
+						fprintf(stderr,"format_set a %d,%d,%d,%d,%d,%d,%d\n",formatp, format, framerate, bitrate, width, height, fragsize);
+						iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
 					}
 					/*
 					if (iaxc_initialize(Vmode|Amode,MAX_CALLS))

@@ -135,6 +135,10 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 {
 	int real_pref = 0;
 	int real_allowed = 0;
+#ifdef USE_FFMPEG
+	int tmp_allowed;
+	int i;
+#endif
 
 	// Make sure resolution is in range
 	if ( width < IAXC_VIDEO_MIN_WIDTH )
@@ -187,7 +191,7 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 	{
 		// If preferred codec is not available switch to the
 		// supported default codec.
-		fprintf(stderr, "Preferred codec is not available. Switching to default");
+		fprintf(stderr, "Preferred codec (0x%08x) is not available. Switching to default", preferred);
 		real_pref = IAXC_FORMAT_THEORA;
 	}
 
@@ -203,8 +207,13 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 	 * available valid codecs. With that, we should be able to come up
 	 * with a more elegant algorithm here for determining the video codec.
 	 */
-	if ( iaxc_video_codec_ffmpeg_check_codec(allowed) )
-		real_allowed |= allowed;
+	for ( i = 0; i <= 24; i++)
+	{
+		tmp_allowed = 1 << i;
+		if ( (allowed & tmp_allowed)  && 
+				 iaxc_video_codec_ffmpeg_check_codec(tmp_allowed) )
+			real_allowed |= tmp_allowed;
+	}
 #endif
 
 #ifdef USE_H264_VSS
@@ -411,7 +420,7 @@ void show_video_frame(char *videobuf, int size, int cn, int source, int encoded,
 int iaxc_send_video(struct iaxc_call *call, int sel_call)
 {
 	static struct slice_set_t slice_set;
-	int format = iaxc_video_format_preferred;
+	int format;
 	int i = 0;
 	const int inlen = iaxc_video_width * iaxc_video_height * 6 / 4;
 	char * videobuf;
@@ -435,12 +444,17 @@ int iaxc_send_video(struct iaxc_call *call, int sel_call)
 				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
 	}
 
-	if ( sel_call < 0 || !call || !(call->state & IAXC_CALL_STATE_COMPLETE) )
+	if ( sel_call < 0 || !call || !(call->state & (IAXC_CALL_STATE_COMPLETE | IAXC_CALL_STATE_OUTGOING) ) )
+	{
 		return -1;
+	}
+
+	// use the calls format, not random preference
+	format = call->vformat;
 
 	if ( format == 0 )
 	{
-		fprintf(stderr, "iaxc_send_video: Format is zero (should't happen)!\n");
+//		fprintf(stderr, "iaxc_send_video: Format is zero (should't happen)!\n");
 		return -1;
 	}
 
@@ -472,7 +486,7 @@ int iaxc_send_video(struct iaxc_call *call, int sel_call)
 		if ( !call->vencoder )
 		{
 			call->vencoder = create_codec(format, 1);
-			fprintf(stderr,"Created codec %s\n",call->vencoder->name);
+			fprintf(stderr,"**** Created encoder codec %s\n",call->vencoder->name);
 		}
 
 		if ( !call->vencoder )
@@ -584,7 +598,7 @@ int iaxc_receive_video(struct iaxc_call *call, int sel_call,
 	if ( !call->vdecoder )
 	{
 		call->vdecoder = create_codec(format, 0);
-		fprintf(stderr,"Created codec %s\n",call->vdecoder->name);
+		fprintf(stderr,"**** Created decoder codec %s\n",call->vdecoder->name);
 	}
 
 	if ( !call->vdecoder )
