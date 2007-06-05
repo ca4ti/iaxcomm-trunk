@@ -582,7 +582,20 @@ static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeH
     if( winMmeInputDeviceId == WAVE_MAPPER )
     {
         /* Append I/O suffix to WAVE_MAPPER device. */
-        nameLen=wcslen( wic.szPname ) + 1 + sizeof(constInputMapperSuffix_);
+
+        // Get required length in BYTES
+        nameLen = 1 + sizeof(constInputMapperSuffix_) +
+            WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             wic.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             NULL,                      //LPSTR lpMultiByteStr, 
+             0,                         //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+			 );
+
         deviceName = (char *)PaUtil_GroupAllocateMemory(
                     winMmeHostApi->allocations, nameLen);
         if( !deviceName )
@@ -603,7 +616,8 @@ static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeH
         );
         if(!rc)
         {
-            printf("Problem with conversion to UTF-8\n");
+            printf("Problem with conversion to UTF-8. rc1=%d\n", rc);
+            printf("WideCharToMultiByte() error %lu\n", GetLastError());
             result = paNotInitialized;
             goto error;
         }
@@ -613,7 +627,19 @@ static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeH
     }
     else
     {
-        nameLen=wcslen( wic.szPname ) + 1;
+        // Get required length in BYTES
+        nameLen = 1 +
+            WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             wic.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             NULL,                      //LPSTR lpMultiByteStr, 
+             0,                         //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+			 );
+
         deviceName = (char*)PaUtil_GroupAllocateMemory(
                     winMmeHostApi->allocations, nameLen);
         if( !deviceName )
@@ -634,7 +660,8 @@ static PaError InitializeInputDeviceInfo( PaWinMmeHostApiRepresentation *winMmeH
         );
         if(!rc)
         {
-            printf("Problem with conversion to UTF-8\n");
+            printf("Problem with conversion to UTF-8. rc2=%d\n", rc);
+            printf("WideCharToMultiByte() error %lu\n", GetLastError());
             result = paNotInitialized;
             goto error;
         }
@@ -697,7 +724,20 @@ static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMme
     if( winMmeOutputDeviceId == WAVE_MAPPER )
     {
         /* Append I/O suffix to WAVE_MAPPER device. */
-        nameLen = wcslen( woc.szPname ) + 1 + sizeof(constOutputMapperSuffix_);
+
+        // Get required length in BYTES
+        nameLen = 1 + sizeof(constOutputMapperSuffix_) +
+            WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             woc.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             NULL,                      //LPSTR lpMultiByteStr, 
+             0,                         //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+			 );
+
         deviceName = (char *)PaUtil_GroupAllocateMemory(
                     winMmeHostApi->allocations, nameLen);
         if( !deviceName )
@@ -718,7 +758,8 @@ static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMme
         );
         if(!rc)
         {
-            printf("Problem with conversion to UTF-8\n");
+            printf("Problem with conversion to UTF-8. rc3=%d\n", rc);
+            printf("WideCharToMultiByte() error %lu\n", GetLastError());
             result = paNotInitialized;
             goto error;
         }
@@ -728,7 +769,19 @@ static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMme
     }
     else
     {
-        nameLen = wcslen( woc.szPname ) + 1;
+        // Get required length in BYTES
+        nameLen = 1 +
+            WideCharToMultiByte(
+             CP_UTF8,                   //UINT CodePage, 
+             0,                         //DWORD dwFlags, 
+             woc.szPname,               //LPCWSTR lpWideCharStr,
+             -1,                        //int cchWideChar, 
+             NULL,                      //LPSTR lpMultiByteStr, 
+             0,                         //int cbMultiByte,
+             NULL,                      //LPCSTR lpDefaultChar,  
+             NULL                       //LPBOOL lpUsedDefaultChar
+			 );
+
         deviceName = (char*)PaUtil_GroupAllocateMemory(
                     winMmeHostApi->allocations, nameLen);
         if( !deviceName )
@@ -749,7 +802,8 @@ static PaError InitializeOutputDeviceInfo( PaWinMmeHostApiRepresentation *winMme
         );
         if(!rc)
         {
-            printf("Problem with conversion to UTF-8\n");
+            printf("Problem with conversion to UTF-8. rc4=%d\n", rc);
+            printf("WideCharToMultiByte() error %lu\n", GetLastError());
             result = paNotInitialized;
             goto error;
         }
