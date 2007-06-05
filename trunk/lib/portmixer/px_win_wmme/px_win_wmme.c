@@ -36,7 +36,6 @@
  */
 
 #include <windows.h>
-#include <stdio.h>
 
 #include "portaudio.h"
 #include "portmixer.h"
