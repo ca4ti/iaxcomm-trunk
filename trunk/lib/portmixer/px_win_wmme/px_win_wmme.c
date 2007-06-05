@@ -36,6 +36,7 @@
  */
 
 #include <windows.h>
+#include <stdio.h>
 
 #include "portaudio.h"
 #include "portmixer.h"
@@ -683,7 +684,7 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	for ( ; x < mixerLineControls.cControls ; ++x )
 	{
 		// check control type
-		if ( mixerControl[x].dwControlType == MIXERCONTROL_CONTROLTYPE_ONOFF )
+		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
 		{
 			// normalize control name
 			char* name = _strupr( mixerControl[x].szName ) ;
@@ -807,7 +808,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	for ( ; x < mixerLineControls.cControls ; ++x )
 	{
 		// check control type
-		if ( mixerControl[x].dwControlType == MIXERCONTROL_CONTROLTYPE_ONOFF )
+		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
 		{
 			// normalize control name
 			char* name = _strupr( mixerControl[x].szName ) ;
