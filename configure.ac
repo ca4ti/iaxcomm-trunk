@@ -325,45 +325,31 @@ if test "x$enable_clients" = "xauto"; then
    fi
 fi
 
-AC_CONFIG_FILES([
-Makefile
-lib/Makefile
-simpleclient/Makefile
-iaxclient.pc
-])
-
 for client in $clients
 do
    case "$client" in
       testcall)
-         AC_CONFIG_FILES([simpleclient/testcall/Makefile]) 
          CLIENTS="$CLIENTS $client";;
 
       vtestcall)
          if ! test x$has_sdl = xyes; then
             AC_MSG_ERROR([vtestcall requires SDL])
          fi
-         AC_CONFIG_FILES([simpleclient/vtestcall/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       iaxcomm)
-         AC_CONFIG_FILES([simpleclient/iaxcomm/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       iaxphone)
-         AC_CONFIG_FILES([simpleclient/iaxphone/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       tkphone)
-         AC_CONFIG_FILES([simpleclient/tkphone/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       WinIAX)
-         AC_CONFIG_FILES([simpleclient/WinIAX/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       wx)
-         AC_CONFIG_FILES([simpleclient/wx/Makefile])
          CLIENTS="$CLIENTS $client";;
 
       *) ;;
@@ -371,6 +357,20 @@ do
 done
 
 AC_SUBST(CLIENTS)
+
+AC_CONFIG_FILES([
+      Makefile
+      lib/Makefile
+      simpleclient/Makefile
+      iaxclient.pc
+      simpleclient/testcall/Makefile
+      simpleclient/vtestcall/Makefile
+      simpleclient/iaxcomm/Makefile
+      simpleclient/iaxphone/Makefile
+      simpleclient/tkphone/Makefile
+      simpleclient/WinIAX/Makefile
+      simpleclient/wx/Makefile
+])
 
 AC_OUTPUT
 
