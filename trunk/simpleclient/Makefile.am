@@ -1,3 +1,6 @@
 SUBDIRS = $(CLIENTS)
 
-EXTRA_DIST = win32 IAXClientDotNetWrapper
+EXTRA_DIST = \
+	IAXClientDotNetWrapper \
+	iax2slin \
+	win32
