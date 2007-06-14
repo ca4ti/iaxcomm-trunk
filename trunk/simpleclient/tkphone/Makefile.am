@@ -2,7 +2,7 @@
 bin_SCRIPTS = tkphone
 
 iaxcli_PROGRAMS=iaxcli
-iaxcli_SOURCES = iaxcli.c tones.c
+iaxcli_SOURCES = iaxcli.c tones.c tones.h
 
 iaxclidir = ${libdir}/iaxclient/tkphone
 
@@ -26,4 +26,4 @@ SUBST = sed \
 
 CLEANFILES =
 
-EXTRA_DIST = License
+EXTRA_DIST = License tkiaxphone

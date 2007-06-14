@@ -8,5 +8,5 @@ if ! WIN32
 AM_CPPFLAGS += -DPOSIXSLEEP
 endif
 
-EXTRA_DIST = .cvsignore
+EXTRA_DIST = .cvsignore testcall-jb.c testcall.vcproj
 

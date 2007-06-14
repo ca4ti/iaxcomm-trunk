@@ -183,14 +183,16 @@ SRCS_IAX2=					\
 	libiax2/src/md5.h
 
 EXTRA_DIST = \
+	audio_alsa.c				\
+	audio_alsa.h				\
+	codec_ffmpeg.c				\
+	codec_ffmpeg.h				\
 	sound2c.pl				\
-	gsm/copyright				\
-	gsm/readme				\
-	libiax2/AUTHORS				\
-	libiax2/ChangeLog			\
-	libiax2/COPYING				\
-	libiax2/COPYING.LIB			\
-	libiax2/NEWS				\
-	libiax2/README				\
-	portmixer/LICENSE.txt
+	gsm					\
+	libiax2					\
+	portmixer				\
+	sox					\
+	spandsp					\
+	videoLib				\
+	wince
 
