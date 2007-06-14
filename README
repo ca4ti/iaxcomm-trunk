@@ -7,8 +7,8 @@ The library itself is in the directory "lib", located in the same
 directory as this README file.
 
 The library is designed to build for multiple platforms, and currently
-supports Linux, MacOSX, Solaris, and Win32 platforms.  It is designed to handle
-the "backend" of IAX telephony operations, including call handling,
+supports Linux, MacOSX, Solaris, and Win32 platforms.  It is designed to
+handle the "backend" of IAX telephony operations, including call handling,
 network protocols, audio encoding/decoding, and audio capture/playback.
 In it's future, it may be extended to also handle video encode, decode,
 capture and playback.
@@ -19,20 +19,23 @@ Currently, these are all stored under the "simpleclient" directory, and
 there are three of them:
 
 simpleclient/testcall:  A simple command-line oriented test program,
-			useful for testing and debugging.   It supports 
-			all of the same platforms as the library itself.
+                        useful for testing and debugging.   It supports 
+                        all of the same platforms as the library itself.
 
-simpleclient/wx:	A wxWindows (see wxwindows.org) based GUI
-			client.  This client also supports all of the
-			same platforms as the library itself.
+simpleclient/vtestcall: Like testcall, but for testing and debugging
+                        video calls. Requires SDL.
 
-simpleclient/WinIAX:  	A MSVC/Win32 client.  This only works with
-			Win32, obviously, and was contributed by
-			Faizan "Tili" Naqvi <faizan@tilizone.com>
+simpleclient/wx:        A wxWindows (see wxwindows.org) based GUI
+                        client.  This client also supports all of the
+                        same platforms as the library itself.
 
-simpleclient/tkiaxphone	A command-line client, with a Tcl/Tk GUI
-			client that drives it.  It should work on
-			all the platforms
+simpleclient/WinIAX:    A MSVC/Win32 client.  This only works with
+                        Win32, obviously, and was contributed by
+                        Faizan "Tili" Naqvi <faizan@tilizone.com>
+
+simpleclient/tkiaxphone A command-line client, with a Tcl/Tk GUI
+                        client that drives it.  It should work on
+                        all the platforms
 
 
 The home page for iaxclient is "http://iaxclient.sourceforge.net/"
@@ -40,12 +43,9 @@ The home page for iaxclient is "http://iaxclient.sourceforge.net/"
 Up-to-date versions of iaxclient are available from a sourceforge SVN
 repository.
 
-CVS tarballs are also available as a link from the home page.
-
 
 =======================================================================
 LICENSES
-
 
 The iaxclient library itself, is provided under the terms of the LGPL:
 
@@ -83,7 +83,8 @@ specifics.  These include:
 			free licenses in source files.
     libspeex:		(c) various authors
 			BSD-like license.
-
+    libtheora:		(c) 2002-2005 Xiph.org Foundation
+                        BSD-like license.
 
 =======================================================================
 CONTRIBUTORS:
@@ -103,6 +104,7 @@ Jean-Denis Girard <jd.girard@sysnux.pf> [URL Receive implementation]
 Panfilov Dmitry <dima@bdpu.org> [Basic ALSA-native audio driver]
 Mihai Balea <mihai at hates dot ms>
 Bill Welch <welch1820 at gmail dot com> [Project files for several MS development environments]
+Peter Grayson <jpgrayson@gmail.com>
 
 
 In addition to including libiax, IAXCLIENT is also based in part on code
@@ -117,48 +119,15 @@ projects.
 =======================================================================
 BUILDING THE LIBRARY:
 
-From the "lib" directory:
-	Linux: type "make" using standard gnu make/gcc
-	FreeBSD: type "gmake" using standard gnu make/gcc
-	MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
-	Win32: type "make" using Cygwin or Cygwin and MinGW (see below)
-	Solaris: type "gmake" using standard gnu make/gcc
+  ./configure
+  make
+  make install
 
-For a shared library, make clean, then make shared.
-You should receive a shared library (.dll, .so, .dylib, depending on your platform).
+See INSTALL for generic information about the building on Unix-like
+systems.
 
-Win32 Cygwin/MinGW; General:
-The Win32 build has been tested using the Cygwin Environment, and the
-MinGW port of the GCC compiler suite.   Previously, we only supported
-compilation with the cygwin _and_ mingw environments installed.  We are
-moving (4/20/2005) to support having the cygwin environment alone, with
-cygwin's own mingw packages, instead.   Compilation of the basic sample
-clients (but not iaxcomm), works fine with cygwin alone.
-
-Cygwin Alone:
-To install cygwin, download and run http://www.cygwin.com/setup.exe
-You will need to install, in addition to the defaults, these packages:
-gcc-mingw, gcc-mingw-core, (and for C++ clients, gcc-mingw-g++).
-[please let the maintainers know if other non-default packages are
-required].
-
-There's lots of goodies available from cygwin.
-
-Once you have this installed, open the cygwin shell, and build.  The
-library makefiles use the -mno-cygwin option, to create native Win32
-binaries which do _not_ require cygwin.dll, or any special runtimes.
-
-Cygwin and MinGW:
-Previously, we advocated installing cygwin environment (for Gnu Make and
-such), alongside the MinGW distribution itself, as outlined here.  This
-may still be necessary for the Wx-Windows based clients like iaxcomm.
-
-http://www.mingw.org/mingwfaq.shtml#faq-usingwithcygwin for the
-MinGW FAQ entry on using MinGW with Cygwin.  You do need to make sure
-that you install the Gnu "make" utility when you install cygwin.
-
-It should probably also work if you use the MSYS environment and the
-MinGW compiler, but this configuration is not as well tested.
+See README.VisualStudio for information about how to build with
+Microsoft Visual Studio.
 
 =======================================================================
 LIBRARY ORGANIZATION/DESIGN/CODING CONVENTION NOTES

@@ -22,12 +22,8 @@
 #include <signal.h>
 
 #include "iaxclient.h"
-// To have simbolic event definition
-// TODO: client apps should not have to call anything but iaxclient.h
-#include "libiax2/src/iax-client.h"
 
 #include <SDL.h>
-//#include <streams.h>
 
 #ifdef WIN32
 // Only under windows...
@@ -199,7 +195,7 @@ int state_callback(struct iaxc_ev_call_state s)
 		//iaxc_millisleep(1000);
 		return 0;
 	}
-	if (s.state==IAX_EVENT_HANGUP) 
+	if (s.state == IAXC_CALL_STATE_FREE) 
 	{
 		fprintf(stderr,"Disconnect from other end\n");
 		hangup_and_exit();
@@ -247,7 +243,7 @@ int iaxc_callback(iaxc_event e)
 
 void process_text_message(char *message)
 {
-	uint32_t prefs;
+	unsigned int prefs;
 	
 	if ( strncmp(message, "CONTROL:", strlen("CONTROL:")) == 0 )
 	{
@@ -638,7 +634,7 @@ int main(int argc, char **argv)
 					break;    
 				case SDLK_w: /* off */
 					{
-						uint32_t prefs;
+						unsigned int prefs;
 
 						prefs = iaxc_get_video_prefs();
 

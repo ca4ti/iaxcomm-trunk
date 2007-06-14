@@ -43,44 +43,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "portaudio.h"
+#include <portaudio.h>
+#include <pa_mac_core.h>
+
 #include "portmixer.h"
-
-#if defined(PaStream)
-#define PA_V18
-#include "pa_host.h"
-#else
-#define PA_V19
-#include "pa_mac_core_internal.h"
-#endif
-
-typedef enum PaDeviceMode
-{
-    PA_MODE_OUTPUT_ONLY,
-    PA_MODE_INPUT_ONLY,
-    PA_MODE_IO_ONE_DEVICE,
-    PA_MODE_IO_TWO_DEVICES
-} PaDeviceMode;
-
-typedef struct PaHostInOut_s
-{
-    AudioDeviceID      audioDeviceID; /* CoreAudio specific ID */
-    int                bytesPerUserNativeBuffer; /* User buffer size in native host format. Depends on numChannels. */
-    AudioConverterRef  converter;
-    void              *converterBuffer;
-    int                numChannels;
-} PaHostInOut;
-
-/**************************************************************
- * Structure for internal host specific stream data.
- * This is allocated on a per stream basis.
- */
-typedef struct PaHostSoundControl
-{
-    PaHostInOut        input;
-    PaHostInOut        output;
-    AudioDeviceID      primaryDeviceID;
-} PaHostSoundControl;
 
 // define value of isInput passed to CoreAudio routines
 #define IS_INPUT    (true)
@@ -105,33 +71,14 @@ const char *Px_GetMixerName( void *pa_stream, int index )
 PxMixer *Px_OpenMixer( void *pa_stream, int index )
 {
    PxInfo                      *info;
-#if defined(PA_V18)
-   PaHostSoundControl          *macInfo;
-#endif
    
    info = (PxInfo *)malloc(sizeof(PxInfo));   
    if (!info) {
       return (PxMixer *)info;
    }
 
-#if defined(PA_V18)
-   internalPortAudioStream     *past;
-   
-   past = (internalPortAudioStream *) pa_stream;
-   macInfo = (PaHostSoundControl *) past->past_DeviceData;
-
-   info->input = macInfo->input.audioDeviceID;
-   info->output = macInfo->output.audioDeviceID;
-#endif
-
-#if defined(PA_V19)
-   PaMacCoreStream             *pamcs;
-   
-   pamcs = (PaMacCoreStream *) pa_stream;
-
-   info->input = pamcs->inputDevice;
-   info->output = pamcs->outputDevice;
-#endif 
+   info->input = PaMacCore_GetStreamInputDevice(pa_stream);
+   info->output = PaMacCore_GetStreamOutputDevice(pa_stream);
 
    return (PxMixer *)info;
 }

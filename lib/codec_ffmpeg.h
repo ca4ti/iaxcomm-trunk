@@ -10,6 +10,6 @@
  */
 
 
-struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h, int framerate, int bitrate, int fragsize);
+struct iaxc_video_codec *codec_video_ffmpeg_new(int format, int w, int h, int framerate, int bitrate, int fragsize);
 
-int iaxc_video_codec_ffmpeg_check_codec(int format);
+int codec_video_ffmpeg_check_codec(int format);

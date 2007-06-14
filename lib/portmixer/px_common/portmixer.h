@@ -44,7 +44,7 @@ extern "C"
  *
  */
 
-#include "portaudio.h"
+#include <portaudio.h>
 
 typedef void PxMixer;
 

@@ -72,7 +72,9 @@ END_EVENT_TABLE()
 
 DirectoryDialog::DirectoryDialog( wxWindow* parent )
 {
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("Directory"));
+    if ( !wxXmlResource::Get()->LoadDialog(this, parent, wxT("Directory")) ) {
+      wxLogFatalError(_("Can't load Directory dialog"));
+    }
 
     //----Reach in for our controls-----------------------------------------------------
     DirectoryNotebook  = XRCCTRL(*this, "DirectoryNotebook", wxNotebook);

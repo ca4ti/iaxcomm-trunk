@@ -31,9 +31,10 @@
 #include <strings.h>
 #endif
 
+#include "audio_portaudio.h"
 #include "iaxclient_lib.h"
-#include "pablio.h"
-#include "portmixer/px_common/portmixer.h"
+#include "ringbuffer.h"
+#include "portmixer.h"
 
 #ifdef USE_MEC2
 #include "mec3.h"
@@ -121,12 +122,8 @@ static int mixers_initialized;
 /* size in bytes of ringbuffer target */
 #define RBOUTTARGET_BYTES (RBOUTTARGET * (sample_rate / 1000) * sizeof(SAMPLE))
 
-#define PA_NUMBUFFERS 0
-// try setting this to our RBOUTMAXSZ?
-//#define PA_NUMBUFFERS (RBOUTMAXSZ / (2*SAMPLES_PER_FRAME))
-//
 static char inRingBuf[INRBSZ], outRingBuf[OUTRBSZ];
-static RingBuffer inRing, outRing;
+static rb_RingBuffer inRing, outRing;
 
 static int outRingLenAvg;
 
@@ -302,8 +299,9 @@ static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel)
 				}
 
 				/* how many frames do we add in this loop? */
-				n = ((frames - outpos) < (unsigned long)(s->len - s->pos))
-					? (frames - outpos) : (s->len - s->pos);
+				n = (frames - outpos) < (unsigned long)(s->len - s->pos) ?
+					(frames - outpos) :
+					(unsigned long)(s->len - s->pos);
 
 				/* mix in the frames */
 				mix_slin((short *)outputBuffer + outpos,
@@ -373,7 +371,7 @@ static int pa_stop_sound(int soundID)
 
 static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 {
-	static RingBuffer outRing;
+	static rb_RingBuffer ecOutRing;
 	static char outRingBuf[EC_RING_SZ];
 	static long bias = 0;
 	short  delayedBuf[1024];
@@ -388,7 +386,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
 	/* if ec is off, clear ec state -- this way, we start fresh if/when
 	 * it's turned back on. */
-	if ( !(iaxc_filters & IAXC_FILTER_ECHO) )
+	if ( !(iaxc_get_filters() & IAXC_FILTER_ECHO) )
 	{
 		if ( ec )
 		{
@@ -409,7 +407,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
 	if ( !ec )
 	{
-		RingBuffer_Init(&outRing, EC_RING_SZ, &outRingBuf);
+		rb_InitializeRingBuffer(&ecOutRing, EC_RING_SZ, &outRingBuf);
 #if defined(USE_MEC2) || defined(SPAN_EC)
 		ec = echo_can_create(ECHO_TAIL, 0);
 #endif
@@ -418,15 +416,15 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 #endif
 	}
 
-	/* fill outRing */
-	RingBuffer_Write(&outRing, outputBuffer, n * 2);
+	/* fill ecOutRing */
+	rb_WriteRingBuffer(&ecOutRing, outputBuffer, n * 2);
 
 	// Make sure we have enough buffer.
 	// Currently, just one SAMPLES_PER_FRAME's worth.
-	if(RingBuffer_GetReadAvailable(&outRing) < ((n + SAMPLES_PER_FRAME) * 2) )
+	if ( rb_GetRingBufferReadAvailable(&ecOutRing) < ((n + SAMPLES_PER_FRAME) * 2) )
 		return;
 
-	RingBuffer_Read(&outRing, delayedBuf, n * 2);
+	rb_ReadRingBuffer(&ecOutRing, delayedBuf, n * 2);
 
 #if defined(SPEEX_EC)
 	{
@@ -472,7 +470,7 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 		/* output underflow might happen here */
 		if (virtualMonoOut)
 		{
-			bWritten = RingBuffer_Read(&outRing, virtualOutBuffer,
+			bWritten = rb_ReadRingBuffer(&outRing, virtualOutBuffer,
 					totBytes);
 			/* we zero "virtualOutBuffer", then convert the whole thing,
 			 * yes, because we use virtualOutBuffer for ec below */
@@ -487,7 +485,7 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 		}
 		else
 		{
-			bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
+			bWritten = rb_ReadRingBuffer(&outRing, outputBuffer, totBytes);
 			if ( bWritten < totBytes)
 			{
 				memset((char *)outputBuffer + bWritten,
@@ -516,7 +514,7 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 			iaxc_echo_can(virtualInBuffer, virtualOutBuffer,
 					samplesPerFrame);
 
-			RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
+			rb_WriteRingBuffer(&inRing, virtualInBuffer, totBytes);
 		}
 		else
 		{
@@ -524,7 +522,7 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 					(short *)outputBuffer,
 					samplesPerFrame);
 
-			RingBuffer_Write(&inRing, inputBuffer, totBytes);
+			rb_WriteRingBuffer(&inRing, inputBuffer, totBytes);
 		}
 	}
 
@@ -766,12 +764,9 @@ static int pa_start(struct iaxc_audio_driver *d)
 		oMixer = NULL;
 	}
 
-	//fprintf(stderr, "starting pa\n");
-
 	if ( errcnt > 5 )
 	{
-		// Mihai: temporarily remove this message TODO: bring it back
-		iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR,
+		iaxci_usermsg(IAXC_TEXT_TYPE_FATALERROR,
 				"iaxclient audio: Can't open Audio Device. Perhaps you do not have an input or output device?");
 		/* OK, we'll give the application the option to abort or
 		 * not here, but we will throw a fatal error anyway */
@@ -780,8 +775,8 @@ static int pa_start(struct iaxc_audio_driver *d)
 	}
 
 	/* flush the ringbuffers */
-	RingBuffer_Init(&inRing, INRBSZ, inRingBuf);
-	RingBuffer_Init(&outRing, OUTRBSZ, outRingBuf);
+	rb_InitializeRingBuffer(&inRing, INRBSZ, inRingBuf);
+	rb_InitializeRingBuffer(&outRing, OUTRBSZ, outRingBuf);
 
 	if ( pa_openstreams(d) )
 	{
@@ -913,13 +908,13 @@ static int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples)
 	bytestoread = *nSamples * sizeof(SAMPLE);
 
 	/* we don't return partial buffers */
-	if ( RingBuffer_GetReadAvailable(&inRing) < bytestoread )
+	if ( rb_GetRingBufferReadAvailable(&inRing) < bytestoread )
 	{
 		*nSamples = 0;
 		return 0;
 	}
 
-	RingBuffer_Read(&inRing, samples, bytestoread);
+	rb_ReadRingBuffer(&inRing, samples, bytestoread);
 
 	return 0;
 }
@@ -929,7 +924,7 @@ static int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples)
 	int bytestowrite = nSamples * sizeof(SAMPLE);
 	int outRingLen;
 
-	outRingLen = RingBuffer_GetReadAvailable(&outRing);
+	outRingLen = rb_GetRingBufferReadAvailable(&outRing);
 	outRingLenAvg = (outRingLenAvg * 9 + outRingLen ) / 10;
 
 	/* if we've got a big output buffer, drop this */
@@ -940,10 +935,10 @@ static int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples)
 	  return outRingLen/2;
 	}
 
-	//if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)
+	//if(rb_GetRingBufferWriteAvailable(&outRing) < bytestowrite)
 	//	fprintf(stderr, "O");
 
-	RingBuffer_Write(&outRing, samples, bytestowrite);
+	rb_WriteRingBuffer(&outRing, samples, bytestowrite);
 
 	return (outRingLen + bytestowrite)/2;
 
@@ -1069,7 +1064,7 @@ static int _pa_initialize (struct iaxc_audio_driver *d, int sr)
 	/* initialize portaudio */
 	if ( paNoError != (err = Pa_Initialize()) )
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_ERROR, "Failed Pa_Initialize");
+		iaxci_usermsg(IAXC_TEXT_TYPE_ERROR, "Failed Pa_Initialize");
 		return err;
 	}
 
@@ -1101,8 +1096,8 @@ static int _pa_initialize (struct iaxc_audio_driver *d, int sr)
 	sounds = NULL;
 	MUTEXINIT(&sound_lock);
 
-	RingBuffer_Init(&inRing, INRBSZ, inRingBuf);
-	RingBuffer_Init(&outRing, OUTRBSZ, outRingBuf);
+	rb_InitializeRingBuffer(&inRing, INRBSZ, inRingBuf);
+	rb_InitializeRingBuffer(&outRing, OUTRBSZ, outRingBuf);
 
 	running = 0;
 
@@ -1116,12 +1111,12 @@ int pa_initialize(struct iaxc_audio_driver *d, int sr)
 	_pa_initialize(d, sr);
 
 	/* TODO: Kludge alert. We only do the funny audio start-stop
-	 * business if iaxc_audio_output_mode is not set. This is a
+	 * business if iaxci_audio_output_mode is not set. This is a
 	 * hack to allow certain specific users of iaxclient to avoid
 	 * certain problems associated with portaudio initialization
 	 * hitting a deadlock condition.
 	 */
-	if ( iaxc_audio_output_mode )
+	if ( iaxci_audio_output_mode )
 		return 0;
 
 	/* start/stop audio, in order to initialize mixers and levels */

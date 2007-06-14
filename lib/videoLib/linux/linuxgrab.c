@@ -100,7 +100,7 @@ static THREADFUNCDECL(pv_load_buffer)
 
 		if ( !fg_grab_frame(fg, fg_frame) )
 		{
-			iaxc_usermsg(IAXC_TEXT_TYPE_NOTICE,
+			iaxci_usermsg(IAXC_TEXT_TYPE_NOTICE,
 				"%s: camera not running or disconnected\n",
 				__FUNCTION__);
 
@@ -156,7 +156,7 @@ void *grabber_init( grab_callback_t gc, void *gc_data, int w, int h)
 	 */
 	if ( pv_start_camera(width, height) < 0 )
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_NOTICE,
+		iaxci_usermsg(IAXC_TEXT_TYPE_NOTICE,
 				"failed to start camera, will keep trying\n");
 		got_camera = 0;
 	} else
@@ -215,7 +215,7 @@ int grabber_format_check(unsigned int format)
 int listVidCapDevices(char *buff, int buffSize)
 {
 	if (buffSize > 0 )
-		buff[0] = NULL;
+		buff[0] = 0;
 
 	return 0;
 }

@@ -60,6 +60,13 @@ extern "C" {
      int        doTestCall(int ac, char **av);
 }
 
+
+#ifdef HAVE_INITXMLRESOURCE
+extern void InitXmlResource();
+#else
+void InitXmlResource() {}
+#endif
+
 //----------------------------------------------------------------------------------------
 // Static variables
 //----------------------------------------------------------------------------------------
@@ -117,6 +124,7 @@ bool theApp::OnInit()
     // Load up XML resources
 
     load_xrc_resource(_T("preferences.xrc"));
+    load_xrc_resource(_T("accounts.xrc")); 
     load_xrc_resource(_T("frame.xrc"));
     load_xrc_resource(_T("menubar.xrc"));
     load_xrc_resource(_T("panel.xrc"));
@@ -124,7 +132,6 @@ bool theApp::OnInit()
     load_xrc_resource(_T("directory.xrc"));
     load_xrc_resource(_T("devices.xrc"));
 
-    extern void InitXmlResource();
     InitXmlResource();
 
     IncomingRing.Init( 880, 960, 16000, 48000, 10);
@@ -162,7 +169,7 @@ bool theApp::OnInit()
 
     // Call initialize now, as the frame constructor might read config values
     // and update settings (such as preferred codec).
-    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
+    if(iaxc_initialize(nCalls)) {
         wxLogError(_("Couldn't Initialize IAX Client "));
     }
 
@@ -315,6 +322,15 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
             return;
         }
     }
+
+    // Next, check XRCDIRECTORY
+#ifdef XRCDIRECTORY
+    xrc_fullname = wxString(XRCDIRECTORY, wxConvUTF8) + wxFILE_SEP_PATH + xrc_filename;
+    if ( ::wxFileExists( xrc_fullname ) ) {
+      wxXmlResource::Get()->Load( xrc_fullname );
+      return;
+    }
+#endif
 
     // Third, check in cwd
     xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + _T("rc") + wxFILE_SEP_PATH + xrc_filename;

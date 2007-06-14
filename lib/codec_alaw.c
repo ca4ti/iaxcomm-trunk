@@ -132,7 +132,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
     free(c);
 }
 
-struct iaxc_audio_codec *iaxc_audio_codec_alaw_new() {
+struct iaxc_audio_codec *codec_audio_alaw_new() {
 
   struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(1, sizeof(struct iaxc_audio_codec));
   

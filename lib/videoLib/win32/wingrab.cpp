@@ -665,9 +665,9 @@ static CSampleGrabberCB CB;
 _invalid_parameter_handler oldHandler, newHandler;
 
 void myInvalidParameterHandler(const wchar_t* expression,
-	const wchar_t* function, 
-	const wchar_t* file, 
-	unsigned int line, 
+	const wchar_t* function,
+	const wchar_t* file,
+	unsigned int line,
 	uintptr_t pReserved)
 {
 	wprintf(L"Invalid parameter detected in function %s."

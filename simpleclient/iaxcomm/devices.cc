@@ -66,7 +66,9 @@ END_EVENT_TABLE()
 
 DevicesDialog::DevicesDialog(wxWindow* parent)
 {    
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("Devices"));
+    if ( !wxXmlResource::Get()->LoadDialog(this, parent, wxT("Devices")) ) {
+      wxLogFatalError(_("Can't load Devices dialog"));
+    }
 
     // Reach in for our controls
 

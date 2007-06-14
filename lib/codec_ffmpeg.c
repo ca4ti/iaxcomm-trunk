@@ -25,11 +25,11 @@
 
 struct slice_header_t
 {
-	uint8_t version;
-	uint16_t source_id;
-	uint8_t frame_index;
-	uint8_t slice_index;
-	uint8_t num_slices;
+	unsigned char version;
+	unsigned short source_id;
+	unsigned char frame_index;
+	unsigned char slice_index;
+	unsigned char num_slices;
 };
 
 struct encoder_ctx
@@ -39,7 +39,7 @@ struct encoder_ctx
 
 	struct slice_header_t slice_header;
 
-	uint8_t *frame_buf;
+	unsigned char *frame_buf;
 	int frame_buf_len;
 };
 
@@ -51,7 +51,7 @@ struct decoder_ctx
 	struct slice_header_t slice_header;
 	int frame_size;
 
-	uint8_t * frame_buf;
+	unsigned char * frame_buf;
 	int frame_buf_len;
 };
 
@@ -155,7 +155,7 @@ static int frame_to_frame_xlate(AVCodecContext * avctx, AVFrame * picture,
 }
 
 static int pass_frame_to_decoder(AVCodecContext * avctx, AVFrame * picture,
-		int inlen, uint8_t * in, int * outlen, char * out)
+		int inlen, unsigned char * in, int * outlen, char * out)
 {
 	int bytes_decoded;
 	int got_picture;
@@ -220,7 +220,7 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 
 	if ( sh_this.source_id == sh_saved->source_id )
 	{
-		uint8_t frame_delta;
+		unsigned char frame_delta;
 
 		frame_delta = sh_this.frame_index - sh_saved->frame_index;
 
@@ -305,7 +305,7 @@ static int decode_rtp_slice(struct iaxc_video_codec * c,
 		int got_picture;
 
 		bytes_decoded = avcodec_decode_video(d->avctx, d->picture,
-				&got_picture, (uint8_t *)in, inlen);
+				&got_picture, (unsigned char *)in, inlen);
 
 		if ( bytes_decoded < 0 )
 		{
@@ -336,7 +336,7 @@ static int decode_rtp_slice(struct iaxc_video_codec * c,
 
 static void slice_encoded_frame(struct slice_header_t * sh,
 		struct slice_set_t * slice_set,
-		uint8_t * in, int inlen, int fragsize)
+		unsigned char * in, int inlen, int fragsize)
 {
 	sh->num_slices = slice_set->num_slices = (inlen - 1) / fragsize + 1;
 
@@ -370,10 +370,10 @@ static int encode(struct iaxc_video_codec *c,
 
 	avcodec_get_frame_defaults(e->picture);
 
-	e->picture->data[0] = (uint8_t *)in;
-	e->picture->data[1] = (uint8_t *)in
+	e->picture->data[0] = (unsigned char *)in;
+	e->picture->data[1] = (unsigned char *)in
 		+ e->avctx->width * e->avctx->height;
-	e->picture->data[2] = (uint8_t *)in
+	e->picture->data[2] = (unsigned char *)in
 		+ e->avctx->width * e->avctx->height * 5 / 4;
 
 	e->picture->linesize[0] = e->avctx->width;
@@ -429,7 +429,7 @@ void encode_rtp_callback(struct AVCodecContext *avctx, void *data, int size,
 	g_slice_set->num_slices++;
 }
 
-struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h,
+struct iaxc_video_codec *codec_video_ffmpeg_new(int format, int w, int h,
 						     int framerate, int bitrate,
 						     int fragsize)
 {
@@ -674,7 +674,7 @@ struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h,
 	codec = avcodec_find_encoder(ff_enc_id);
 	if (!codec)
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_ERROR,
+		iaxci_usermsg(IAXC_TEXT_TYPE_ERROR,
 			     "codec_ffmpeg: cannot find encoder %d\n",
 			     ff_enc_id);
 		goto bail;
@@ -682,7 +682,7 @@ struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h,
 
 	if (avcodec_open(e->avctx, codec))
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_ERROR,
+		iaxci_usermsg(IAXC_TEXT_TYPE_ERROR,
 			     "codec_ffmpeg: cannot open encoder %s\n", name);
 		goto bail;
 	}
@@ -690,14 +690,14 @@ struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h,
 	codec = avcodec_find_decoder(ff_dec_id);
 	if (!codec)
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_ERROR,
+		iaxci_usermsg(IAXC_TEXT_TYPE_ERROR,
 			     "codec_ffmpeg: cannot find decoder %d\n",
 			     ff_dec_id);
 		goto bail;
 	}
 	if (avcodec_open(d->avctx, codec))
 	{
-		iaxc_usermsg(IAXC_TEXT_TYPE_ERROR,
+		iaxci_usermsg(IAXC_TEXT_TYPE_ERROR,
 			     "codec_ffmpeg: cannot open decoder %s\n", name);
 		goto bail;
 	}
@@ -706,7 +706,7 @@ struct iaxc_video_codec *iaxc_video_codec_ffmpeg_new(int format, int w, int h,
 		enum PixelFormat fmts[] = { PIX_FMT_YUV420P, -1 };
 		if (d->avctx->get_format(d->avctx, fmts) != PIX_FMT_YUV420P)
 		{
-			iaxc_usermsg(IAXC_TEXT_TYPE_ERROR,
+			iaxci_usermsg(IAXC_TEXT_TYPE_ERROR,
 					"codec_ffmpeg: cannot set decode format to YUV420P\n");
 			goto bail;
 		}
@@ -719,7 +719,7 @@ bail:
 	return 0;
 }
 
-int iaxc_video_codec_ffmpeg_check_codec(int format)
+int codec_video_ffmpeg_check_codec(int format)
 {
 	AVCodec *codec;
 	enum CodecID codec_id;

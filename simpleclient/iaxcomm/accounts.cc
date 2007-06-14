@@ -63,7 +63,9 @@ END_EVENT_TABLE()
 
 AccountsDialog::AccountsDialog( wxWindow* parent )
 {
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("Accounts"));
+    if ( !wxXmlResource::Get()->LoadDialog(this, parent, wxT("Accounts")) ) {
+      wxLogFatalError(_("Can't load Accounts dialog"));
+    }
 
     //----Reach in for our controls-----------------------------------------------------
     AccountList  = XRCCTRL(*this, "AccountList", wxListCtrl);

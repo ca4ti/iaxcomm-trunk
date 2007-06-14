@@ -33,6 +33,10 @@
     #include "wx/wx.h"
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 //----------------------------------------------------------------------------------------
 // Header of this .cpp file
 //----------------------------------------------------------------------------------------
@@ -142,7 +146,9 @@ MyFrame::MyFrame(wxWindow *parent)
     // However, the current approach has source code that can be recycled
     // in case code to moves to having an invisible frame as the top level window.
 
-    wxXmlResource::Get()->LoadFrame(this, parent, _T("MyFrame"));
+    if ( !wxXmlResource::Get()->LoadFrame(this, parent, _T("MyFrame")) ) {
+	wxLogFatalError(_("Can't load MyFrame frame"));
+    }
 
     //----Set the icon------------------------------------------------------------------
 #ifdef __WXMSW__   
@@ -687,7 +693,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
     char*     libver = (char *)malloc(256);
     
     libver = iaxc_version(libver);
-    msg.Printf(_T("iaxComm version:\t%s\nlibiaxclient version:\t%s"), wxString(VERSION, wxConvUTF8).c_str(), wxString(libver, wxConvUTF8).c_str());
+    msg.Printf(_T("iaxComm version:\t%s\nlibiaxclient version:\t%s"), wxString(IAXCOMM_VERSION, wxConvUTF8).c_str(), wxString(libver, wxConvUTF8).c_str());
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 

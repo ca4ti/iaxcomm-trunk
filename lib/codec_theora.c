@@ -66,14 +66,9 @@
 
 #include <stdlib.h>
 #include "iaxclient_lib.h"
+#include "video.h"
 #include "codec_theora.h"
 #include <theora/theora.h>
-
-#ifdef _MSC_VER
-typedef unsigned int uint32_t;
-typedef unsigned short uint16_t;
-typedef unsigned char uint8_t ;
-#endif
 
 #define MAX_SLICE_SIZE		8000
 #define MAX_ENCODED_FRAME_SIZE	48*1024
@@ -434,7 +429,7 @@ static int encode(struct iaxc_video_codec *c, int inlen, char *in,
 	return 0;
 }
 
-struct iaxc_video_codec *iaxc_video_codec_theora_new(int format, int w, int h,
+struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 		int framerate, int bitrate, int fragsize)
 {
 	struct iaxc_video_codec	*c;
@@ -474,7 +469,7 @@ struct iaxc_video_codec *iaxc_video_codec_theora_new(int format, int w, int h,
 	if ( !c->encstate )
 		goto bail;
 
-	iaxc_reset_vcodec_stats(c);
+	video_reset_codec_stats(c);
 
 	c->format = format;
 	c->width = w;

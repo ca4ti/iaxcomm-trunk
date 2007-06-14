@@ -16,16 +16,19 @@
 
 #include "iaxclient_lib.h"
 #include "iax-client.h"
+#ifdef CODEC_GSM
 #include "codec_gsm.h"
+#endif
 #include "codec_ulaw.h"
 #include "codec_alaw.h"
 #include "codec_speex.h"
+#include <speex/speex_preprocess.h>
 
 #ifdef CODEC_ILBC
 	#include "codec_ilbc.h"
 #endif
 
-float iaxc_silence_threshold = -99.0f;
+float iaxci_silence_threshold = -99.0f;
 
 static float input_level = 0.0f;
 static float output_level = 0.0f;
@@ -33,7 +36,7 @@ static float output_level = 0.0f;
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
 static int speex_state_rate = 0;
-int iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
+int iaxci_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
 
 /* use to measure time since last audio was processed */
 static struct timeval timeLastInput ;
@@ -69,26 +72,25 @@ static int do_level_callback()
 
 	gettimeofday(&now, 0);
 
-	if ( last.tv_sec != 0 && iaxc_usecdiff(&now, &last) < 100000 )
+	if ( last.tv_sec != 0 && iaxci_usecdiff(&now, &last) < 100000 )
 		return 0;
 
 	last = now;
 
 	/* if input has not been processed in the last second, set to silent */
-	input_db = iaxc_usecdiff(&now, &timeLastInput) < 1000000 ?
+	input_db = iaxci_usecdiff(&now, &timeLastInput) < 1000000 ?
 			vol_to_db(input_level) : -99.9f;
 
 	/* if output has not been processed in the last second, set to silent */
-	output_db = iaxc_usecdiff(&now, &timeLastOutput) < 1000000 ?
+	output_db = iaxci_usecdiff(&now, &timeLastOutput) < 1000000 ?
 		vol_to_db(output_level) : -99.9f;
 
-	iaxc_do_levels_callback(input_db, output_db);
+	iaxci_do_levels_callback(input_db, output_db);
 
 	return 0;
 }
 
-
-void iaxc_set_speex_filters()
+static void set_speex_filters()
 {
 	int i;
 	float f;
@@ -98,9 +100,9 @@ void iaxc_set_speex_filters()
 
 	i = 1; /* always make VAD decision */
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_VAD, &i);
-	i = (iaxc_filters & IAXC_FILTER_AGC) ? 1 : 0;
+	i = (iaxci_filters & IAXC_FILTER_AGC) ? 1 : 0;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC, &i);
-	i = (iaxc_filters & IAXC_FILTER_DENOISE) ? 1 : 0;
+	i = (iaxci_filters & IAXC_FILTER_DENOISE) ? 1 : 0;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DENOISE, &i);
 
 	/* make vad more sensitive */
@@ -138,22 +140,22 @@ static int input_postprocess(void *audio, int len, int rate)
 		st = speex_preprocess_state_init(len,rate);
 		speex_state_size = len;
 		speex_state_rate = rate;
-		iaxc_set_speex_filters();
+		set_speex_filters();
 	}
 
 	calculate_level((short *)audio, len, &input_level);
 
 	/* only preprocess if we're interested in VAD, AGC, or DENOISE */
-	if ( (iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) ||
-			iaxc_silence_threshold > 0.0f )
+	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) ||
+			iaxci_silence_threshold > 0.0f )
 		silent = !speex_preprocess(st, (spx_int16_t *)audio, NULL);
 
 	/* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
 	/* use a higher continuation threshold for AAGC than for VAD itself */
 	if ( !silent &&
-			iaxc_silence_threshold != 0.0f &&
-			(iaxc_filters & IAXC_FILTER_AGC) &&
-			(iaxc_filters & IAXC_FILTER_AAGC) &&
+			iaxci_silence_threshold != 0.0f &&
+			(iaxci_filters & IAXC_FILTER_AGC) &&
+			(iaxci_filters & IAXC_FILTER_AAGC) &&
 			st->speech_prob > 0.20f )
 	{
 		static int i = 0;
@@ -189,7 +191,7 @@ static int input_postprocess(void *audio, int len, int rate)
 
 	/* This is ugly. Basically just don't get volume level if speex thought
 	 * we were silent. Just set it to 0 in that case */
-	if ( iaxc_silence_threshold > 0.0f && silent )
+	if ( iaxci_silence_threshold > 0.0f && silent )
 		input_level = 0.0f;
 
 	do_level_callback();
@@ -199,10 +201,10 @@ static int input_postprocess(void *audio, int len, int rate)
 	if ( volume < lowest_volume )
 		lowest_volume = volume;
 
-	if ( iaxc_silence_threshold > 0.0f )
+	if ( iaxci_silence_threshold > 0.0f )
 		return silent;
 	else
-		return volume < iaxc_silence_threshold;
+		return volume < iaxci_silence_threshold;
 }
 
 static int output_postprocess(void *audio, int len)
@@ -218,17 +220,19 @@ static struct iaxc_audio_codec *create_codec(int format)
 {
 	switch (format & IAXC_AUDIO_FORMAT_MASK)
 	{
+#ifdef CODEC_GSM
 	case IAXC_FORMAT_GSM:
-		return iaxc_audio_codec_gsm_new();
+		return codec_audio_gsm_new();
+#endif
 	case IAXC_FORMAT_ULAW:
-		return iaxc_audio_codec_ulaw_new();
+		return codec_audio_ulaw_new();
 	case IAXC_FORMAT_ALAW:
-		return iaxc_audio_codec_alaw_new();
+		return codec_audio_alaw_new();
 	case IAXC_FORMAT_SPEEX:
-		return iaxc_audio_codec_speex_new(&speex_settings);
+		return codec_audio_speex_new(&speex_settings);
 #ifdef CODEC_ILBC
 	case IAXC_FORMAT_ILBC:
-		return iaxc_audio_codec_ilbc_new();
+		return codec_audio_ilbc_new();
 #endif
 	default:
 		/* ERROR: codec not supported */
@@ -248,7 +252,8 @@ EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality,
 	speex_settings.complexity = complexity;
 }
 
-int send_encoded_audio(struct iaxc_call *call, int callNo, void *data, int format, int samples)
+int audio_send_encoded_audio(struct iaxc_call *call, int callNo, void *data,
+		int format, int samples)
 {
 	unsigned char outbuf[1024];
 	int outsize = 1024;
@@ -265,8 +270,8 @@ int send_encoded_audio(struct iaxc_call *call, int callNo, void *data, int forma
 		if(!call->tx_silent)
 		{  /* send a Comfort Noise Frame */
 			call->tx_silent = 1;
-			if(iaxc_filters & IAXC_FILTER_CN)
-			iax_send_cng(call->session, 10, NULL, 0);
+			if ( iaxci_filters & IAXC_FILTER_CN )
+				iax_send_cng(call->session, 10, NULL, 0);
 		}
 		return 0;  /* poof! no encoding! */
 	}
@@ -315,7 +320,7 @@ int send_encoded_audio(struct iaxc_call *call, int callNo, void *data, int forma
 	// Send the encoded audio data back to the app if required
 	// TODO: fix the stupid way in which the encoded audio size is returned
 	if ( iaxc_get_audio_prefs() & IAXC_AUDIO_PREF_RECV_LOCAL_ENCODED )
-		iaxc_do_audio_callback(callNo, 0, IAXC_SOURCE_LOCAL, 1,
+		iaxci_do_audio_callback(callNo, 0, IAXC_SOURCE_LOCAL, 1,
 				call->encoder->format & IAXC_AUDIO_FORMAT_MASK,
 				sizeof(outbuf) - outsize, outbuf);
 
@@ -331,7 +336,7 @@ int send_encoded_audio(struct iaxc_call *call, int callNo, void *data, int forma
 
 /* decode encoded audio; return the number of bytes decoded
  * negative indicates error */
-int decode_audio(struct iaxc_call * call, void * out, void * data, int len,
+int audio_decode_audio(struct iaxc_call * call, void * out, void * data, int len,
 		int format, int * samples)
 {
 	int insize = len;
@@ -341,7 +346,7 @@ int decode_audio(struct iaxc_call * call, void * out, void * data, int len,
 
 	if ( format == 0 )
 	{
-		fprintf(stderr, "decode_audio: Format is zero (should't happen)!\n");
+		fprintf(stderr, "audio_decode_audio: Format is zero (should't happen)!\n");
 		return -1;
 	}
 
@@ -378,3 +383,21 @@ int decode_audio(struct iaxc_call * call, void * out, void * data, int len,
 	*samples = outsize;
 	return len - insize;
 }
+
+EXPORT int iaxc_get_filters(void)
+{
+	return iaxci_filters;
+}
+
+EXPORT void iaxc_set_filters(int filters)
+{
+	iaxci_filters = filters;
+	set_speex_filters();
+}
+
+EXPORT void iaxc_set_silence_threshold(float thr)
+{
+	iaxci_silence_threshold = thr;
+	set_speex_filters();
+}
+

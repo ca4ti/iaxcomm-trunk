@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+struct iaxc_video_driver;
+
 typedef void (*grab_callback_t)(void * ctx, double sample_time,
 		void * buf, long buf_size);
 

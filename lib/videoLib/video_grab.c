@@ -19,6 +19,7 @@
  */
 
 #include "iaxclient_lib.h"
+#include "video.h"
 #include "video_grab.h"
 
 static int img_buffer_full;
@@ -38,7 +39,7 @@ static MUTEX vdriverMutex;
 static int send_waiting_frame = 1;
 static char * waiting_frame = 0;
 
-#if LINUX || MACOSX
+#if defined(LINUX) || defined(MACOSX)
   #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
@@ -320,7 +321,7 @@ int pv_input(struct iaxc_video_driver *d, char **in)
 
 	gettimeofday(&current, NULL);
 
-	if ( iaxc_usecdiff(&current, &next_frame_time) < 0 )
+	if ( iaxci_usecdiff(&current, &next_frame_time) < 0 )
 	{
 		*in = NULL;
 		return 0;
@@ -422,7 +423,7 @@ int iaxc_set_holding_frame(char *wf)
 {
 	// TODO: Some sort of check...
 	// TODO: Mutex for thread safe operations??
-	iaxc_usermsg(IAXC_TEXT_TYPE_NOTICE, "Using a new waiting frame");
+	iaxci_usermsg(IAXC_TEXT_TYPE_NOTICE, "Using a new waiting frame");
 	memcpy(waiting_frame, wf, width * height * 6 / 4);
 	return 0;
 }

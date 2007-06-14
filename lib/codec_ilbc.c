@@ -80,7 +80,7 @@ static int encode ( struct iaxc_audio_codec *c,
     return 0;
 }
 
-struct iaxc_audio_codec *iaxc_audio_codec_ilbc_new() {
+struct iaxc_audio_codec *codec_audio_ilbc_new() {
   struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
 
   

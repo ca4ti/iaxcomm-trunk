@@ -93,8 +93,8 @@ int netstat_callback(struct iaxc_ev_netstats n) {
     static int i;
     if(i++%25 == 0)
 	fprintf(stderr, "RTT\t"
-	    "Rjit\tRlos%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
-	    "Ljit\tLlos%\tLlosC\tLpkts\tLdel\tLdrop\tLooo\n"
+	    "Rjit\tRlos%%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
+	    "Ljit\tLlos%%\tLlosC\tLpkts\tLdel\tLdrop\tLooo\n"
 	    );
 
     fprintf(stderr, "%d\t"
