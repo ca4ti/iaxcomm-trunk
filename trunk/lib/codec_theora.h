@@ -9,5 +9,5 @@
  * the GNU Lesser (Library) General Public License
  */
 
-
-struct iaxc_video_codec *iaxc_video_codec_theora_new(int format, int w, int h, int framerate, int bitrate, int fragsize);
+struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
+		int framerate, int bitrate, int fragsize);

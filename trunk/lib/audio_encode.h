@@ -13,16 +13,14 @@
 #ifndef _AUDIO_ENCODE_H
 #define _AUDIO_ENCODE_H
 
-#include <stdio.h>
-#include "iaxclient_lib.h"
-
+struct iaxc_call;
 struct iax_event;
 
-extern int iaxc_filters;
+int audio_send_encoded_audio(struct iaxc_call * most_recent_answer, int callNo,
+		void * data, int iEncodeType, int samples);
 
-int send_encoded_audio(struct iaxc_call *most_recent_answer, int callNo, void *data, int iEncodeType, int samples);
-int decode_audio(struct iaxc_call *p, void *out, void *data, int len, int iEncodeType, int *samples);
-void iaxc_set_speex_filters(void);
+int audio_decode_audio(struct iaxc_call * p, void * out, void * data, int len,
+		int iEncodeType, int * samples);
 
 #endif
 

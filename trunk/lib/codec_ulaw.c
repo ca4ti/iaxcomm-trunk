@@ -121,7 +121,7 @@ static int encode ( struct iaxc_audio_codec *c,
 }
 
 
-struct iaxc_audio_codec *iaxc_audio_codec_ulaw_new() {
+struct iaxc_audio_codec *codec_audio_ulaw_new() {
 
   struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(sizeof(struct iaxc_audio_codec),1);
   

@@ -83,7 +83,7 @@ static char *buttonlabels[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "*"
 class IAXTimer : public wxTimer
 {
     public:
-            void IAXTimer::Notify(); 
+            void Notify();
 };
 
 
@@ -91,9 +91,9 @@ class RegList : public wxListCtrl
 {
     public:
             RegList(wxWindow *parent, int regcount);
-            void  RegList::OnSelect(wxListEvent &evt);
-            void  RegList::OnSize(wxSizeEvent& evt);
-            void  RegList::AutoSize(); 
+            void  OnSelect(wxListEvent &evt);
+            void  OnSize(wxSizeEvent& evt);
+            void  AutoSize(); 
             int   regcount;
 
     protected:
@@ -109,11 +109,11 @@ class IAXCalls : public wxListCtrl
 {
     public:
             IAXCalls(wxWindow *parent, int nCalls);
-            void IAXCalls::OnSelect(wxListEvent &evt);
-            int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c);
-            void IAXCalls::OnSize(wxSizeEvent& evt);
-            void IAXCalls::AutoSize(); 
-            int IAXCalls::GetTotalHeight();
+            void OnSelect(wxListEvent &evt);
+            int HandleStateEvent(struct iaxc_ev_call_state c);
+            void OnSize(wxSizeEvent& evt);
+            void AutoSize(); 
+            int GetTotalHeight();
             int nCalls;
 
     protected:
@@ -220,31 +220,31 @@ class IAXFrame : public wxFrame
 
             ~IAXFrame();
 
-            void IAXFrame::OnDTMF(wxEvent &evt);
-            void IAXFrame::OnDial(wxEvent &evt);
-            void IAXFrame::OnHangup(wxEvent &evt);
-            void IAXFrame::OnQuit(wxEvent &evt);
-            void IAXFrame::OnPTTChange(wxCommandEvent &evt);
-            void IAXFrame::OnSilenceChange(wxCommandEvent &evt);
-            void IAXFrame::OnNotify(void);
-            void IAXFrame::OnAudioDialog(wxCommandEvent &evt);
-            void IAXFrame::OnServerDialog(wxCommandEvent &evt);
-            void IAXFrame::OnDialDialog(wxCommandEvent &evt);
+            void OnDTMF(wxEvent &evt);
+            void OnDial(wxEvent &evt);
+            void OnHangup(wxEvent &evt);
+            void OnQuit(wxEvent &evt);
+            void OnPTTChange(wxCommandEvent &evt);
+            void OnSilenceChange(wxCommandEvent &evt);
+            void OnNotify(void);
+            void OnAudioDialog(wxCommandEvent &evt);
+            void OnServerDialog(wxCommandEvent &evt);
+            void OnDialDialog(wxCommandEvent &evt);
 
             // utility methods
-            void IAXFrame::RegisterByName(wxString RegName);
-            void IAXFrame::DialBySpeedDialName(wxString name);
-            void IAXFrame::SetAudioDeviceByName(wxString in, wxString out, wxString ring);
+            void RegisterByName(wxString RegName);
+            void DialBySpeedDialName(wxString name);
+            void SetAudioDeviceByName(wxString in, wxString out, wxString ring);
 
             // Handlers for library-initiated events
-            void IAXFrame::HandleEvent(wxCommandEvent &evt);
-            int IAXFrame::HandleIAXEvent(iaxc_event *e);
-            int IAXFrame::HandleStatusEvent(char *msg);
-            int IAXFrame::HandleLevelEvent(float input, float output);
+            void HandleEvent(wxCommandEvent &evt);
+            int HandleIAXEvent(iaxc_event *e);
+            int HandleStatusEvent(char *msg);
+            int HandleLevelEvent(float input, float output);
 
-            bool IAXFrame::GetPTTState();
-            void IAXFrame::CheckPTT();
-            void IAXFrame::SetPTT(bool state);
+            bool GetPTTState();
+            void CheckPTT();
+            void SetPTT(bool state);
 
             wxGauge      *input; 
             wxGauge      *output; 

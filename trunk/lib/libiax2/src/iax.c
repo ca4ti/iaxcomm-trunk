@@ -10,6 +10,10 @@
  * the GNU Lesser (Library) General Public License
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 #undef __STRICT_ANSI__ //for strdup with ms
 

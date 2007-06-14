@@ -9,4 +9,4 @@
  * the GNU Lesser (Library) General Public License
  */
 
-struct iaxc_audio_codec *iaxc_audio_codec_ilbc_new();
+struct iaxc_audio_codec *codec_audio_ilbc_new();

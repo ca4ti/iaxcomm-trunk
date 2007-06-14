@@ -14,14 +14,22 @@
 
 #define _BSD_SOURCE
 #include <unistd.h>
-#include <sys/time.h>
-
 #ifndef __USE_POSIX199309
 #define __USE_POSIX199309
 #endif
-
 #include <time.h>
 #include "iaxclient_lib.h"
+
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
 
 #ifndef NULL
 #define NULL (0)
@@ -46,7 +54,7 @@ void iaxc_millisleep(long ms)
 
 
 /* TODO: Implement for X/MacOSX? */
-int post_event_callback(iaxc_event ev)
+int iaxci_post_event_callback(iaxc_event ev)
 {
 #if 0
 	iaxc_event *e;
@@ -69,7 +77,7 @@ int post_event_callback(iaxc_event ev)
 /* include mach stuff for declaration of thread_policy stuff */
 #include <mach/mach.h>
 
-int iaxc_prioboostbegin()
+int iaxci_prioboostbegin()
 {
 	struct thread_time_constraint_policy ttcpolicy;
 	int params [2] = {CTL_HW,HW_BUS_FREQ};
@@ -99,7 +107,7 @@ int iaxc_prioboostbegin()
 	return 0;
 }
 
-int iaxc_prioboostend()
+int iaxci_prioboostend()
 {
     /* TODO */
     return 0;
@@ -353,7 +361,7 @@ error:
 	return result;
 }
 
-int iaxc_prioboostbegin()
+int iaxci_prioboostbegin()
 {
 	struct sched_param   schp = { 0 };
 	prioboost *b = calloc(sizeof(*b),1);
@@ -387,7 +395,7 @@ int iaxc_prioboostbegin()
 	return result; 
 }
 
-int iaxc_prioboostend()
+int iaxci_prioboostend()
 {
 	if(pb) StopWatchDog(pb);
 	return 0;

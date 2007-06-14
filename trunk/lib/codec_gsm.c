@@ -86,7 +86,7 @@ static int encode ( struct iaxc_audio_codec *c,
     return 0;
 }
 
-struct iaxc_audio_codec *iaxc_audio_codec_gsm_new() {
+struct iaxc_audio_codec *codec_audio_gsm_new() {
   
   struct state * encstate;
   struct state * decstate;

@@ -24,8 +24,8 @@ extern "C" {
 /* This is the internal include file for IAXCLIENT -- externally
  * accessible APIs should be declared in iaxclient.h */
 
-#ifndef _MSC_VER
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
 
 #include <stdio.h>
@@ -47,11 +47,6 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <sys/time.h>
 #include <pthread.h>
 #endif
-
-#if (SPEEX_PREPROCESS == 1)
-#include <speex/speex_preprocess.h>
-#endif
-#include "sox/sox.h"
 
 #ifdef USE_FFMPEG
 // To access to check_ff function
@@ -117,9 +112,9 @@ pthread_create(&thread, NULL, func, args)
 
 
 void os_init(void);
-void iaxc_usermsg(int type, const char *fmt, ...);
-void iaxc_do_levels_callback(float input, float output);
-void iaxc_do_audio_callback(int callNo, unsigned int ts, int remote,
+void iaxci_usermsg(int type, const char *fmt, ...);
+void iaxci_do_levels_callback(float input, float output);
+void iaxci_do_audio_callback(int callNo, unsigned int ts, int remote,
 		int encoded, int format, int size, unsigned char *data);
 
 #include "iaxclient.h"
@@ -160,41 +155,6 @@ struct iaxc_audio_driver {
 	/* mic boost */
 	int (*mic_boost_get)(struct iaxc_audio_driver *d ) ;
 	int (*mic_boost_set)(struct iaxc_audio_driver *d, int enable);
-}; 
-
-struct iaxc_video_driver {
-	/* data */
-	char *name; 	/* driver name */
-	//struct iaxc_audio_device *devices; /* list of devices */
-	//int nDevices;	/* count of devices */
-	void *priv;	/* pointer to private data */
-
-	/* methods */
-	int (*initialize)(struct iaxc_video_driver *d, int w, int h, int framerate);
-	int (*destroy)(struct iaxc_video_driver *d);  /* free resources */
-	int (*select_device)(struct iaxc_video_driver *d, int input);
-	int (*selected_device)(struct iaxc_video_driver *d, int *input);
-
-	/* 
-	 * select_ring ? 
-	 * set_latency
-	 */
-
-	int (*start)(struct iaxc_video_driver *d);
-	int (*stop)(struct iaxc_video_driver *d);
-	int (*input)(struct iaxc_video_driver *d, char **data);
-	
-	int (*is_camera_working)(struct iaxc_video_driver *d);
-	
-	// HACK ALERT!!!
-	// If the requested size of the video is not 320x240, then we
-	// resize the image in software rather than relying on the camera
-	// to provide an adequate frame
-	int needs_resize;
-	int req_width;
-	int req_height;
-	
-	int camera_working; /* true if the camera is working */
 }; 
 
 struct iaxc_audio_codec {
@@ -270,43 +230,23 @@ struct iaxc_call {
 	struct iax_session *session;
 };
 
-#include "audio_encode.h"
-#include "audio_portaudio.h"
+extern int iaxci_audio_output_mode;
 
-#include "videoLib/video_grab.h"
-
-int iaxc_video_initialize();
-int iaxc_video_destroy();
-int iaxc_receive_video(struct iaxc_call * call, int sel_call,
-		void * encoded_video, int encoded_video_len,
-		unsigned int ts, int format);
-int iaxc_send_video(struct iaxc_call *, int);
-
-extern float iaxc_silence_threshold;
-extern int iaxc_audio_output_mode;
-
-int post_event_callback(iaxc_event e);
+int iaxci_post_event_callback(iaxc_event e);
 
 /* post an event to the application */
-void iaxc_post_event(iaxc_event e);
+void iaxci_post_event(iaxc_event e);
 
 /* parameters for callback */
 extern void * post_event_handle;
 extern int post_event_id;
 
 /* Priority boost support */
-extern int iaxc_prioboostbegin(void);
-extern int iaxc_prioboostend(void);
+extern int iaxci_prioboostbegin(void);
+extern int iaxci_prioboostend(void);
 
-/* get the raw in/out levels, as int */
-extern int iaxc_get_inout_volumes(int *input, int *output);
-
-void iaxc_reset_vcodec_stats(struct iaxc_video_codec *vcodec);
-void iaxc_reset_stats(struct iaxc_call *call);
-int iaxc_get_video_stats(struct iaxc_call *call, struct iaxc_video_stats *stats, int reset);
-
-long iaxc_usecdiff(struct timeval *t0, struct timeval *t1);
-long iaxc_msecdiff(struct timeval *t0, struct timeval *t1);
+long iaxci_usecdiff(struct timeval *t0, struct timeval *t1);
+long iaxci_msecdiff(struct timeval *t0, struct timeval *t1);
 
 #ifdef __cplusplus
 }

@@ -62,7 +62,7 @@ EXPORT void iaxc_millisleep(long ms)
 	Sleep(ms);
 }
 
-int post_event_callback(iaxc_event ev) {
+int iaxci_post_event_callback(iaxc_event ev) {
 	iaxc_event *e;
 	e = (iaxc_event *)malloc(sizeof(ev));
 	*e = ev;
@@ -77,14 +77,14 @@ int post_event_callback(iaxc_event ev) {
  * for discussion on Win32 scheduling priorities.
  */
 
-int iaxc_prioboostbegin() {
+int iaxci_prioboostbegin() {
     if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
         fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
     }
     return 0;
 }
 
-int iaxc_prioboostend() {
+int iaxci_prioboostend() {
     /* TODO */
     return 0;
 }

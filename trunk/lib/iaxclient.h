@@ -24,10 +24,7 @@ extern "C" {
  * by IAXCLIENT library users, but not include internal structures, or
  * require the inclusion of library internals (or sub-libraries) */
 
-#ifndef _MSC_VER
-#include <stdint.h>
-#else
-typedef unsigned __int32        uint32_t;
+#ifdef _MSC_VER
 typedef int socklen_t;
 #endif
 #include <stdio.h>
@@ -415,8 +412,8 @@ EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitra
 /* Get and set various audio delivery preferences.
  * Returns 0 on success and -1 on error.
  */
-EXPORT uint32_t iaxc_get_audio_prefs(void);
-EXPORT int iaxc_set_audio_prefs(uint32_t prefs);
+EXPORT unsigned int iaxc_get_audio_prefs(void);
+EXPORT int iaxc_set_audio_prefs(unsigned int prefs);
 
 /*
  * Acceptable range for video rezolution
@@ -459,8 +456,8 @@ EXPORT int iaxc_set_audio_prefs(uint32_t prefs);
  * words, a read-modify-write must be done to change a single preference.
  */
 
-EXPORT uint32_t iaxc_get_video_prefs(void);
-EXPORT int iaxc_set_video_prefs(uint32_t prefs);
+EXPORT unsigned int iaxc_get_video_prefs(void);
+EXPORT int iaxc_set_video_prefs(unsigned int prefs);
 
 EXPORT int listVidCapDevices(char *buff, int buffSize);
 

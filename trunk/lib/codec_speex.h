@@ -20,4 +20,4 @@ struct iaxc_speex_settings {
 	int complexity;
 };
 
-struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *settings);
+struct iaxc_audio_codec *codec_audio_speex_new(struct iaxc_speex_settings *settings);
