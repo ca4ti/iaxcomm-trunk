@@ -663,6 +663,10 @@ EXPORT void iaxc_shutdown()
 #ifdef WIN32
 	closesocket(iax_get_fd()); //fd:
 #endif
+
+	free(calls);
+
+	MUTEXDESTROY(&event_queue_lock);
 	MUTEXDESTROY(&iaxc_lock);
 }
 
