@@ -49,6 +49,7 @@ endif LINUX
 
 if MACOSX
 SRCS += $(SRCS_MACOSX)
+AM_LDFLAGS += -framework Quicktime
 endif MACOSX
 
 if USE_LOCAL_GSM
