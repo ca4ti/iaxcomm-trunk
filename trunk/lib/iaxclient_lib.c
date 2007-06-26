@@ -93,8 +93,9 @@ static MUTEX iaxc_lock;
 static MUTEX event_queue_lock;
 
 static int netfd;
-static int port;
-//static int c, i;
+
+// default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
+static int source_udp_port = IAX_DEFAULT_PORTNO;
 
 int iaxci_audio_output_mode = 0; // Normal
 
@@ -102,7 +103,7 @@ int selected_call; // XXX to be protected by mutex?
 struct iaxc_call* calls;
 int max_calls; // number of calls for this library session
 
-static void iaxc_service_network();
+static void service_network();
 static int service_audio();
 
 /* external global networking replacements */
@@ -520,9 +521,6 @@ static void setup_jb_output()
 #endif
 }
 
-// default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
-static int source_udp_port = 0;
-
 // Note: Must be called before iaxc_initialize()
 EXPORT void iaxc_set_preferred_source_udp_port(int port)
 {
@@ -577,6 +575,8 @@ EXPORT int iaxc_initialize(int num_calls)
 
 	if ( iaxc_sendto == (iaxc_sendto_t)sendto )
 	{
+		int port;
+
 		if ( (port = iax_init(source_udp_port)) < 0 )
 		{
 			iaxci_usermsg(IAXC_ERROR,
@@ -743,7 +743,7 @@ static THREADFUNCDECL(main_proc_thread_func)
 	{
 		get_iaxc_lock();
 		
-		iaxc_service_network();
+		service_network();
 		service_audio();
 		
 		// Check registration refresh once a second
@@ -1717,7 +1717,7 @@ static void iaxc_handle_connect(struct iax_event * e)
 	iaxci_usermsg(IAXC_STATUS, "Incoming call on line %d", callno);
 }
 
-static void iaxc_service_network()
+static void service_network()
 {
 	struct iax_event *e = 0;
 	int callNo;
