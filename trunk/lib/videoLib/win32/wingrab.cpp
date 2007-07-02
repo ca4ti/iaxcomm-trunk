@@ -13,14 +13,15 @@
 //------------------------------------------------------------------------------
 
 #include <windows.h>
-#include <streams.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <crtdbg.h>  // For _CrtSetReportMode
 #include <atlbase.h>
 #include <qedit.h>
 #include <comutil.h>
-#include "fourcc.h"
+#include <DShow.h>
+#include <wxdebug.h>
+#include <fourcc.h>
 #include "video_grab.h"
 
 class CSampleGrabberCB : public ISampleGrabberCB
@@ -74,6 +75,15 @@ public:
 		return S_OK;
 	}
 
+	void MyFreeMediaType(AM_MEDIA_TYPE& mt)
+	{
+	    if ( mt.cbFormat != 0 )
+	        CoTaskMemFree((PVOID)mt.pbFormat);
+
+	    if ( mt.pUnk != NULL )
+	        mt.pUnk->Release();
+	}
+
 	AM_MEDIA_TYPE *GetMediaType( CComPtr< IPin > pPin, bool allowAlternates )
 	{
 		CComPtr< IEnumMediaTypes > pEnum;
@@ -118,7 +128,7 @@ public:
 					fprintf(stderr, "- Using this image format: YUY2.\n");
 					return pMedia;
 				}
-				FreeMediaType(*pMedia);
+				MyFreeMediaType(*pMedia);
 				fprintf(stderr, "- Rejecting this format.\n");
 			}
 		}
@@ -151,7 +161,7 @@ public:
 				pMedia->subtype.Data1);
 			strcat_s(strBuff, buffSize, formatStr);
 
-			FreeMediaType(*pMedia);
+			MyFreeMediaType(*pMedia);
 		}
 
 		return 0;
@@ -638,7 +648,7 @@ clean_continue:
 			return 0;
 		}
 
-		FreeMediaType(*pMediaType);
+		MyFreeMediaType(*pMediaType);
 
 		// activate the threads
 		pControl = CComQIPtr<IMediaControl, &IID_IMediaControl>(pGraph);
