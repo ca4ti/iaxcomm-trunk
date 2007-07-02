@@ -4,6 +4,7 @@
 #ifndef WX_PRECOMP 
 #include  "wx/wx.h"
 #endif 
+#define AUDIO_INTERNAL_PA 1
 
 #include "wx/cmdline.h"
 #include "wx/listctrl.h"
@@ -105,7 +106,7 @@ static char *buttonlabels[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "*"
 class IAXTimer : public wxTimer
 {
   public:
-    void IAXTimer::Notify(); 
+    void Notify(); 
 };
 
 
@@ -113,11 +114,11 @@ class IAXCalls : public wxListCtrl
 {
     public:
       IAXCalls(wxWindow *parent, int nCalls);
-      void IAXCalls::OnSelect(wxListEvent &evt);
-      int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c);
-      void IAXCalls::OnSize(wxSizeEvent& evt);
-      void IAXCalls::AutoSize(); 
-      int IAXCalls::GetTotalHeight();
+      void OnSelect(wxListEvent &evt);
+      int HandleStateEvent(struct iaxc_ev_call_state c);
+      void OnSize(wxSizeEvent& evt);
+      void AutoSize(); 
+      int GetTotalHeight();
       int nCalls;
 
 protected:
@@ -152,7 +153,9 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
 
   Hide();
   for(i=0;i<nCalls;i++) {
-      InsertItem(i,wxString::Format("%ld", i+1), 0);
+      const wxChar* y=wxT("%ld");
+      const wxChar* x=wxString::Format(y, i+1);
+      InsertItem(i,x, 0);
       SetItem(i, 2, _T("No call"));
       item.m_itemId=i;
       item.m_mask = 0;
@@ -223,27 +226,27 @@ public:
 
     ~IAXFrame();
 
-    void IAXFrame::OnDTMF(wxEvent &evt);
-    void IAXFrame::OnDial(wxEvent &evt);
-    void IAXFrame::OnHangup(wxEvent &evt);
-    void IAXFrame::OnQuit(wxEvent &evt);
-    void IAXFrame::OnPTTChange(wxCommandEvent &evt);
-    void IAXFrame::OnSilenceChange(wxCommandEvent &evt);
-    void IAXFrame::OnNotify(void);
-    void IAXFrame::OnRegisterMenu(wxCommandEvent &evt);
+    void OnDTMF(wxCommandEvent& evt);
+    void OnDial(wxCommandEvent& evt);
+    void OnHangup(wxCommandEvent& evt);
+    void OnQuit(wxCommandEvent& evt);
+    void OnPTTChange(wxCommandEvent &evt);
+    void OnSilenceChange(wxCommandEvent &evt);
+    void OnNotify(void);
+    void OnRegisterMenu(wxCommandEvent &evt);
 
     // utility method
-    void IAXFrame::RegisterFromString(wxString value);
+    void RegisterFromString(wxString value);
 
     // Handlers for library-initiated events
-    void IAXFrame::HandleEvent(wxCommandEvent &evt);
-    int IAXFrame::HandleIAXEvent(iaxc_event *e);
-    int IAXFrame::HandleStatusEvent(char *msg);
-    int IAXFrame::HandleLevelEvent(float input, float output);
+    void HandleEvent(wxCommandEvent &evt);
+    int HandleIAXEvent(iaxc_event *e);
+    int HandleStatusEvent(char *msg);
+    int HandleLevelEvent(float input, float output);
 
-    bool IAXFrame::GetPTTState();
-    void IAXFrame::CheckPTT();
-    void IAXFrame::SetPTT(bool state);
+    bool GetPTTState();
+    void CheckPTT();
+    void SetPTT(bool state);
 
     wxGauge *input; 
     wxGauge *output; 
@@ -290,7 +293,9 @@ int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 	stateItem.SetBackgroundColour(*wxWHITE);
     } else {
 	// set remote 
-	SetItem(c.callNo, 2, c.remote );
+	wxString str(c.remote, wxConvUTF8);
+
+	SetItem(c.callNo, 2, str );
 
 	
 	bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
@@ -412,7 +417,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 	for(int i=0; i<12;i++)
 	{
 	    dialpadsizer->Add(
-	      new wxButton(aPanel, i, wxString(buttonlabels[i]),
+	      new wxButton(aPanel, i, wxString(buttonlabels[i],wxConvUTF8),
 		      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 
 		1, wxEXPAND|wxALL, 3);
 	}
@@ -439,22 +444,26 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     /* Server */
     topsizer->Add(iaxServLabel = new wxStaticText(aPanel, -1, _T("Server:")));
-    topsizer->Add(iaxServ = new wxComboBox(aPanel, -1, _T(DEFAULT_DESTSERV), 
+    const char* ascii_str = DEFAULT_DESTSERV;
+    wxString str(ascii_str, wxConvUTF8);
+    topsizer->Add(iaxServ = new wxComboBox(aPanel, -1, str, 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
-    iaxServ->Append(DEFAULT_DESTSERV);
-    iaxServ->Append("guest@ast1");
-    iaxServ->Append("guest@asterisk");
+    iaxServ->Append(str);
+    iaxServ->Append(wxString("guest@ast1",wxConvUTF8));
+    iaxServ->Append(wxString("guest@asterisk",wxConvUTF8));
 
     /* Destination */
     topsizer->Add(iaxDestLabel = new wxStaticText(aPanel, -1, _T("Number:")));
-    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T(DEFAULT_DESTEXT), 
+    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, 
+					   wxString(DEFAULT_DESTEXT,
+						    wxConvUTF8), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
-    iaxDest->Append(DEFAULT_DESTEXT);
-    iaxDest->Append("8068");
-    iaxDest->Append("208");
-    iaxDest->Append("600");
+    iaxDest->Append(wxString(DEFAULT_DESTEXT,wxConvUTF8));
+    iaxDest->Append(wxString("8068",wxConvUTF8));
+    iaxDest->Append(wxString("208",wxConvUTF8));
+    iaxDest->Append(wxString("600",wxConvUTF8));
 
     /* main control buttons */    
     row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, _T("Dial"),
@@ -472,7 +481,9 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     topsizer->Add(row3sizer,0,wxEXPAND);
 
-    topsizer->Add(muteState = new wxStaticText(aPanel,-1,"PTT Disabled",
+    topsizer->Add(muteState = new wxStaticText(aPanel,-1,
+					       wxString("PTT Disabled",
+							wxConvUTF8),
 	    wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
 
@@ -527,8 +538,11 @@ void IAXFrame::SetPTT(bool state)
 		iaxc_set_silence_threshold(0);  // mute input
 		iaxc_set_audio_output(0);  // unmute output
 	}
+	wxString talk=wxString("Talk",wxConvUTF8);
+	wxString mute=wxString("Mute",wxConvUTF8);
+	
+        muteState->SetLabel( pttState ? talk : mute );
 
-        muteState->SetLabel( pttState ? "Talk" : "Mute");
 }
 
 void IAXFrame::CheckPTT()
@@ -539,28 +553,30 @@ void IAXFrame::CheckPTT()
     SetPTT(newState);
 }
 
-void IAXFrame::OnDTMF(wxEvent &evt)
+void IAXFrame::OnDTMF(wxCommandEvent &evt)
 {
+
 	iaxc_send_dtmf(*buttonlabels[evt.m_id]);
 }
 
-void IAXFrame::OnDial(wxEvent &evt)
+void IAXFrame::OnDial(wxCommandEvent& evt)
 {
 	wxChar Destination[128];
 
 	wxStrcpy(Destination, theFrame->iaxServ->GetValue());
         wxStrcat(Destination, _T("/"));
 	wxStrcat(Destination, theFrame->iaxDest->GetValue());
-
-	iaxc_call(Destination);
+	wxString str(Destination);
+	const wxCharBuffer x=str.mb_str();
+	iaxc_call(x);
 }
 
-void IAXFrame::OnHangup(wxEvent &evt)
+void IAXFrame::OnHangup(wxCommandEvent& evt)
 {
 	iaxc_dump_call();
 }
 
-void IAXFrame::OnQuit(wxEvent &evt)
+void IAXFrame::OnQuit(wxCommandEvent& evt)
 {
 	Close(TRUE);
 }
@@ -570,27 +586,28 @@ void IAXFrame::RegisterFromString(wxString value) {
 	char user[256], pass[256], host[256];
 
 	if(tok.CountTokens() != 3) {
-	    theFrame->SetStatusText("error in registration format");
+	    theFrame->SetStatusText(wxString("error in registration format",
+					     wxConvUTF8));
 	    return;
 	}
 
-	strncpy( user , tok.GetNextToken().c_str(), 256);
-	strncpy( pass , tok.GetNextToken().c_str(), 256);
-	strncpy( host , tok.GetNextToken().c_str(), 256);
+	strncpy( user , tok.GetNextToken().mb_str(), 256);
+	strncpy( pass , tok.GetNextToken().mb_str(), 256);
+	strncpy( host , tok.GetNextToken().mb_str(), 256);
 
 	theFrame->iaxServ->Append(value);
 	theFrame->iaxServ->SetValue(value);
 
-	//fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
+	fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
 	iaxc_register(user, pass, host);
 }
 
 
 void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
 	wxTextEntryDialog dialog(this,
-	    _T("Register with a remote asterisk server"),
-	    _T("Format is user:password@hostname"),
-	    _T(wxGetApp().optRegistration),
+	    wxString("Register with a remote asterisk server",wxConvUTF8),
+	    wxString("Format is user:password@hostname",wxConvUTF8),
+	    wxString(wxGetApp().optRegistration,wxConvUTF8),
 	    wxOK | wxCANCEL);
 
 	if(dialog.ShowModal() == wxID_OK)
@@ -611,7 +628,7 @@ void IAXFrame::OnPTTChange(wxCommandEvent &evt)
 			iaxc_set_silence_threshold(-99);
 		}
 		iaxc_set_audio_output(0);  // unmute output
-		muteState->SetLabel("PTT Disabled");
+		muteState->SetLabel(wxString("PTT Disabled",wxConvUTF8));
 	}
 }
 
@@ -632,7 +649,7 @@ void IAXFrame::OnSilenceChange(wxCommandEvent &evt)
 
 int IAXFrame::HandleStatusEvent(char *msg)
 {
-    theFrame->SetStatusText(msg);
+    theFrame->SetStatusText(wxString(msg,wxConvUTF8));
   return 1;
 }
 
@@ -776,13 +793,14 @@ bool IAXClient::OnInit()
 	if(!wxApp::OnInit())
 	  return false;
 
-	theFrame = new IAXFrame("IAXTest", 0,0,130,220);
+	theFrame = new IAXFrame(wxT("IAXTest"), 0,0,130,220);
 
 
 	theFrame->Show(TRUE); 
 	SetTopWindow(theFrame); 
    
-        iaxc_initialize(AUDIO_INTERNAL_PA, wxGetApp().optNumCalls);
+        iaxc_initialize(1);
+
 
 	//        iaxc_set_encode_format(IAXC_FORMAT_GSM);
         iaxc_set_silence_threshold(-99);
