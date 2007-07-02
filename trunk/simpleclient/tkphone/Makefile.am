@@ -9,9 +9,9 @@ iaxclidir = ${libdir}/iaxclient/tkphone
 iaxcli_SCRIPTS = tkiaxphone
 dist_iaxcli_DATA = monitor.ui monitor.ui.tcl phone.ui phone.ui.tcl pref.ui pref.ui.tcl
 
-LDADD = $(top_builddir)/lib/libiaxclient.la $(GTK_LIBS)
+LDADD = $(top_builddir)/lib/libiaxclient.la $(GTK_LIBS) $(GDK_LIBS)
 AM_CPPFLAGS = -I$(top_srcdir)/lib -DUSE_HOTKEY=0
-AM_CFLAGS = $(GTK_CFLAGS)
+AM_CFLAGS = $(GTK_CFLAGS) $(GDK2_CFLAGS)
 
 if ! WIN32
   AM_CPPFLAGS += -DPOSIXSLEEP
