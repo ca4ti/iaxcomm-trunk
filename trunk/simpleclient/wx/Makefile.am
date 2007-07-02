@@ -2,10 +2,23 @@
 bin_PROGRAMS = wxiax
 wxiax_SOURCES = wx.cc
 
-AM_CPPFLAGS = -DDEFAULT_DESTSERV=\"guest@ast1\" -DDEFAULT_DESTEXT=\"1001\" \
-  -DDEFAULT_NUM_CALLS=1 -I$(top_srcdir)/lib $(WX_CPPFLAGS)
-AM_CXXFLAGS = $(GTK_CFLAGS) $(WX_CXXFLAGS_ONLY)
-LDADD = $(top_builddir)/lib/libiaxclient.la $(GTK_LIBS) $(WX_LIBS)
+AM_CPPFLAGS =					\
+	-DDEFAULT_DESTSERV=\"guest@ast1\"	\
+	-DDEFAULT_DESTEXT=\"1001\"		\
+	-DDEFAULT_NUM_CALLS=1			\
+	-I$(top_srcdir)/lib			\
+	$(WX_CPPFLAGS)
+
+AM_CXXFLAGS =					\
+	$(GTK_CFLAGS)				\
+	$(WX_CXXFLAGS_ONLY)			\
+	$(GDK2_CFLAGS)
+
+LDADD =						\
+	$(top_builddir)/lib/libiaxclient.la	\
+	$(GTK_LIBS)				\
+	$(WX_LIBS)				\
+	$(GDK2_LIBS)
 
 if ! WIN32
 AM_CPPFLAGS += -DPOSIXSLEEP
