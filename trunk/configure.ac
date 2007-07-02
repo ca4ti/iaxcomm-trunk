@@ -196,7 +196,7 @@ PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],,AC_MSG_ERROR([
 ]))
 
 PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
-PKG_CHECK_MODULES(GTK2, [gtk >= 2.0], has_gtk2=yes, has_gtk2=no)
+PKG_CHECK_MODULES(GTK2, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
 PKG_CHECK_MODULES(GDK2, [gdk-2.0 >= 2.0.0], has_gdk2=yes, has_gdk2=no)
 PKG_CHECK_MODULES(ALSA, [alsa >= 1.0], has_alsa=yes, has_alsa=no)
 
@@ -307,7 +307,10 @@ if test "x$enable_clients" = "xauto"; then
    clients="$clients testcall"
 
    if test ! x$has_wx = xno; then
-      clients="$clients iaxphone wx"
+      clients="$clients iaxphone"
+      if test "x$has_gdk2" = xyes; then
+         clients="$clients wx"
+      fi
 
       if test x$has_wx_xrc = xyes; then
          clients="$clients iaxcomm"
@@ -322,7 +325,7 @@ if test "x$enable_clients" = "xauto"; then
       clients="$clients WinIAX"
    fi
 
-   if test ! x$WISH = x; then
+   if test ! x$WISH = x && test "x$has_gdk2" = "xyes"; then
       clients="$clients tkphone"
    fi
 fi
@@ -346,6 +349,12 @@ do
          CLIENTS="$CLIENTS $client";;
 
       tkphone)
+         if ! test "x$has_gtk2" = "xyes"; then
+            AC_MSG_ERROR([tkphone requires GTK2])
+         fi
+         if ! test "x$has_gdk2" = "xyes"; then
+            AC_MSG_ERROR([tkphone requires GDK2])
+         fi
          CLIENTS="$CLIENTS $client";;
 
       WinIAX)
@@ -354,6 +363,9 @@ do
       wx)
          if test "x$has_wx" = "xno"; then
             AC_MSG_ERROR([wx client requires wxWidgets])
+         fi
+         if ! test "x$has_gtk2" = "xyes"; then
+            AC_MSG_ERROR([wx client requires GTK2])
          fi
          if ! test "x$has_gdk2" = "xyes"; then
             AC_MSG_ERROR([wx client requires GDK2])
