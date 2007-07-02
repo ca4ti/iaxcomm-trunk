@@ -204,7 +204,7 @@ EXPORT struct iaxc_ev_call_state *iaxc_get_event_state(iaxc_event *e)
 }
 
 // Messaging functions
-static void default_message_callback(char *message)
+static void default_message_callback(const char * message)
 {
 	fprintf(stderr, "IAXCLIENT: %s\n", message);
 }
@@ -682,7 +682,7 @@ EXPORT void iaxc_set_min_outgoing_framesize(int samples)
 	minimum_outgoing_framesize = samples;
 }
 
-EXPORT void iaxc_set_callerid(char *name, char *number)
+EXPORT void iaxc_set_callerid(const char * name, const char * number)
 {
 	int i;
 
@@ -1259,7 +1259,7 @@ EXPORT int iaxc_unregister( int id )
 	return count;
 }
 
-EXPORT int iaxc_register(char *user, char *pass, char *host)
+EXPORT int iaxc_register(const char * user, const char * pass, const char * host)
 {
 	struct iaxc_registration *newreg;
 
@@ -1322,7 +1322,7 @@ static void codec_destroy( int callNo )
 	}
 }
 
-EXPORT int iaxc_call(char *num)
+EXPORT int iaxc_call(const char * num)
 {
 	int video_format_capability;
 	int video_format_preferred;
@@ -1420,9 +1420,9 @@ EXPORT void iaxc_answer_call(int callNo)
 	iaxci_do_state_callback(callNo);
 }
 
-EXPORT void iaxc_blind_transfer_call(int callNo, char *DestExtn)
+EXPORT void iaxc_blind_transfer_call(int callNo, const char * dest_extension)
 {
-	iax_transfer(calls[callNo].session, DestExtn);
+	iax_transfer(calls[callNo].session, dest_extension);
 }
 
 static void iaxc_dump_one_call(int callNo)
@@ -1487,7 +1487,7 @@ EXPORT void iaxc_send_dtmf(char digit)
 	}
 }
 
-EXPORT void iaxc_send_text(char *text)
+EXPORT void iaxc_send_text(const char * text)
 {
 	if (selected_call >= 0)
 	{
@@ -1498,7 +1498,7 @@ EXPORT void iaxc_send_text(char *text)
 	}
 }
 
-EXPORT void iaxc_send_url(char *url, int link)
+EXPORT void iaxc_send_url(const char * url, int link)
 {
 	if (selected_call >= 0)
 	{
@@ -1848,7 +1848,7 @@ EXPORT int iaxc_mic_boost_set( int enable )
 
 #ifdef LIBVER
 
-EXPORT char* iaxc_version(char* ver)
+EXPORT char* iaxc_version(char * ver)
 {
 	strncpy(ver, LIBVER, IAXC_EVENT_BUFSIZ);
 	return ver;

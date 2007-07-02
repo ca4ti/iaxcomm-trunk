@@ -1292,7 +1292,7 @@ static int send_command_samples(struct iax_session *i, char type, int command, u
 }
 
 
-int iax_transfer(struct iax_session *session, char *number)
+int iax_transfer(struct iax_session *session, const char *number)
 {
 	static int res;				//Return Code
 	struct iax_ie_data ied;			//IE Data Structure (Stuff To Send)
@@ -1677,7 +1677,7 @@ int iax_video_bypass_jitter(struct iax_session *s, int mode)
 	return 0;
 }
 
-int iax_register(struct iax_session *session, char *server, char *peer, char *secret, int refresh)
+int iax_register(struct iax_session *session, const char *server, const char *peer, const char *secret, int refresh)
 {
 	/* Send a registration request */
 	char tmp[256];
@@ -1780,14 +1780,14 @@ int iax_load_complete(struct iax_session *session)
 	return send_command(session, AST_FRAME_HTML, AST_HTML_LDCOMPLETE, 0, NULL, 0, -1);
 }
 
-int iax_send_url(struct iax_session *session, char *url, int link)
+int iax_send_url(struct iax_session *session, const char *url, int link)
 {
 	return send_command(session, AST_FRAME_HTML,
 			link ? AST_HTML_LINKURL : AST_HTML_URL, 0,
 			(unsigned char *)url, (int)strlen(url), -1);
 }
 
-int iax_send_text(struct iax_session *session, char *text)
+int iax_send_text(struct iax_session *session, const char *text)
 {
 	return send_command(session, AST_FRAME_TEXT, 0, 0,
 			(unsigned char *)text, (int)strlen(text) + 1, -1);
@@ -2009,7 +2009,7 @@ int iax_pref_codec_get(struct iax_session *session, unsigned int *array, int len
 	return x;
 }
 
-int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich, char *lang, int wait, int formats, int capabilities)
+int iax_call(struct iax_session *session, const char *cidnum, const char *cidname, const char *ich, const char *lang, int wait, int formats, int capabilities)
 {
 	char tmp[256]="";
 	char *part1, *part2;

@@ -283,22 +283,22 @@ EXPORT int iaxc_initialize(int num_calls);
 EXPORT void iaxc_shutdown();
 EXPORT void iaxc_set_formats(int preferred, int allowed);
 EXPORT void iaxc_set_min_outgoing_framesize(int samples);
-EXPORT void iaxc_set_callerid(char *name, char *number);
+EXPORT void iaxc_set_callerid(const char * name, const char * number);
 EXPORT int iaxc_start_processing_thread();
 EXPORT int iaxc_stop_processing_thread();
-EXPORT int iaxc_call(char *num);
+EXPORT int iaxc_call(const char * num);
 EXPORT int iaxc_unregister( int id );
-EXPORT int iaxc_register(char *user, char *pass, char *host);
-EXPORT void iaxc_send_busy_on_incoming_call(int callNo);    //frik
+EXPORT int iaxc_register(const char * user, const char * pass, const char * host);
+EXPORT void iaxc_send_busy_on_incoming_call(int callNo);
 EXPORT void iaxc_answer_call(int callNo);
-EXPORT void iaxc_blind_transfer_call(int callNo, char *number);
+EXPORT void iaxc_blind_transfer_call(int callNo, const char * number);
 EXPORT void iaxc_dump_all_calls(void);
 EXPORT void iaxc_dump_call(void);
 EXPORT void iaxc_reject_call(void);
 EXPORT void iaxc_reject_call_number(int callNo);
 EXPORT void iaxc_send_dtmf(char digit);
-EXPORT void iaxc_send_text(char *text);
-EXPORT void iaxc_send_url(char *url, int link); /* link == 1 ? AST_HTML_LINKURL : AST_HTML_URL */
+EXPORT void iaxc_send_text(const char * text);
+EXPORT void iaxc_send_url(const char *url, int link); /* link == 1 ? AST_HTML_LINKURL : AST_HTML_URL */
 EXPORT void iaxc_millisleep(long ms);
 EXPORT void iaxc_set_silence_threshold(float thr);
 EXPORT void iaxc_set_audio_output(int mode);
@@ -329,7 +329,7 @@ EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, str
 #define IAXC_AD_RING_DEFAULT    (1<<5)
 
 struct iaxc_audio_device {
-	char *name;             /* name of the device */
+	const char * name;      /* name of the device */
 	long capabilities;      /* flags, defined above */
 	int devID;              /* driver-specific ID */
 };
