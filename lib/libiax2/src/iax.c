@@ -1063,21 +1063,21 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	/* Bitmask taken from chan_iax2.c... I must ask Mark Spencer for this? I think not... */
 	if ( f->frametype == AST_FRAME_VIDEO )
 	{
-	if (((fts & 0xFFFF8000L) == (lastsent & 0xFFFF8000L))
-		/* High two bits are the same on timestamp, or sending on a trunk */ &&
-	    ((f->subclass & ~0x01) == pvt->svideoformat)
-		/* is the same type */ )
-	{
-		/* Force immediate rather than delayed transmission */
-		now = 1;
-		/* Mark that mini-style frame is appropriate */
-		sendmini = 1;
+		if (((fts & 0xFFFF8000L) == (lastsent & 0xFFFF8000L))
+			/* High two bits are the same on timestamp, or sending on a trunk */ &&
+		((f->subclass & ~0x01) == pvt->svideoformat)
+			/* is the same type */ )
+		{
+			/* Force immediate rather than delayed transmission */
+			now = 1;
+			/* Mark that mini-style frame is appropriate */
+			sendmini = 1;
 		} else
 		{
 			/* we want to send a fullframe and be able to retransmit it */
-		now = 0;
-		sendmini = 0;
-	}
+			now = 0;
+			sendmini = 0;
+		}
 	}
 
 	/* if requested, force a full frame */
@@ -1186,7 +1186,6 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 			fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_video_hdr);
 			fr->data = vh;
 			fr->retries = -1;
-			//fprintf(stderr,"VVVVVVVVV Invio in MINI VIDEO FRAME\n");
 			res = iax_xmit_frame(fr);
 		} else
 		{
