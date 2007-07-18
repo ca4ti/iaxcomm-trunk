@@ -2539,7 +2539,12 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 			/* If it's not an ACK packet, it's out of order. */
 			DEBU(G "Packet arrived out of order (expecting %d, got %d) (frametype = %d, subclass = %d)\n",
 				session->iseqno, fh->oseqno, fh->type, subclass);
-			if (session->iseqno > fh->oseqno)
+			
+			/* 
+			 * Check if session->iseqno > fh->oseqno, accounting for possible wrap around
+			 * This is correct if the two values are not equal (which, in this case, is guaranteed)
+			 */
+			if ( (unsigned char)(session->iseqno - fh->oseqno) < 128 )
 			{
 				/* If we've already seen it, ack it XXX There's a border condition here XXX */
 				if ((fh->type != AST_FRAME_IAX) ||
