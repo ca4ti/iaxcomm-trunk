@@ -465,8 +465,8 @@ struct iax_session *iax_session_new(void)
 		s->voiceformat = -1;
 		s->svoiceformat = -1;
 		s->videoformat = -1;
-		/* Default pingtime to 30 ms */
-		s->pingtime = 30;
+		/* Default pingtime to 100 ms -- should cover most decent net connections */
+		s->pingtime = 100;
 		/* XXX Not quite right -- make sure it's not in use, but that won't matter
 		   unless you've had at least 65k calls.  XXX */
 		s->callno = callnums++;
