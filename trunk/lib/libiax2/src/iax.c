@@ -885,16 +885,17 @@ void iax_set_jb_target_extra( long value )
 int iax_init(int preferredportno)
 {
 	int portno = preferredportno;
-	struct sockaddr_in sin;
-	socklen_t sinlen;
-	int flags;
-	int bufsize = 256 * 1024;
 
-	if(iax_recvfrom == (iax_recvfrom_t) recvfrom)
+	if (iax_recvfrom == (iax_recvfrom_t)recvfrom)
 	{
+		struct sockaddr_in sin;
+		socklen_t sinlen;
+		int flags;
+		int bufsize = 256 * 1024;
+
 		if (netfd > -1)
 		{
-			/* Sokay, just don't do anything */
+			/* Okay, just don't do anything */
 			DEBU(G "Already initialized.");
 			return 0;
 		}
@@ -906,8 +907,11 @@ int iax_init(int preferredportno)
 			return -1;
 		}
 
-		if (preferredportno == 0) preferredportno = IAX_DEFAULT_PORTNO;
-		if (preferredportno < 0)  preferredportno = 0;
+		if (preferredportno == 0)
+			preferredportno = IAX_DEFAULT_PORTNO;
+
+		if (preferredportno < 0)
+			preferredportno = 0;
 
 		sin.sin_family = AF_INET;
 		sin.sin_addr.s_addr = 0;
@@ -973,18 +977,22 @@ int iax_init(int preferredportno)
 			return -1;
 		}
 #endif
+		/* Mihai: increase UDP socket buffers to avoid packet loss. */
+		if (setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, (char *)&bufsize,
+					sizeof(bufsize)) < 0)
+		{
+			DEBU(G "Unable to set buffer size.");
+			IAXERROR "Unable to set buffer size.");
+		}
+
 		portno = ntohs(sin.sin_port);
+		DEBU(G "Started on port %d\n", portno);
 	}
-	// Mihai: attempt to increase UDP socket buffers to avoid packet loss
-	if ( setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, (char *)&bufsize,sizeof(bufsize)) < 0)
-	{
-		DEBU(G "Unable to set buffer size.");
-		IAXERROR "Unable to set buffer size.");
-	}
+
 	srand((unsigned int)time(0));
 	callnums = rand() % 32767 + 1;
 	transfer_id = rand() % 32767 + 1;
-	DEBU(G "Started on port %d\n", portno);
+
 	return portno;
 }
 

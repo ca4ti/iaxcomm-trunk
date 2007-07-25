@@ -92,7 +92,7 @@ static int minimum_outgoing_framesize = 160; /* 20ms */
 static MUTEX iaxc_lock;
 static MUTEX event_queue_lock;
 
-static int netfd;
+static short iaxci_bound_port = -1;
 
 // default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
 static int source_udp_port = IAX_DEFAULT_PORTNO;
@@ -541,29 +541,16 @@ EXPORT int iaxc_video_bypass_jitter(int mode)
 	return iax_video_bypass_jitter(calls[selected_call].session,mode);
 }
 
-EXPORT unsigned short iaxc_get_bind_port()
+EXPORT short iaxc_get_bind_port()
 {
-	struct sockaddr_in	addtmp;
-	socklen_t		addlen;
-	int			result;
-
-	addlen = sizeof( addtmp );
-	result = getsockname(netfd,(struct sockaddr *)&addtmp, &addlen );
-	if ( result < 0 )
-	{
-		iaxci_usermsg(IAXC_ERROR, "Fatal error: failed to get the iax port\n");
-		return -1;
-	}
-
-	return ntohs(addtmp.sin_port);
+	return iaxci_bound_port;
 }
 
 EXPORT int iaxc_initialize(int num_calls)
 {
 	int i;
+	int port;
 
-	/* os-specific initializations: init gettimeofday fake stuff in
-	 * Win32, etc) */
 	os_init();
 
 	setup_jb_output();
@@ -573,22 +560,26 @@ EXPORT int iaxc_initialize(int num_calls)
 
 	iaxc_set_audio_prefs(0);
 
-	if ( iaxc_sendto == (iaxc_sendto_t)sendto )
-	{
-		int port;
-
-		if ( (port = iax_init(source_udp_port)) < 0 )
-		{
-			iaxci_usermsg(IAXC_ERROR,
-					"Fatal error: failed to initialize iax with port %d",
-					port);
-			return -1;
-		}
-		netfd = iax_get_fd();
-	} else
-	{
+	if ( iaxc_recvfrom != (iaxc_recvfrom_t)recvfrom )
 		iax_set_networking(iaxc_sendto, iaxc_recvfrom);
+
+	/* Note that iax_init() only sets up the receive port when the
+	 * sendto/recvfrom functions have not been replaced. We need
+	 * to call iaxc_init in either case because there is other
+	 * initialization beyond the socket setup that needs to be done.
+	 */
+	if ( (port = iax_init(source_udp_port)) < 0 )
+	{
+		iaxci_usermsg(IAXC_ERROR,
+				"Fatal error: failed to initialize iax with port %d",
+				port);
+		return -1;
 	}
+
+	if ( iaxc_recvfrom == (iaxc_recvfrom_t)recvfrom )
+		iaxci_bound_port = (short)port;
+	else
+		iaxci_bound_port = -1;
 
 	/* tweak the jitterbuffer settings */
 	iax_set_jb_target_extra( jb_target_extra );
