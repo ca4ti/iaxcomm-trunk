@@ -192,6 +192,8 @@ struct iax_session {
 	unsigned char iseqno;
 	/* Last acknowledged sequence number */
 	unsigned char aseqno;
+	/* Last sequence number we VNAKd */
+	unsigned char lastvnak;
 	/* Time value that we base our transmission on */
 	struct timeval offset;
 	/* Time value we base our delivery on */
@@ -473,6 +475,7 @@ struct iax_session *iax_session_new(void)
 		if (callnums > 32767)
 			callnums = 1;
 		s->peercallno = 0;
+		s->lastvnak = -1;
 		s->transferpeer = 0; /* for attended transfer */
 		s->next = sessions;
 		s->sendto = iax_sendto;
@@ -1617,6 +1620,13 @@ static struct iax_event *handle_event(struct iax_event *event)
 
 static int iax2_vnak(struct iax_session *session)
 {
+	/* send vnak just once for a given sequence number */
+	if (session->lastvnak == session->iseqno)
+	{
+		return 0;
+	}
+
+	session->lastvnak = session->iseqno;
 	return send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_VNAK, 0, NULL, 0, session->iseqno);
 }
 
