@@ -39,7 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..\..\..\lib\portmixer\px_common;..\..\..\lib\portaudio\include;..\..\..\lib\portaudio\src\common"
+				AdditionalIncludeDirectories="..\..\..\lib\portmixer\px_common;..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;strncasecmp=strnicmp;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -100,7 +100,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\lib\portmixer\px_common;..\..\..\lib\portaudio\include;..\..\..\lib\portaudio\src\common"
+				AdditionalIncludeDirectories="..\..\..\lib\portmixer\px_common;..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;strncasecmp=strnicmp;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"

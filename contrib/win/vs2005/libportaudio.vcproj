@@ -38,7 +38,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\lib\portaudio\include;..\..\..\lib\portaudio\src\common"
+				AdditionalIncludeDirectories="..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -100,7 +100,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\..\lib\portaudio\include;..\..\..\lib\portaudio\src\common"
+				AdditionalIncludeDirectories="..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				RuntimeLibrary="2"
 				WarningLevel="3"
@@ -145,59 +145,59 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_allocation.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_allocation.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_converters.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_converters.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_cpuload.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_cpuload.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_dither.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_dither.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_front.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_front.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_process.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_process.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_skeleton.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_stream.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_skeleton.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_trace.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_stream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\os\win\pa_win_hostapis.c"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_trace.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\os\win\pa_win_util.c"
+				RelativePath="..\..\..\..\portaudio\src\os\win\pa_win_hostapis.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\hostapi\wmme\pa_win_wmme.c"
+				RelativePath="..\..\..\..\portaudio\src\os\win\pa_win_util.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\os\win\pa_x86_plain_converters.c"
+				RelativePath="..\..\..\..\portaudio\src\hostapi\wmme\pa_win_wmme.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\pablio\ringbuffer.c"
+				RelativePath="..\..\..\..\portaudio\src\os\win\pa_x86_plain_converters.c"
 				>
 			</File>
 		</Filter>
@@ -207,67 +207,71 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_allocation.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_allocation.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\include\pa_asio.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_asio.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_converters.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_converters.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_cpuload.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_cpuload.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_dither.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_dither.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_endianness.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_endianness.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_hostapi.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_hostapi.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\include\pa_linux_alsa.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\include\pa_mac_core.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_linux_alsa.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_process.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_mac_core.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_stream.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_process.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_trace.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_stream.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_types.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_trace.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\src\common\pa_util.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_types.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\include\pa_win_wmme.h"
+				RelativePath="..\..\..\..\portaudio\src\common\pa_util.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\portaudio\include\portaudio.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_win_wmme.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\portaudio\include\portaudio.h"
 				>
 			</File>
 		</Filter>
