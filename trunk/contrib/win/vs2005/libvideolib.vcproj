@@ -38,7 +38,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\lib\videoLib\win32\BaseClasses;..\..\..\lib\videoLib;..\..\..\lib;&quot;$(DXSDK_DIR)\Include&quot;;&quot;$(PSDK_DIR)\Include&quot;"
+				AdditionalIncludeDirectories="..\..\..\lib\videoLib;..\..\..\lib;&quot;$(PSDK_DIR)\Include&quot;;&quot;$(PSDK_DIR)\Samples\Multimedia\DirectShow\BaseClasses&quot;;&quot;$(DXSDK_DIR)\Include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -100,7 +100,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\..\lib\videoLib\win32\BaseClasses;..\..\..\lib\videoLib;..\..\..\lib;&quot;$(DXSDK_DIR)\Include&quot;;&quot;$(PSDK_DIR)\Include&quot;"
+				AdditionalIncludeDirectories="..\..\..\lib\videoLib;..\..\..\lib;&quot;$(PSDK_DIR)\Include&quot;;&quot;$(PSDK_DIR)\Samples\Multimedia\DirectShow\BaseClasses&quot;;&quot;$(DXSDK_DIR)\Include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				RuntimeLibrary="2"
 				WarningLevel="3"
@@ -145,127 +145,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\amextra.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\amfilter.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\amvideo.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\combase.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\cprop.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\ctlutil.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\ddmm.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\dllentry.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\dllsetup.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\mtype.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\outputq.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\pstream.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\pullpin.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\refclock.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\renbase.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\schedule.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\seekpt.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\source.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\strmctl.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\sysclock.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\transfrm.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\transip.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\lib\videoLib\video_grab.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\videoctl.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\vtrans.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\winctrl.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\lib\videoLib\win32\wingrab.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\winutil.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxdebug.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxlist.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxutil.cpp"
 				>
 			</File>
 		</Filter>
@@ -274,138 +158,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\amextra.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\amfilter.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\cache.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\combase.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\cprop.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\ctlutil.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\ddmm.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\dllsetup.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\dsschedule.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\fourcc.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\measure.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\msgthrd.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\mtype.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\outputq.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\pstream.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\pullpin.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\refclock.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\reftime.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\renbase.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\seekpt.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\source.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\streams.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\strmctl.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\sysclock.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\transfrm.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\transip.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\videoctl.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\vtrans.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\winctrl.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\winutil.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxdebug.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxlist.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\lib\videoLib\win32\BaseClasses\wxutil.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
