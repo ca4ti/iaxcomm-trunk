@@ -165,8 +165,6 @@ SRCS_LINUX=					\
 SRCS_MACOSX=					\
 	portmixer/px_mac_core/px_mac_core.c	\
 	unixfuncs.c				\
-	videoLib/macosx/SSUtility.c		\
-	videoLib/macosx/SSUtility.h		\
 	videoLib/macosx/macgrab.c		\
 	videoLib/macosx/vdigGrab.c		\
 	videoLib/macosx/vdigGrab.h

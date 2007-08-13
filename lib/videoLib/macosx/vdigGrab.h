@@ -32,11 +32,7 @@
 #include <Carbon/Carbon.h>
 #include <QuickTime/QuickTime.h>
 
-#pragma mark ---- VdigGrab data ----
-
 typedef struct tagVdigGrab VdigGrab;
-
-#pragma mark ---- VdigGrab functions ----
 
 VdigGrab*
 vdgNew();
@@ -108,8 +104,6 @@ vdgUninit(VdigGrab* pVdg);
 
 void
 vdgDelete(VdigGrab* pVdg);
-
-#pragma mark ---- Utility functions ----
 
 OSErr
 createOffscreenGWorld( GWorldPtr* pGWorldPtr,

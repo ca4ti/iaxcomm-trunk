@@ -26,10 +26,7 @@
  *
  */
 
-#include "SSUtility.h"
 #include "vdigGrab.h"
-
-#pragma mark ---- VdigGrab data ----
 
 struct tagVdigGrab
 {
@@ -60,13 +57,11 @@ struct tagVdigGrab
 	Fixed cpFrameRate;
 };
 
-#pragma mark ---- Forward declarations ----
-
 Boolean MySGModalFilterProc (
-     DialogPtr            theDialog,
-     const EventRecord    *theEvent,
-     short                *itemHit,
-     long                 refCon );
+		DialogPtr            theDialog,
+		const EventRecord    *theEvent,
+		short                *itemHit,
+		long                 refCon );
 
 SeqGrabComponent
 MakeSequenceGrabber(WindowRef pWindow);
@@ -79,8 +74,6 @@ RequestSGSettings(SeqGrabComponent seqGrab, SGChannel sgchanVideo);
 
 OSErr
 vdgGetSettings(VdigGrab* pVdg);
-
-#pragma mark ---- VdigGrab functions ----
 
 VdigGrab*
 vdgNew()
@@ -122,14 +115,16 @@ vdgRequestSettings(VdigGrab* pVdg)
 {
 	OSErr err;
 
-	// Use the SG Dialog to allow the user to select device and compression settings
-	/* if (err = RequestSGSettings(  pVdg->seqGrab,
-								  pVdg->sgchanVideo))
+	// Use the SG Dialog to allow the user to select device and
+	// compression settings
+#if 0
+	if (err = RequestSGSettings(  pVdg->seqGrab,
+				pVdg->sgchanVideo))
 	{
 		printError("RequestSGSettings err=%d\n", err);
 		goto endFunc;
 	}
-	*/
+#endif
 	if ((err = vdgGetSettings(pVdg)))
 	{
 		printError("vdgGetSettings err=%d\n", err);
@@ -230,8 +225,8 @@ A much more optimal case, if you're doing it yourself is:
 
 /*
 	// Apple's SoftVDig doesn't seem to like these calls
-	if (err = VDCaptureStateChanging(   pVdg->vdCompInst,
-										vdFlagCaptureLowLatency | vdFlagCaptureSetSettingsBegin))
+	if (err = VDCaptureStateChanging(pVdg->vdCompInst,
+			vdFlagCaptureLowLatency | vdFlagCaptureSetSettingsBegin))
 	{
 		printError("VDCaptureStateChanging err=%d\n", err);
 //		goto endFunc;
@@ -329,7 +324,7 @@ vdgStartGrabbing(VdigGrab* pVdg)
 		goto endFunc;
 	}
 
-    if ((err = VDCompressOneFrameAsync( pVdg->vdCompInst )))
+	if ((err = VDCompressOneFrameAsync( pVdg->vdCompInst )))
 	{
 		printError("VDCompressOneFrameAsync err=%d\n", err);
 		goto endFunc;
@@ -349,9 +344,9 @@ endFunc:
 
 OSErr
 vdgGetDataRate( VdigGrab*   pVdg,
-				long*		pMilliSecPerFrame,
-				Fixed*      pFramesPerSecond,
-				long*       pBytesPerSecond)
+		long*		pMilliSecPerFrame,
+		Fixed*      pFramesPerSecond,
+		long*       pBytesPerSecond)
 {
 	OSErr err;
 
@@ -370,7 +365,7 @@ endFunc:
 
 OSErr
 vdgGetImageDescription( VdigGrab* pVdg,
-						ImageDescriptionHandle vdImageDesc )
+		ImageDescriptionHandle vdImageDesc )
 {
 	OSErr err;
 
@@ -401,29 +396,51 @@ vdgDecompressionSequenceBegin(VdigGrab* pVdg,
 		(*pVdg->vdImageDesc)->cType = FOUR_CHAR_CODE('yuvu'); // kYUVUPixelFormat
 
 	// make a scaling matrix for the sequence
-//	sourceRect.right = (*pVdg->vdImageDesc)->width;
-//	sourceRect.bottom = (*pVdg->vdImageDesc)->height;
-//	RectMatrix(&scaleMatrix, &sourceRect, &pMungData->bounds);
+	//sourceRect.right = (*pVdg->vdImageDesc)->width;
+	//sourceRect.bottom = (*pVdg->vdImageDesc)->height;
+	//RectMatrix(&scaleMatrix, &sourceRect, &pMungData->bounds);
 
-    // begin the process of decompressing a sequence of frames
-    // this is a set-up call and is only called once for the sequence - the ICM will interrogate different codecs
-    // and construct a suitable decompression chain, as this is a time consuming process we don't want to do this
-    // once per frame (eg. by using DecompressImage)
-    // for more information see Ice Floe #8 http://developer.apple.com/quicktime/icefloe/dispatch008.html
-    // the destination is specified as the GWorld
-	if ((err = DecompressSequenceBeginS(&pVdg->dstImageSeq, // pointer to field to receive unique ID for sequence
-					pVdg->vdImageDesc,      // handle to image description structure
+	// begin the process of decompressing a sequence of frames
+	// this is a set-up call and is only called once for the sequence
+	// - the ICM will interrogate different codecs and construct a
+	// suitable decompression chain, as this is a time consuming
+	// process we don't want to do this once per frame (eg. by using
+	// DecompressImage) for more information see Ice Floe #8
+	// http://developer.apple.com/quicktime/icefloe/dispatch008.html
+	// the destination is specified as the GWorld
+	if ((err = DecompressSequenceBeginS(
+					// pointer to field to receive unique
+					// ID for sequence
+					&pVdg->dstImageSeq,
+					// handle to image description structure
+					pVdg->vdImageDesc,
 					0,
 					0,
-					dstPort, //GetWindowPort(pMungData->pWindow),   // port for the DESTINATION image
-					NULL, // graphics device handle, if port is set, set to NULL
-					NULL, //&sourceRect, // source rectangle defining the portion of the image to decompress
-					NULL, //&scaleMatrix, // transformation matrix
-					srcCopy, // transfer mode specifier
-					(RgnHandle)NULL, // clipping region in dest. coordinate system to use as a mask
+					// port for the DESTINATION image
+					//GetWindowPort(pMungData->pWindow),
+					dstPort,
+					// graphics device handle, if port is
+					// set, set to NULL
+					NULL,
+					// source rectangle defining the
+					// portion of the image to decompress
+					//&sourceRect,
+					NULL,
+					// transformation matrix
+					//&scaleMatrix,
+					NULL,
+					// transfer mode specifier
+					srcCopy,
+					// clipping region in dest. coordinate
+					// system to use as a mask
+					(RgnHandle)NULL,
 					0, // flags
-					codecHighQuality, //codecNormalQuality, // accuracy in decompression
-					bestSpeedCodec))) //anyCodec); //bestSpeedCodec);		// compressor identifier or special identifiers ie. bestSpeedCodec
+					// accuracy in decompression
+					codecHighQuality,
+					// compressor identifier or special
+					// identifiers ie. bestSpeedCodec
+					bestSpeedCodec)))
+						//anyCodec); //bestSpeedCodec);
 	{
 		printError("DecompressSequenceBeginS err=%d\n", err);
 		goto endFunc;
@@ -434,9 +451,9 @@ endFunc:
 }
 
 OSErr
-vdgDecompressionSequenceWhen(   VdigGrab* pVdg,
-								Ptr theData,
-								long dataSize)
+vdgDecompressionSequenceWhen(VdigGrab* pVdg,
+		Ptr theData,
+		long dataSize)
 {
 	OSErr err;
 	CodecFlags	ignore = 0;
@@ -665,8 +682,6 @@ vdgDelete(VdigGrab* pVdg)
 	free(pVdg);
 }
 
-#pragma mark ---- Vdig utility functions ----
-
 OSErr
 vdgGetSettings(VdigGrab* pVdg)
 {
@@ -691,8 +706,8 @@ vdgGetSettings(VdigGrab* pVdg)
 	}
 
 	// Get the selected vdig from the SG
-    if (!(pVdg->vdCompInst = SGGetVideoDigitizerComponent(pVdg->sgchanVideo)))
-    {
+	if (!(pVdg->vdCompInst = SGGetVideoDigitizerComponent(pVdg->sgchanVideo)))
+	{
 		printError("SGGetVideoDigitizerComponent error\n");
 		goto endFunc;
 	}
@@ -770,8 +785,8 @@ MakeSequenceGrabChannel(SeqGrabComponent seqGrab, SGChannel* psgchanVideo)
 		goto endFunc;
 	}
 
-//	err = SGSetChannelBounds(*sgchanVideo, rect);
-   	// set usage for new video channel to avoid playthrough
+	//err = SGSetChannelBounds(*sgchanVideo, rect);
+	// set usage for new video channel to avoid playthrough
 	// note we don't set seqGrabPlayDuringRecord
 	if ((err = SGSetChannelUsage(*psgchanVideo, flags | seqGrabRecord)))
 	{
@@ -791,12 +806,11 @@ endFunc:
 }
 
 OSErr
-RequestSGSettings(  SeqGrabComponent		seqGrab,
-					SGChannel				sgchanVideo )
+RequestSGSettings( SeqGrabComponent seqGrab, SGChannel sgchanVideo )
 {
 	OSErr err;
 
-    SGModalFilterUPP MySGModalFilterUPP;
+	SGModalFilterUPP MySGModalFilterUPP;
 	if (!(MySGModalFilterUPP = NewSGModalFilterUPP (MySGModalFilterProc)))
 	{
 		printError("NewSGModalFilterUPP error\n");
@@ -805,9 +819,11 @@ RequestSGSettings(  SeqGrabComponent		seqGrab,
 	}
 
 	// let the user configure and choose the device and settings
-	// "Due to a bug in all versions QuickTime 6.x for the function call "SGSettingsDialog()"
-	// when used with the "seqGrabSettingsPreviewOnly" parameter, all third party panels will
-	// be excluded."  	from http://www.outcastsoft.com/ASCDFG1394.html  15/03/04
+	// "Due to a bug in all versions QuickTime 6.x for the function call
+	// "SGSettingsDialog()" when used with the
+	// "seqGrabSettingsPreviewOnly" parameter, all third party panels
+	// will be excluded."
+	// from http://www.outcastsoft.com/ASCDFG1394.html  15/03/04
 	//if (err = SGSettingsDialog(seqGrab, sgchanVideo, 0, NULL, seqGrabSettingsPreviewOnly, MySGModalFilterUPP, 0))
 	if ((err = SGSettingsDialog(seqGrab, sgchanVideo,
 					0, NULL, 0, MySGModalFilterUPP, 0)))
@@ -828,18 +844,18 @@ endFunc:
 // From QT sample code
 // Declaration of a typical application-defined function
 Boolean MySGModalFilterProc (
-     DialogPtr            theDialog,
-     const EventRecord    *theEvent,
-     short                *itemHit,
-     long                 refCon )
+		DialogPtr            theDialog,
+		const EventRecord    *theEvent,
+		short                *itemHit,
+		long                 refCon )
 {
 	// Ordinarily, if we had multiple windows we cared about, we'd handle
 	// updating them in here, but since we don't, we'll just clear out
 	// any update events meant for us
-	Boolean	handled = false;
+	Boolean handled = false;
 
 	if ((theEvent->what == updateEvt) &&
-		((WindowPtr) theEvent->message == (WindowPtr) refCon))
+			((WindowPtr) theEvent->message == (WindowPtr) refCon))
 	{
 		BeginUpdate ((WindowPtr) refCon);
 		EndUpdate ((WindowPtr) refCon);
@@ -848,12 +864,10 @@ Boolean MySGModalFilterProc (
 	return (handled);
 }
 
-#pragma mark ---- Public utility functions ----
-
 OSErr
-createOffscreenGWorld(  GWorldPtr* pGWorldPtr,
-						OSType		pixelFormat,
-						Rect*		pBounds)
+createOffscreenGWorld(GWorldPtr* pGWorldPtr,
+		OSType pixelFormat,
+		Rect* pBounds)
 {
 	OSErr err;
 	CGrafPtr theOldPort;
@@ -871,8 +885,8 @@ createOffscreenGWorld(  GWorldPtr* pGWorldPtr,
 		goto endFunc;
 	}
 
-    // lock the pixmap and make sure it's locked because
-    // we can't decompress into an unlocked PixMap
+	// lock the pixmap and make sure it's locked because
+	// we can't decompress into an unlocked PixMap
 	if (!LockPixels(GetGWorldPixMap(*pGWorldPtr)))
 		printError("createOffscreenGWorld: Can't lock pixels!\n");
 
@@ -893,6 +907,4 @@ disposeOffscreenGWorld(GWorldPtr gworld)
 	UnlockPixels(GetGWorldPixMap(gworld));
 	DisposeGWorld(gworld);
 }
-
-
 
