@@ -1,12 +1,15 @@
 /*
- * iaxclient: a portable telephony toolkit
+ * iaxclient: a cross-platform IAX softphone library
  *
+ * Copyrights:
  * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
+ * Contributors:
  * Mihai Balea <mihaiAThatesDOTms>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #define USE_H264_RTP_FOO
@@ -279,7 +282,7 @@ static int encode(struct iaxc_video_codec *c, int inlen, char *in, struct slice_
 		encoded_ts = (vss_uint)slice.frame_info.timestamp;
 #endif
 
-		// If the slice is the first slice in an IDR (key) frame, add the 
+		// If the slice is the first slice in an IDR (key) frame, add the
 		// SPS and PPS headers to allow for decoder (re)initialziation
 		// This way, a client can connect in the middle of a stream, as soon as
 		// an IDR frame arrives

@@ -2,14 +2,14 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
  *
- *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #include "iaxclient_lib.h"
@@ -28,11 +28,11 @@ provide some gettimeofday-like functionality that works for our purposes. */
 /*
 	changed 'struct timezone*' to 'void*' since
 	timezone is defined as a long in MINGW and caused compile-time warnings.
-	this should be okay since we don't use the passed value. 
+	this should be okay since we don't use the passed value.
 */
 
 
-/* 
+/*
  * functions implementations
  */
 

@@ -1,5 +1,18 @@
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+/*
+ * iaxclient: a cross-platform IAX softphone library
+ *
+ * Copyrights:
+ * Copyright (c) 1999-2000 Ross Bencina and Phil Burk
+ * Copyright (C) 2007, Wimba, Inc.
+ *
+ * Contributors:
+ * <see below>
+ * Peter Grayson <jpgrayson@gmail.com>
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU Lesser (Library) General Public License.
+ */
+
 /*
  * Ring Buffer utility.
  *
@@ -34,15 +47,18 @@
  */
 
 /*
- * The text above constitutes the entire PortAudio license; however, 
+ * The text above constitutes the entire PortAudio license; however,
  * the PortAudio community also makes the following non-binding requests:
  *
  * Any person wishing to distribute modifications to the Software is
  * requested to send the modifications to the original developer so that
- * they can be incorporated into the canonical version. It is also 
- * requested that these non-binding requests be included along with the 
+ * they can be incorporated into the canonical version. It is also
+ * requested that these non-binding requests be included along with the
  * license above.
  */
+
+#ifndef RINGBUFFER_H
+#define RINGBUFFER_H
 
 #ifdef __cplusplus
 extern "C"

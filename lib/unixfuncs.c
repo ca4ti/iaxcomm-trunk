@@ -2,14 +2,14 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
  *
- *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #define _BSD_SOURCE
@@ -103,7 +103,7 @@ int iaxci_prioboostbegin()
 			THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS )
 	{
 		fprintf(stderr, "thread_policy_set failed: %d.\n", ret);
-	}    
+	}
 	return 0;
 }
 
@@ -140,7 +140,7 @@ int iaxci_prioboostend()
  * they can be incorporated into the canonical version.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- */ 
+ */
 
 /* It has been clarified by the authors that the request to send modifications
    is a request, and not a condition */
@@ -165,7 +165,7 @@ int iaxci_prioboostend()
 #include <errno.h>
 
 //#define DBUG(...) fprintf(stderr, __VA_ARGS__)
-#define DBUG(...) 
+#define DBUG(...)
 #define ERR_RPT(...) fprintf(stderr, __VA_ARGS__)
 
 #define SCHEDULER_POLICY SCHED_RR
@@ -182,11 +182,11 @@ typedef struct {
 	int CanaryRun;
 	pthread_t CanaryThread;
 	int IsCanaryThreadValid;
-	
+
 	int WatchDogRun;
 	pthread_t WatchDogThread;
 	int IsWatchDogThreadValid;
-	
+
 } prioboost;
 
 static prioboost *pb;
@@ -226,7 +226,7 @@ static int WatchDogProc( prioboost *b )
 		goto killAudio;
 	}
 
-	DBUG("prioboost: WatchDog priority set to level %d!\n", schp.sched_priority);        
+	DBUG("prioboost: WatchDog priority set to level %d!\n", schp.sched_priority);
 
 	/* Compare watchdog time with audio and canary thread times. */
 	/* Sleep for a while or until thread cancelled. */
@@ -366,7 +366,7 @@ int iaxci_prioboostbegin()
 	struct sched_param   schp = { 0 };
 	prioboost *b = calloc(sizeof(*b),1);
 
-	int result = 0;    
+	int result = 0;
 
 	b->priority = (sched_get_priority_max(SCHEDULER_POLICY) -
 			sched_get_priority_min(SCHEDULER_POLICY)) / 2;
@@ -392,7 +392,7 @@ int iaxci_prioboostbegin()
 		pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schp);
 	}
 
-	return result; 
+	return result;
 }
 
 int iaxci_prioboostend()

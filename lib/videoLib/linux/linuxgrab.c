@@ -2,21 +2,23 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
- * Peter Grayson <jpgrayson@gmail.com>
  * Steve Kann <stevek@stevek.com>
  * Stefano Falsetto <falsetto@gnu.org>
+ * Peter Grayson <jpgrayson@gmail.com>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
- *
+ */
+
+/*
  * Module: video_portvideo
  * Purpose: Video code to provide portvideo driver support for IAX library
  * Developed by: Steve Kann
  * Creation Date: April 7, 2005
- * Modify Data: July, 18, 2005
  */
 
 #include "iaxclient_lib.h"
@@ -142,7 +144,7 @@ static THREADFUNCDECL(camera_polling)
 void *grabber_init( grab_callback_t gc, void *gc_data, int w, int h)
 {
 	int got_camera;
-	
+
 	grab_callback = gc;
 	grab_callback_data = gc_data;
 	width = w;

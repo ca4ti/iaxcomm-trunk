@@ -2,16 +2,16 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
  * Michael Van Donselaar <mvand@vandonselaar.org>
  * Shawn Lawrence <shawn.lawrence@terracecomm.com>
  *
- *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  *
  * Module: audio_portaudio
  * Purpose: Audio code to provide portaudio driver support for IAX library
@@ -19,7 +19,7 @@
  * Creation Date: April 18, 2003
  *
  * This library uses the PortAudio Portable Audio Library
- * For more information see: http://www.portaudio.com
+ * For more information see: http://www.portaudio.com/
  * PortAudio Copyright (c) 1999-2000 Ross Bencina and Phil Burk
  *
  */
