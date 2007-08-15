@@ -39,7 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\lib\libiax2\src;..\..\..\..\portaudio\include;..\..\..\lib\spandsp;..\..\..\lib\gsm\inc;..\..\..\..\speex\include;..\..\..\..\libogg\include;..\..\..\..\libtheora\include"
+				AdditionalIncludeDirectories="..\..\..\lib\libiax2\src;..\..\..\..\portaudio\include;..\..\..\lib\spandsp;..\..\..\lib\gsm\inc;..\..\..\..\speex\include;..\..\..\..\libogg\include;..\..\..\..\libtheora\include;..\..\..\lib\portmixer\px_common"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;BUILDING_DLL;LIBIAX;SPEEX_EC=1;_CRT_SECURE_NO_DEPRECATE;strncasecmp=strnicmp;__inline__=_inline;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -101,7 +101,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\..\lib\libiax2\src;..\..\..\..\portaudio\include;..\..\..\lib\spandsp;..\..\..\lib\gsm\inc;..\..\..\..\speex\include;..\..\..\..\libogg\include;..\..\..\..\libtheora\include"
+				AdditionalIncludeDirectories="..\..\..\lib\libiax2\src;..\..\..\..\portaudio\include;..\..\..\lib\spandsp;..\..\..\lib\gsm\inc;..\..\..\..\speex\include;..\..\..\..\libogg\include;..\..\..\..\libtheora\include;..\..\..\lib\portmixer\px_common"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;BUILDING_DLL;LIBIAX;SPEEX_EC=1;_CRT_SECURE_NO_DEPRECATE;strncasecmp=strnicmp;__inline__=_inline;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				RuntimeLibrary="2"
 				WarningLevel="3"
@@ -179,10 +179,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\lib\ringbuffer.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\lib\spandsp\plc.c"
 				>
 				<FileConfiguration
@@ -201,6 +197,10 @@
 						CompileAs="2"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\..\lib\ringbuffer.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\..\lib\video.c"
