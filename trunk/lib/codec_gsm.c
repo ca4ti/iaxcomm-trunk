@@ -1,12 +1,15 @@
 /*
- * iaxclient: a portable telephony toolkit
+ * iaxclient: a cross-platform IAX softphone library
  *
- * Copyright (C) 2003-2004, Horizon Wimba, Inc.
+ * Copyrights:
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
+ * Contributors:
  * Steve Kann <stevek@stevek.com>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #include "codec_gsm.h"
@@ -32,7 +35,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
 }
 
 
-static int decode ( struct iaxc_audio_codec *c, 
+static int decode ( struct iaxc_audio_codec *c,
     int *inlen, unsigned char *in, int *outlen, short *out ) {
     struct state * decstate = (struct state *) c->decstate;
 
@@ -57,7 +60,7 @@ static int decode ( struct iaxc_audio_codec *c,
 	plc_rx(&decstate->plc,out,160);
 
 	/* we used 33 bytes of input, and 160 bytes of output */
-	*inlen -= 33; 
+	*inlen -= 33;
 	in += 33;
 	*outlen -= 160;
 	out += 160;
@@ -66,7 +69,7 @@ static int decode ( struct iaxc_audio_codec *c,
     return 0;
 }
 
-static int encode ( struct iaxc_audio_codec *c, 
+static int encode ( struct iaxc_audio_codec *c,
     int *inlen, short *in, int *outlen, unsigned char *out ) {
 
     struct state * encstate = (struct state *) c->encstate;
@@ -77,7 +80,7 @@ static int encode ( struct iaxc_audio_codec *c,
 	gsm_encode(encstate->gsmstate, in, out);
 
 	/* we used 160 bytes of input, and 33 bytes of output */
-	*inlen -= 160; 
+	*inlen -= 160;
 	in += 160;
 	*outlen -= 33;
 	out += 33;
@@ -87,12 +90,12 @@ static int encode ( struct iaxc_audio_codec *c,
 }
 
 struct iaxc_audio_codec *codec_audio_gsm_new() {
-  
+
   struct state * encstate;
   struct state * decstate;
   struct iaxc_audio_codec *c = (struct iaxc_audio_codec *)calloc(sizeof(struct iaxc_audio_codec),1);
 
-  
+
   if(!c) return c;
 
   strcpy(c->name,"gsm 06.10");
@@ -107,7 +110,7 @@ struct iaxc_audio_codec *codec_audio_gsm_new() {
   c->decstate = calloc(sizeof(struct state),1);
 
   /* leaks a bit on no-memory */
-  if(!(c->encstate && c->decstate)) 
+  if(!(c->encstate && c->decstate))
       return NULL;
 
   encstate = (struct state *) c->encstate;
@@ -116,7 +119,7 @@ struct iaxc_audio_codec *codec_audio_gsm_new() {
   encstate->gsmstate = gsm_create();
   decstate->gsmstate = gsm_create();
 
-  if(!(encstate->gsmstate && decstate->gsmstate)) 
+  if(!(encstate->gsmstate && decstate->gsmstate))
       return NULL;
 
   return c;

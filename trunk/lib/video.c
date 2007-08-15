@@ -2,14 +2,18 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2005 Horizon Wimba, inc.
+ * Copyright (C) 2005-2006, Horizon Wimba, inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
+ * Mihai Balea <mihai AT hates DOT ms>
+ * Peter Grayson <jpgrayson@gmail.com>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
+
 #include <assert.h>
 
 #include "video.h"
@@ -212,7 +216,7 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 	for ( i = 0; i <= 24; i++)
 	{
 		tmp_allowed = 1 << i;
-		if ( (allowed & tmp_allowed)  && 
+		if ( (allowed & tmp_allowed)  &&
 				 codec_video_ffmpeg_check_codec(tmp_allowed) )
 			real_allowed |= tmp_allowed;
 	}
@@ -434,7 +438,7 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 	/* It is okay if we do not get any video; video capture may be
 	 * disabled.
 	 */
-	if ( !videobuf || 
+	if ( !videobuf ||
 	     (iaxc_video_prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE)
 	   )
 		return 0;
@@ -734,7 +738,7 @@ static void iaxc_init_yuv2rgb_tables(void)
 		yuv2rgb_clip8[i] = 255 << 8;
 		yuv2rgb_clip16[i] = 255 << 16;
 	}
-	
+
 	yuv2rgb_tables_initialized = 1;
 }
 
@@ -742,7 +746,7 @@ static void iaxc_init_yuv2rgb_tables(void)
 /*
  * Faster function to convert YUV420 images to RGB32
  * RGB32: 0xFFRRGGBB
- * This function uses precalculated tables that are initialized 
+ * This function uses precalculated tables that are initialized
  * on the first run.
  * Make sure the src and dest buffers have enough room
  * dest should be width * height * 4 bytes in size
@@ -753,21 +757,21 @@ void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
 	unsigned char *y, *u, *v;
 	unsigned int *dst;
 	int i;
-	
+
 	if ( !yuv2rgb_tables_initialized )
 		iaxc_init_yuv2rgb_tables();
-	
+
 	dst = (unsigned int *)dest;
 	y  = (unsigned char *)src;
 	u  = y + width * height;
 	v  = u + width * height / 4;
-	
+
 	for (i = 0; i < height; i++)
 	{
 		unsigned char *uu,*vv;
 		unsigned int *d;
 		int j;
-	
+
 		d = dst;
 		uu = u;
 		vv = v;
@@ -809,54 +813,54 @@ void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
 // 	unsigned char * u = y + width * height;
 // 	unsigned char * v = u + width * height / 4;
 // 	unsigned int * dst = (unsigned int *)dest;
-// 
+//
 // 	for ( i = 0; i < height; i++ )
 // 	{
 // 		int j;
-// 
+//
 // 		unsigned char * uu = u;
 // 		unsigned char * vv = v;
-// 
+//
 // 		for ( j = 0; j < width; j++ )
 // 		{
 // 			int yyy =  *y -  16;
 // 			int uuu = *uu - 128;
 // 			int vvv = *vv - 128;
-// 
+//
 // 			int r = ( 298*yyy + 409*vvv + 128) >> 8;
 // 			int g = ( 298*yyy - 100*uuu - 208*vvv + 128) >> 8;
 // 			int b = ( 298*yyy + 516*uuu + 128) >> 8;
-// 
+//
 // 			// Clip values to make sure they fit in range
 // 			if ( r < 0 )
 // 				r = 0;
 // 			else if ( r > 255 )
 // 				r = 255;
-// 
+//
 // 			if ( g < 0 )
 // 				g = 0;
 // 			else if ( g > 255 )
 // 				g = 255;
-// 
+//
 // 			if ( b < 0 )
 // 				b = 0;
 // 			else if ( b > 255 )
 // 				b = 255;
-// 
+//
 // 			*(dst++) = 0xff000000 |
 // 				((unsigned char)r << 16) |
 // 				((unsigned char)g << 8) |
 // 				((unsigned char)b << 0);
-// 
+//
 // 			y++;
-// 
+//
 // 			if ( j & 1 )
 // 			{
 // 				uu++;
 // 				vv++;
 // 			}
 // 		}
-// 
+//
 // 		if ( i & 1 )
 // 		{
 // 			u += width >> 1;

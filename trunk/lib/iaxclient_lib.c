@@ -2,7 +2,8 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
@@ -10,10 +11,11 @@
  * Shawn Lawrence <shawn.lawrence@terracecomm.com>
  * Frik Strecker <frik@gatherworks.com>
  * Mihai Balea <mihai AT hates DOT ms>
- *
+ * Peter Grayson <jpgrayson@gmail.com>
+ * Bill Cholewka <bcholew@gmail.com>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #include <assert.h>
@@ -724,7 +726,7 @@ static void iaxc_refresh_registrations()
 static THREADFUNCDECL(main_proc_thread_func)
 {
 	static int refresh_registration_count = 0;
-	
+
 	THREADFUNCRET(ret);
 
 	/* Increase Priority */
@@ -733,17 +735,17 @@ static THREADFUNCDECL(main_proc_thread_func)
 	while ( !main_proc_thread_flag )
 	{
 		get_iaxc_lock();
-		
+
 		service_network();
 		service_audio();
-		
+
 		// Check registration refresh once a second
 		if ( refresh_registration_count++ > 1000/LOOP_SLEEP )
 		{
 			iaxc_refresh_registrations();
 			refresh_registration_count = 0;
 		}
-		
+
 		put_iaxc_lock();
 
 		iaxc_millisleep(LOOP_SLEEP);
@@ -782,7 +784,7 @@ static void send_video_stats()
 		e.type = IAXC_EVENT_VIDEOSTATS;
 		e.ev.videostats.callNo = selected_call;
 		iaxci_post_event(e);
-		
+
 		video_stats_start = now;
 	}
 }
@@ -803,7 +805,7 @@ static THREADFUNCDECL(video_proc_thread_func)
 		video_send_video(call, selected_call);
 
 		send_video_stats();
-		
+
 		// Tight spinloops are bad, mmmkay?
 		iaxc_millisleep(LOOP_SLEEP);
 	}

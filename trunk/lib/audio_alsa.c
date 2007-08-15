@@ -1,18 +1,14 @@
 /*
- * iaxclient_lib: An Inter-Asterisk eXchange communication library
+ * iaxclient: a cross-platform IAX softphone library
  *
- * Module: audio_alsa
- * Purpose: Audio code to output to ALSA
- * based on audio_file, originally Developed by: Steve Kann
- * Developed by: Panfilov Dmitry
- * Creation Date: Febr 9, 2006
+ * Copyrights:
+ * Copyright (C) 2006 Panfilov Dmitry
+ *
+ * Contributors:
+ * Panfilov Dmitry
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
- *
- * IAX library Copyright (c) 2001 Linux Support Services
- * IAXlib is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  *
  */
 
@@ -30,7 +26,7 @@ static int alsa_play_sound(struct iaxc_sound *inSound, int ring) {
 }
 
 int alsa_stop_sound(int soundID) {
-  return 0; 
+  return 0;
 }
 
 
@@ -42,7 +38,7 @@ int alsa_stop (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-void alsa_shutdown_audio() 
+void alsa_shutdown_audio()
 {
     return;
 }
@@ -55,7 +51,7 @@ int alsa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
     long byteread=*nSamples;
     static int h;
     *nSamples=0;
-    snd_pcm_start(stream_in);	    
+    snd_pcm_start(stream_in);
     if(h==1) { h=0; return 0;}
     do{
 	r = snd_pcm_readi(stream_in, samples, byteread);
@@ -77,7 +73,7 @@ int alsa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 int alsa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 
         long r;
-	snd_pcm_start(stream_out);	
+	snd_pcm_start(stream_out);
         while (nSamples > 0) {
                 r = snd_pcm_writei(stream_out, samples, nSamples);
                 if (r == -EAGAIN){
@@ -107,7 +103,7 @@ int alsa_selected_devices (struct iaxc_audio_driver *d, int *input, int *output,
     return 0;
 }
 
-int alsa_destroy (struct iaxc_audio_driver *d ) 
+int alsa_destroy (struct iaxc_audio_driver *d )
 {
 	/* TODO: something should happen here */
     return 0;
@@ -137,9 +133,9 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
     short buf[128];
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
-    
+
     if ((err = snd_pcm_open (&stream_out, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
-        fprintf (stderr, "cannot open audio device default (%s)\n", 
+        fprintf (stderr, "cannot open audio device default (%s)\n",
         snd_strerror (err));
 	exit (1);
     }
@@ -178,9 +174,9 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
 	snd_strerror (err));
 	exit (1);
     }
-    
+
     snd_pcm_sw_params_malloc(&sw_params);
-    
+
     err = snd_pcm_sw_params_current(stream_out, sw_params);
     if (err < 0) {
 	printf("Unable to determine current swparams for playback: %s\n", snd_strerror(err));
@@ -198,7 +194,7 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
     }
 
     if ((err = snd_pcm_open (&stream_in, "default", SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-        fprintf (stderr, "cannot open audio device default (%s)\n", 
+        fprintf (stderr, "cannot open audio device default (%s)\n",
         snd_strerror (err));
 	exit (1);
     }
@@ -232,7 +228,7 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
 	snd_strerror (err));
 	exit (1);
     }
-    
+
     err = snd_pcm_sw_params_current(stream_in, sw_params);
     if (err < 0) {
 	printf("Unable to determine current swparams for playback: %s\n", snd_strerror(err));
@@ -248,8 +244,8 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
         fprintf(stderr, "Unable to set sw params for playback: %s\n", snd_strerror(err));
         return err;
     }
-    
-    
+
+
     if ((err = snd_pcm_prepare (stream_in)) < 0) {
         fprintf (stderr, "cannot prepare audio interface for use (%s)\n",
 	snd_strerror (err));
@@ -261,7 +257,7 @@ int alsa_initialize (struct iaxc_audio_driver *d ,int sample_rate) {
 	snd_strerror (err));
 	 exit (1);
     }
-									         
+
     d->initialize = alsa_initialize;
     d->destroy = alsa_destroy;
     d->select_devices = alsa_select_devices;

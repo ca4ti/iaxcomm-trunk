@@ -1,4 +1,23 @@
 /*
+ * iaxclient: a cross-platform IAX softphone library
+ *
+ * Copyrights:
+ * Copyright (c) 2004, Daniel Heckenberg. All rights reserved.
+ * Copyright (c) 2005, Tipic, Inc. All rights reserved.
+ * Copyright (C) 2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
+ *
+ * Contributors:
+ * Daniel Heckenberg <danielh.seeSaw<at>cse<dot>unsw<dot>edu<dot>au>
+ * Francesco Delfino <pluto@tipic.com>
+ * Mihai Balea <mihai AT hates DOT ms>
+ * Peter Grayson <jpgrayson@gmail.com>
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU Lesser (Library) General Public License.
+ */
+
+/*
  *  vdigGrab.c
  *  seeSaw
  *
@@ -220,7 +239,7 @@ A much more optimal case, if you're doing it yourself is:
 			goto endFunc;
 		}
 	}
-	
+
 //  VDGetCompressTypes() // tells you the supported types
 
 /*

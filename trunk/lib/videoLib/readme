@@ -14,9 +14,9 @@ Details
     License:            Lesser GPL v2.1 (LGPL)
 
     Description:        This library provides a portable solution to
-			use grab frames from webcam under Linux, 
+			use grab frames from webcam under Linux,
 			MacOS X and Windows
-                        
+
 
 License Terms
 ~~~~~~~~~~~~~
@@ -41,7 +41,7 @@ License Terms
 
 
 
-Credits                                                                                                              
+Credits
 ~~~~~~~
 
     This library uses parts of projects from:

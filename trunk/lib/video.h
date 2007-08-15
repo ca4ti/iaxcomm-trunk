@@ -2,11 +2,13 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
- * Copyright (C) 2007 Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
+ *
+ * Contributors:
+ * Peter Grayson <jpgrayson@gmail.com>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 
 #ifndef __VIDEO_H__
@@ -34,7 +36,7 @@ struct iaxc_video_driver {
 	int (*stop)(struct iaxc_video_driver *d);
 	int (*input)(struct iaxc_video_driver *d, char **data);
 	int (*is_camera_working)(struct iaxc_video_driver *d);
-	
+
 	/* HACK ALERT!!!
 	 * If the requested size of the video is not 320x240, then we
 	 * resize the image in software rather than relying on the camera
@@ -44,7 +46,7 @@ struct iaxc_video_driver {
 	int req_width;
 	int req_height;
 	int camera_working; /* true if the camera is working */
-}; 
+};
 
 int video_initialize(void);
 

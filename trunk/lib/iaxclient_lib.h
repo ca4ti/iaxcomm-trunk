@@ -2,16 +2,16 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2003-2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
- * Michael Van Donselaar <mvand@vandonselaar.org> 
+ * Michael Van Donselaar <mvand@vandonselaar.org>
  * Shawn Lawrence <shawn.lawrence@terracecomm.com>
  *
- *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
+ * the GNU Lesser (Library) General Public License.
  */
 #ifndef _iaxclient_lib_h
 #define _iaxclient_lib_h
@@ -132,8 +132,8 @@ struct iaxc_audio_driver {
 	int (*select_devices)(struct iaxc_audio_driver *d, int input, int output, int ring);
 	int (*selected_devices)(struct iaxc_audio_driver *d, int *input, int *output, int *ring);
 
-	/* 
-	 * select_ring ? 
+	/*
+	 * select_ring ?
 	 * set_latency
 	 */
 
@@ -155,7 +155,7 @@ struct iaxc_audio_driver {
 	/* mic boost */
 	int (*mic_boost_get)(struct iaxc_audio_driver *d ) ;
 	int (*mic_boost_set)(struct iaxc_audio_driver *d, int enable);
-}; 
+};
 
 struct iaxc_audio_codec {
 	char name[256];

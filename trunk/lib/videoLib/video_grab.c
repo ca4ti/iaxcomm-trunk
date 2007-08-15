@@ -2,16 +2,22 @@
  * iaxclient: a cross-platform IAX softphone library
  *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2006, Horizon Wimba, Inc.
+ * Copyright (C) 2007, Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
  * Stefano Falsetto <falsetto@gnu.org>
  * Francesco Delfino <pluto@tipic.com>
+ * Mihai Balea <mihai AT hates DOT ms>
+ * Peter Grayson <jpgrayson@gmail.com>
+ * Bill Cholewka <bcholew@gmail.com>
  *
  * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
- *
+ * the GNU Lesser (Library) General Public License.
+ */
+
+/*
  * Module: video_grab
  * Purpose: Video code to provide portvideo driver support for IAX library
  * Developed by: Stefano Falsetto and Francesco Delfino
@@ -274,9 +280,9 @@ void yuy2_to_yuv420(const unsigned char *src, int width, int height,
 	int v = 0;
 	int s = 0;
 	int i, j;
-	
-	// YUY2 has a vertical sampling PERIOD (for U and V) 
-	// half that for YUV420. Will toss half of the 
+
+	// YUY2 has a vertical sampling PERIOD (for U and V)
+	// half that for YUV420. Will toss half of the
 	// U and V data during repackaging.
 	for ( i = 0; i < height / 2; i++ )
 	{
