@@ -121,13 +121,21 @@
 #   endif
 #elif defined(_MSC_VER)
 #   include <intrin.h>
+#   pragma intrinsic(_ReadWriteBarrier)
+#   pragma intrinsic(_ReadBarrier)
+#   pragma intrinsic(_WriteBarrier)
 #   define rb_FullMemoryBarrier()  _ReadWriteBarrier()
 #   define rb_ReadMemoryBarrier()  _ReadBarrier()
 #   define rb_WriteMemoryBarrier() _WriteBarrier()
 #else
 #   ifdef ALLOW_SMP_DANGERS
-#      warning Memory barriers not defined on this system or system unknown
-#      warning For SMP safety, you should fix this.
+#      ifdef _MSC_VER
+#         pragma message("Memory barriers not defined on this system or system unknown")
+#         pragma message("For SMP safety, you should fix this.")
+#      else
+#         warning Memory barriers not defined on this system or system unknown
+#         warning For SMP safety, you should fix this.
+#      endif
 #      define rb_FullMemoryBarrier()
 #      define rb_ReadMemoryBarrier()
 #      define rb_WriteMemoryBarrier()
