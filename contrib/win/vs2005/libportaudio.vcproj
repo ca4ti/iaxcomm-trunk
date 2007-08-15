@@ -39,7 +39,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500;ALLOW_SMP_DANGERS=1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				WarningLevel="3"
@@ -101,7 +101,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\..\..\..\portaudio\include;..\..\..\..\portaudio\src\common"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;PA_NO_DS;PA_NO_ASIO;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500;ALLOW_SMP_DANGERS=1"
 				RuntimeLibrary="2"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -235,10 +235,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\..\portaudio\include\pa_linux_alsa.h"
 				>
 			</File>
@@ -248,6 +244,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\portaudio\src\common\pa_process.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.h"
 				>
 			</File>
 			<File
