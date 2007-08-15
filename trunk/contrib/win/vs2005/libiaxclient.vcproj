@@ -59,6 +59,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="libiax2.lib libvideolib.lib libportmixer.lib libportaudio.lib libgsm.lib libogg.lib libspeex.lib libtheora.lib comsuppw.lib strmiids.lib wininet.lib ws2_32.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)$(ConfigurationName)\libiax2&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libvideolib&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libportaudio&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libportmixer&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libogg&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libtheora&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libspeex&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libgsm&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -120,6 +122,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="libiax2.lib libvideolib.lib libportmixer.lib libportaudio.lib libgsm.lib libogg.lib libspeex.lib libtheora.lib comsuppw.lib strmiids.lib wininet.lib ws2_32.lib"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)$(ConfigurationName)\libiax2&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libvideolib&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libportaudio&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libportmixer&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libogg&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libtheora&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libspeex&quot;;&quot;$(SolutionDir)$(ConfigurationName)\libgsm&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"
