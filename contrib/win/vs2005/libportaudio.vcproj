@@ -169,10 +169,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\..\portaudio\src\common\pa_skeleton.c"
 				>
 			</File>
@@ -251,10 +247,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\portaudio\src\common\pa_ringbuffer.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\..\portaudio\src\common\pa_stream.h"
 				>
 			</File>
@@ -271,11 +263,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\portaudio\include\pa_win_wmme.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_win_waveformat.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\portaudio\include\pa_win_waveformat.h"
+				RelativePath="..\..\..\..\portaudio\include\pa_win_wmme.h"
 				>
 			</File>
 			<File
