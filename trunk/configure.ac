@@ -3,12 +3,9 @@ dnl Copyright (C) 2004-2005  Mikael Magnusson <mikma@users.sourceforge.net>
 AC_PREREQ(2.59)
 
 dnl Package version
-m4_define(IAXC_MAJOR, [2])
-m4_define(IAXC_MINOR, [0])
-m4_define(IAXC_MICRO, [0])
-m4_define(IAXC_EXTRA, [-svn])
+m4_define(IAXC_VERSION, [2.1-svn])
 
-AC_INIT(iaxclient, IAXC_MAJOR.IAXC_MINOR.IAXC_MICRO[]IAXC_EXTRA, [jpgrayson@gmail.com])
+AC_INIT(iaxclient, IAXC_VERSION, [jpgrayson@gmail.com])
 
 AC_CONFIG_SRCDIR([lib/iaxclient.h])
 AC_CONFIG_HEADERS([config.h])
