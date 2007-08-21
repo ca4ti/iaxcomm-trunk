@@ -89,9 +89,6 @@ OSErr
 MakeSequenceGrabChannel(SeqGrabComponent seqGrab, SGChannel *sgchanVideo);
 
 OSErr
-RequestSGSettings(SeqGrabComponent seqGrab, SGChannel sgchanVideo);
-
-OSErr
 vdgGetSettings(VdigGrab* pVdg);
 
 VdigGrab*
@@ -109,20 +106,20 @@ vdgInit(VdigGrab* pVdg)
 
 	if ((err = EnterMovies()))
 	{
-		printError("EnterMovies err=%d\n", err);
+		fprintf(stderr, "EnterMovies err=%d\n", err);
 		return err;
 	}
 
 	if (!(pVdg->seqGrab = MakeSequenceGrabber(NULL)))
 	{
-		printError("MakeSequenceGrabber error\n");
+		fprintf(stderr, "MakeSequenceGrabber error\n");
 		return -1;
 	}
 
 	if ((err = MakeSequenceGrabChannel(pVdg->seqGrab, &pVdg->sgchanVideo)))
 	{
 		if ( err != couldntGetRequiredComponent )
-			printError("MakeSequenceGrabChannel err=%d\n", err);
+			fprintf(stderr, "MakeSequenceGrabChannel err=%d\n", err);
 		return err;
 	}
 
@@ -134,23 +131,9 @@ vdgRequestSettings(VdigGrab* pVdg)
 {
 	OSErr err;
 
-	// Use the SG Dialog to allow the user to select device and
-	// compression settings
-#if 0
-	if (err = RequestSGSettings(  pVdg->seqGrab,
-				pVdg->sgchanVideo))
-	{
-		printError("RequestSGSettings err=%d\n", err);
-		goto endFunc;
-	}
-#endif
 	if ((err = vdgGetSettings(pVdg)))
-	{
-		printError("vdgGetSettings err=%d\n", err);
-		goto endFunc;
-	}
+		fprintf(stderr, "vdgGetSettings err=%d\n", err);
 
-endFunc:
 	return err;
 }
 
@@ -163,21 +146,22 @@ vdgGetDeviceNameAndFlags(VdigGrab* pVdg, char* szName, long* pBuffSize, UInt32* 
 
 	if (!pBuffSize)
 	{
-		printError("vdgGetDeviceName: NULL pointer error\n");
+		fprintf(stderr, "vdgGetDeviceName: NULL pointer error\n");
 		err = qtParamErr;
 		goto endFunc;
 	}
 
 	if ((err = VDGetDeviceNameAndFlags(pVdg->vdCompInst, vdName, &vdFlags)))
 	{
-		printError("VDGetDeviceNameAndFlags err=%d\n", err);
+		fprintf(stderr, "VDGetDeviceNameAndFlags err=%d\n", err);
 		*pBuffSize = 0;
 		goto endFunc;
 	}
 
 	if (szName)
 	{
-		int copyLen = min(*pBuffSize-1, vdName[0]);
+		int copyLen = *pBuffSize-1 < vdName[0] ?
+			*pBuffSize - 1 : vdName[0];
 
 		strncpy(szName, (char *)vdName+1, copyLen);
 		szName[copyLen] = '\0';
@@ -235,27 +219,27 @@ A much more optimal case, if you're doing it yourself is:
 	{
 		if (!(info.outputCapabilityFlags & digiOutDoesCompress))
 		{
-			printError("VDGetDigitizerInfo: not a compressed source device.\n");
+			fprintf(stderr, "VDGetDigitizerInfo: not a compressed source device.\n");
 			goto endFunc;
 		}
 	}
 
-//  VDGetCompressTypes() // tells you the supported types
+	/* VDGetCompressTypes() // tells you the supported types */
 
-/*
+#if 0
 	// Apple's SoftVDig doesn't seem to like these calls
 	if (err = VDCaptureStateChanging(pVdg->vdCompInst,
 			vdFlagCaptureLowLatency | vdFlagCaptureSetSettingsBegin))
 	{
-		printError("VDCaptureStateChanging err=%d\n", err);
-//		goto endFunc;
+		fprintf(stderr, "VDCaptureStateChanging err=%d\n", err);
+		//goto endFunc;
 	}
-*/
+#endif
 
 	if ((err = VDGetMaxSrcRect(  pVdg->vdCompInst, currentIn, &maxRect)))
 	{
-		printError("VDGetMaxSrcRect err=%d\n", err);
-//		goto endFunc;
+		fprintf(stderr, "VDGetMaxSrcRect err=%d\n", err);
+		//goto endFunc;
 	}
 
 	// Try to set maximum capture size ... is this necessary as we're setting the
@@ -266,18 +250,18 @@ A much more optimal case, if you're doing it yourself is:
 	//maxRect.left = 0; maxRect.right = w;
 	if ((err = VDSetDigitizerRect( pVdg->vdCompInst, &maxRect)))
 	{
-		printError("VDSetDigitizerRect err=%d\n", err);
+		fprintf(stderr, "VDSetDigitizerRect err=%d\n", err);
 	}
 
 	if ((err = VDSetCompressionOnOff( pVdg->vdCompInst, 1)))
 	{
-		printError("VDSetCompressionOnOff err=%d\n", err);
+		fprintf(stderr, "VDSetCompressionOnOff err=%d\n", err);
 	}
 
 	// We could try to force the frame rate here... necessary for ASC softvdig
 	if ((err = VDSetFrameRate( pVdg->vdCompInst, 0)))
 	{
-		printError("VDSetFrameRate err=%d\n", err);
+		fprintf(stderr, "VDSetFrameRate err=%d\n", err);
 	}
 
 	// try to set a format that matches our target
@@ -297,32 +281,33 @@ A much more optimal case, if you're doing it yourself is:
 					0, //codecNormalQuality,
 					0)))
 	{
-		printError("VDSetCompression err=%d\n", err);
+		fprintf(stderr, "VDSetCompression err=%d\n", err);
 	}
 
-/*
+#if 0
 	if (err = VDCaptureStateChanging(pVdg->vdCompInst,
-   									vdFlagCaptureLowLatency | vdFlagCaptureSetSettingsEnd))
+				vdFlagCaptureLowLatency | vdFlagCaptureSetSettingsEnd))
 	{
-		printError("VDCaptureStateChanging err=%d\n", err);
-//		goto endFunc;
+		fprintf(stderr, "VDCaptureStateChanging err=%d\n", err);
+		//goto endFunc;
 	}
- */
+#endif
+
 	if ((err = VDResetCompressSequence( pVdg->vdCompInst )))
 	{
-		printError("VDResetCompressSequence err=%d\n", err);
+		fprintf(stderr, "VDResetCompressSequence err=%d\n", err);
 	}
 
 	pVdg->vdImageDesc = (ImageDescriptionHandle)NewHandle(0);
 	if ((err = VDGetImageDescription( pVdg->vdCompInst, pVdg->vdImageDesc)))
 	{
-		printError("VDResetCompressSequence err=%d\n", err);
+		fprintf(stderr, "VDResetCompressSequence err=%d\n", err);
 	}
 
 	// From Steve Sisak: find out if Digitizer is cropping for you.
 	if ((err = VDGetDigitizerRect( pVdg->vdCompInst, &pVdg->vdDigitizerRect)))
 	{
-		printError("VDGetDigitizerRect err=%d\n", err);
+		fprintf(stderr, "VDGetDigitizerRect err=%d\n", err);
 	}
 
 	pVdg->isPreflighted = 1;
@@ -338,20 +323,20 @@ vdgStartGrabbing(VdigGrab* pVdg)
 
 	if (!pVdg->isPreflighted)
 	{
-		printError("vdgStartGrabbing called without previous successful vdgPreflightGrabbing()\n");
+		fprintf(stderr, "vdgStartGrabbing called without previous successful vdgPreflightGrabbing()\n");
 		err = badCallOrderErr;
 		goto endFunc;
 	}
 
 	if ((err = VDCompressOneFrameAsync( pVdg->vdCompInst )))
 	{
-		printError("VDCompressOneFrameAsync err=%d\n", err);
+		fprintf(stderr, "VDCompressOneFrameAsync err=%d\n", err);
 		goto endFunc;
 	}
 
 	if ((err = vdgDecompressionSequenceBegin( pVdg, pVdg->dstPort, NULL, NULL )))
 	{
-		printError("vdgDecompressionSequenceBegin err=%d\n", err);
+		fprintf(stderr, "vdgDecompressionSequenceBegin err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -373,12 +358,8 @@ vdgGetDataRate( VdigGrab*   pVdg,
 					pMilliSecPerFrame,
 					pFramesPerSecond,
 					pBytesPerSecond)))
-	{
-		printError("VDGetDataRate err=%d\n", err);
-		goto endFunc;
-	}
+		fprintf(stderr, "VDGetDataRate err=%d\n", err);
 
-endFunc:
 	return err;
 }
 
@@ -389,12 +370,8 @@ vdgGetImageDescription( VdigGrab* pVdg,
 	OSErr err;
 
 	if ((err = VDGetImageDescription( pVdg->vdCompInst, vdImageDesc)))
-	{
-		printError("VDGetImageDescription err=%d\n", err);
-		goto endFunc;
-	}
+		fprintf(stderr, "VDGetImageDescription err=%d\n", err);
 
-endFunc:
 	return err;
 }
 
@@ -406,8 +383,8 @@ vdgDecompressionSequenceBegin(VdigGrab* pVdg,
 {
 	OSErr err;
 
-// 	Rect				   sourceRect = pMungData->bounds;
-//	MatrixRecord		   scaleMatrix;
+	//Rect sourceRect = pMungData->bounds;
+	//MatrixRecord scaleMatrix;
 
   	// !HACK! Different conversions are used for these two equivalent types
 	// so we force the cType so that the more efficient path is used
@@ -461,11 +438,9 @@ vdgDecompressionSequenceBegin(VdigGrab* pVdg,
 					bestSpeedCodec)))
 						//anyCodec); //bestSpeedCodec);
 	{
-		printError("DecompressSequenceBeginS err=%d\n", err);
-		goto endFunc;
+		fprintf(stderr, "DecompressSequenceBeginS err=%d\n", err);
 	}
 
-endFunc:
 	return err;
 }
 
@@ -485,12 +460,8 @@ vdgDecompressionSequenceWhen(VdigGrab* pVdg,
 			&ignore,  // out flags
 			NULL,     // async completion proc
 			NULL )))
-	{
-		printError("DecompressSequenceFrameWhen err=%d\n", err);
-		goto endFunc;
-	}
+		fprintf(stderr, "DecompressSequenceFrameWhen err=%d\n", err);
 
-endFunc:
 	return err;
 }
 
@@ -501,14 +472,14 @@ vdgDecompressionSequenceEnd( VdigGrab* pVdg )
 
 	if (!pVdg->dstImageSeq)
 	{
-		printError("vdgDecompressionSequenceEnd NULL sequence\n");
+		fprintf(stderr, "vdgDecompressionSequenceEnd NULL sequence\n");
 		err = qtParamErr;
 		goto endFunc;
 	}
 
 	if ((err = CDSequenceEnd(pVdg->dstImageSeq)))
 	{
-		printError("CDSequenceEnd err=%d\n", err);
+		fprintf(stderr, "CDSequenceEnd err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -528,12 +499,12 @@ vdgStopGrabbing(VdigGrab* pVdg)
 
 	if ((err = VDSetCompressionOnOff( pVdg->vdCompInst, 0)))
 	{
-		printError("VDSetCompressionOnOff err=%d\n", err);
+		fprintf(stderr, "VDSetCompressionOnOff err=%d\n", err);
 	}
 
 	if ((err = vdgDecompressionSequenceEnd(pVdg)))
 	{
-		printError("vdgDecompressionSequenceEnd err=%d\n", err);
+		fprintf(stderr, "vdgDecompressionSequenceEnd err=%d\n", err);
 	}
 
 	pVdg->isGrabbing = 0;
@@ -574,21 +545,21 @@ vdgIdle(VdigGrab* pVdg, int*  pIsUpdated)
 		// Decompress the sequence
 		if ((err = vdgDecompressionSequenceWhen(pVdg, theData, dataSize)))
 		{
-			printError("vdgDecompressionSequenceWhen err=%d\n", err);
-//			goto endFunc;
+			fprintf(stderr, "vdgDecompressionSequenceWhen err=%d\n", err);
+			//goto endFunc;
 		}
 
 		// return the buffer
 		if ((err = vdgReleaseBuffer(pVdg, theData)))
 		{
-			printError("vdgReleaseBuffer err=%d\n", err);
-//			goto endFunc;
+			fprintf(stderr, "vdgReleaseBuffer err=%d\n", err);
+			//goto endFunc;
 		}
 	}
 
 	if (err)
 	{
-		printError("vdgPoll err=%d\n", err);
+		fprintf(stderr, "vdgPoll err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -608,7 +579,7 @@ vdgPoll(VdigGrab* pVdg,
 
 	if (!pVdg->isGrabbing)
 	{
-		printError("vdgGetFrame error: not grabbing\n");
+		fprintf(stderr, "vdgGetFrame error: not grabbing\n");
 		err = qtParamErr;
 		goto endFunc;
 	}
@@ -620,7 +591,7 @@ vdgPoll(VdigGrab* pVdg,
 					pSimilarity,
 					pTime)))
 	{
-		printError("vdgGetFrame error: not grabbing\n");
+		fprintf(stderr, "vdgGetFrame error: not grabbing\n");
 		goto endFunc;
 	}
 
@@ -629,7 +600,7 @@ vdgPoll(VdigGrab* pVdg,
 	{
 		if ((err = VDCompressOneFrameAsync(pVdg->vdCompInst)))
 		{
-			printError("VDCompressOneFrameAsync err=%d\n", err);
+			fprintf(stderr, "VDCompressOneFrameAsync err=%d\n", err);
 			goto endFunc;
 		}
 	}
@@ -644,12 +615,8 @@ vdgReleaseBuffer(VdigGrab*   pVdg, Ptr theData)
 	OSErr err;
 
 	if ((err = VDReleaseCompressBuffer(pVdg->vdCompInst, theData)))
-	{
-		printError("VDReleaseCompressBuffer err=%d\n", err);
-		goto endFunc;
-	}
+		fprintf(stderr, "VDReleaseCompressBuffer err=%d\n", err);
 
-endFunc:
 	return err;
 }
 
@@ -667,21 +634,21 @@ vdgUninit(VdigGrab* pVdg)
 	if (pVdg->vdCompInst)
 	{
 		if ((err = CloseComponent(pVdg->vdCompInst)))
-			printError("CloseComponent err=%d\n", err);
+			fprintf(stderr, "CloseComponent err=%d\n", err);
 		pVdg->vdCompInst = nil;
 	}
 
 	if (pVdg->sgchanVideo)
 	{
 		if ((err = SGDisposeChannel(pVdg->seqGrab, pVdg->sgchanVideo)))
-			printError("SGDisposeChannel err=%d\n", err);
+			fprintf(stderr, "SGDisposeChannel err=%d\n", err);
 		pVdg->sgchanVideo = nil;
 	}
 
 	if (pVdg->seqGrab)
 	{
 		if ((err = CloseComponent(pVdg->seqGrab)))
-			printError("CloseComponent err=%d\n", err);
+			fprintf(stderr, "CloseComponent err=%d\n", err);
 		pVdg->seqGrab = nil;
 	}
 
@@ -694,7 +661,7 @@ vdgDelete(VdigGrab* pVdg)
 {
 	if (!pVdg)
 	{
-		printError("vdgDelete NULL pointer\n");
+		fprintf(stderr, "vdgDelete NULL pointer\n");
 		return;
 	}
 
@@ -714,20 +681,20 @@ vdgGetSettings(VdigGrab* pVdg)
 					&pVdg->cpTemporalQuality,
 					&pVdg->cpKeyFrameRate)))
 	{
-		printError("SGGetVideoCompressor err=%d\n", err);
+		fprintf(stderr, "SGGetVideoCompressor err=%d\n", err);
 		goto endFunc;
 	}
 
 	if ((err = SGGetFrameRate(pVdg->sgchanVideo, &pVdg->cpFrameRate)))
 	{
-		printError("SGGetFrameRate err=%d\n", err);
+		fprintf(stderr, "SGGetFrameRate err=%d\n", err);
 		goto endFunc;
 	}
 
 	// Get the selected vdig from the SG
 	if (!(pVdg->vdCompInst = SGGetVideoDigitizerComponent(pVdg->sgchanVideo)))
 	{
-		printError("SGGetVideoDigitizerComponent error\n");
+		fprintf(stderr, "SGGetVideoDigitizerComponent error\n");
 		goto endFunc;
 	}
 
@@ -748,21 +715,21 @@ MakeSequenceGrabber(WindowRef pWindow)
 	// open the default sequence grabber
 	if (!(seqGrab = OpenDefaultComponent(SeqGrabComponentType, 0)))
 	{
-		printError("OpenDefaultComponent failed to open the default sequence grabber.\n");
+		fprintf(stderr, "OpenDefaultComponent failed to open the default sequence grabber.\n");
 		goto endFunc;
 	}
 
 	// initialize the default sequence grabber component
 	if ((err = SGInitialize(seqGrab)))
 	{
-		printError("SGInitialize err=%d\n", err);
+		fprintf(stderr, "SGInitialize err=%d\n", err);
 		goto endFunc;
 	}
 
 	// This should be defaulted to the current port according to QT doco
 	if ((err = SGSetGWorld(seqGrab, GetWindowPort(pWindow), NULL)))
 	{
-		printError("SGSetGWorld err=%d\n", err);
+		fprintf(stderr, "SGSetGWorld err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -773,7 +740,7 @@ MakeSequenceGrabber(WindowRef pWindow)
 	// writeType will always be set to seqGrabWriteAppend
 	if ((err = SGSetDataRef(seqGrab, 0, 0, seqGrabDontMakeMovie)))
 	{
-		printError("SGSetGWorld err=%d\n", err);
+		fprintf(stderr, "SGSetGWorld err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -800,7 +767,7 @@ MakeSequenceGrabChannel(SeqGrabComponent seqGrab, SGChannel* psgchanVideo)
 	if ((err = SGNewChannel(seqGrab, VideoMediaType, psgchanVideo)))
 	{
 		if ( err != couldntGetRequiredComponent )
-			printError("SGNewChannel err=%d\n", err);
+			fprintf(stderr, "SGNewChannel err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -809,7 +776,7 @@ MakeSequenceGrabChannel(SeqGrabComponent seqGrab, SGChannel* psgchanVideo)
 	// note we don't set seqGrabPlayDuringRecord
 	if ((err = SGSetChannelUsage(*psgchanVideo, flags | seqGrabRecord)))
 	{
-		printError("SGSetChannelUsage err=%d\n", err);
+		fprintf(stderr, "SGSetChannelUsage err=%d\n", err);
 		goto endFunc;
 	}
 
@@ -823,42 +790,6 @@ endFunc:
 
 	return err;
 }
-
-OSErr
-RequestSGSettings( SeqGrabComponent seqGrab, SGChannel sgchanVideo )
-{
-	OSErr err;
-
-	SGModalFilterUPP MySGModalFilterUPP;
-	if (!(MySGModalFilterUPP = NewSGModalFilterUPP (MySGModalFilterProc)))
-	{
-		printError("NewSGModalFilterUPP error\n");
-		err = -1; // TODO appropriate error code
-		goto endFunc;
-	}
-
-	// let the user configure and choose the device and settings
-	// "Due to a bug in all versions QuickTime 6.x for the function call
-	// "SGSettingsDialog()" when used with the
-	// "seqGrabSettingsPreviewOnly" parameter, all third party panels
-	// will be excluded."
-	// from http://www.outcastsoft.com/ASCDFG1394.html  15/03/04
-	//if (err = SGSettingsDialog(seqGrab, sgchanVideo, 0, NULL, seqGrabSettingsPreviewOnly, MySGModalFilterUPP, 0))
-	if ((err = SGSettingsDialog(seqGrab, sgchanVideo,
-					0, NULL, 0, MySGModalFilterUPP, 0)))
-	{
-		printError("SGSettingsDialog err=%d\n", err);
-		goto endFunc;
-	}
-
-	// Dispose of the UPP
-	if (MySGModalFilterUPP)
-		DisposeSGModalFilterUPP(MySGModalFilterUPP);
-
-endFunc:
-	return err;
-}
-
 
 // From QT sample code
 // Declaration of a typical application-defined function
@@ -880,7 +811,7 @@ Boolean MySGModalFilterProc (
 		EndUpdate ((WindowPtr) refCon);
 		handled = true;
 	}
-	return (handled);
+	return handled;
 }
 
 OSErr
@@ -900,19 +831,17 @@ createOffscreenGWorld(GWorldPtr* pGWorldPtr,
 					NULL,        // GDHandle
 					0)))         // flags
 	{
-		printError("QTNewGWorld: err=%d\n", err);
+		fprintf(stderr, "QTNewGWorld: err=%d\n", err);
 		goto endFunc;
 	}
 
 	// lock the pixmap and make sure it's locked because
 	// we can't decompress into an unlocked PixMap
 	if (!LockPixels(GetGWorldPixMap(*pGWorldPtr)))
-		printError("createOffscreenGWorld: Can't lock pixels!\n");
+		fprintf(stderr, "createOffscreenGWorld: Can't lock pixels!\n");
 
 	GetGWorld(&theOldPort, &theOldDevice);
 	SetGWorld(*pGWorldPtr, NULL);
-	BackColor(blackColor);
-	ForeColor(whiteColor);
 	EraseRect(pBounds);
 	SetGWorld(theOldPort, theOldDevice);
 
