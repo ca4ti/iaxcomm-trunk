@@ -44,7 +44,16 @@
 #include <stdlib.h>
 
 #include <portaudio.h>
+#if 0
 #include <pa_mac_core.h>
+#else
+/* TODO: Fix this when portaudio gets their hostapi-specific stuff
+ * straightened up.
+ */
+#include <AudioUnit/AudioUnit.h>
+AudioDeviceID PaMacCore_GetStreamInputDevice( PaStream* s );
+AudioDeviceID PaMacCore_GetStreamOutputDevice( PaStream* s );
+#endif
 
 #include "portmixer.h"
 
