@@ -287,11 +287,11 @@ if test x$enable_local_ilbc = xyes; then
    AC_DEFINE(CODEC_ILBC,,[Enable ILBC support])
 fi
 
-if test x$has_gsm = xyes && test ! x$with_gsmlibraries != xno; then
+if test x$has_gsm = xyes && test ! x$with_gsm = xno; then
    AC_DEFINE(CODEC_GSM,,[Enable GSM support])
 fi
 
-AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test ! x$with_gsmlibraries != xno)
+AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test ! x$with_gsm = xno)
 AM_CONDITIONAL(USE_LOCAL_GSM, test x$enable_local_gsm = xyes)
 AM_CONDITIONAL(USE_LOCAL_IAX2, test x$enable_local_iax2 = xyes)
 AM_CONDITIONAL(USE_LOCAL_ILBC, test x$enable_local_ilbc = xyes)
