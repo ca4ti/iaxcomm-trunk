@@ -193,7 +193,7 @@ PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],,AC_MSG_ERROR([
 ]))
 
 PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
-PKG_CHECK_MODULES(GTK2, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
+PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
 PKG_CHECK_MODULES(GDK2, [gdk-2.0 >= 2.0.0], has_gdk2=yes, has_gdk2=no)
 PKG_CHECK_MODULES(ALSA, [alsa >= 1.0], has_alsa=yes, has_alsa=no)
 
