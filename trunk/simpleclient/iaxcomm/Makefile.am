@@ -31,7 +31,7 @@ rc/logo.xpm $(XRCS)
 CLEANFILES = $(BUILT_SOURCES)
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib $(WX_CPPFLAGS) -DIAXCOMM_VERSION=\"$(IAXCOMM_VERSION)\" -DXRCDIRECTORY=\"$(iaxcommdatadir)/rc\" -DDATADIR=\"$(iaxcommdatadir)\"
-AM_CXXFLAGS = $(GTK_CFLAGS) $(WX_CXXFLAGS_ONLY)
+AM_CXXFLAGS = $(GDK2_CFLAGS) $(GTK_CFLAGS) $(WX_CXXFLAGS_ONLY)
 
 LDADD = $(top_builddir)/lib/libiaxclient.la $(GTK_LIBS) $(WX_LIBS)	\
 $(WX_XRC_LIBS)
