@@ -199,6 +199,7 @@ if test ! x$with_ogg = xno; then
 PKG_CHECK_MODULES(OGG, [ogg >= 1.1.3],has_ogg=yes)
 if test x$has_ogg = xyes; then
    AC_DEFINE(USE_OGG, 1, [OGG])
+   PKG_REQUIRES="$PKG_REQUIRES ogg"
 elif test ! x$with_ogg = xauto ; then
    AC_MSG_ERROR([
       libogg is required to build this package!
@@ -220,6 +221,7 @@ if test ! x$with_theora = xno; then
 PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],has_theora=yes)
 if test x$has_theora = xyes; then
    AC_DEFINE(USE_THEORA, 1, [THEORA])
+   PKG_REQUIRES="$PKG_REQUIRES theora"
 elif test ! x$with_theora = xauto ; then
    AC_MSG_ERROR([
       libtheora is required to build this package!
@@ -412,6 +414,7 @@ do
 done
 
 AC_SUBST(CLIENTS)
+AC_SUBST(PKG_REQUIRES)
 
 AC_CONFIG_FILES([
       Makefile
