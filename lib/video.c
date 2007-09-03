@@ -23,7 +23,9 @@
 #ifdef USE_FFMPEG
 #include "codec_ffmpeg.h"
 #endif
+#ifdef USE_THEORA
 #include "codec_theora.h"
+#endif
 #ifdef USE_H264_VSS
 #include "codec_h264_vss.h"
 #endif
@@ -356,6 +358,7 @@ static struct iaxc_video_codec *create_codec(int format, int encode)
 		return NULL;
 #endif
 
+#ifdef USE_THEORA
 	case IAXC_FORMAT_THEORA:
 		return codec_video_theora_new(format,
 				iaxc_video_width,
@@ -363,6 +366,9 @@ static struct iaxc_video_codec *create_codec(int format, int encode)
 				iaxc_video_framerate,
 				iaxc_video_bitrate,
 				iaxc_video_fragsize);
+#else
+		return NULL;
+#endif
 	}
 
 	// Must never happen...

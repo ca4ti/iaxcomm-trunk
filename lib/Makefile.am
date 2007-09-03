@@ -6,11 +6,12 @@ lib_LTLIBRARIES = libiaxclient.la
 libiaxclient_la_SOURCES = $(SRCS)
 nodist_libiaxclient_la_SOURCES = $(NODIST_SRCS)
 
+AM_CPPFLAGS =					\
+	-I$(srcdir)/portmixer/px_common
+
 AM_CFLAGS =					\
-	-I$(srcdir)/portmixer/px_common		\
 	$(PTHREAD_CFLAGS)			\
 	$(SPEEX_CFLAGS)				\
-	$(THEORA_CFLAGS)			\
 	$(IAX2_CFLAGS)				\
 	$(PORTAUDIO_CFLAGS)
 
@@ -24,9 +25,7 @@ libiaxclient_la_LIBADD =			\
 	$(PTHREAD_LIBS)				\
 	$(IAX2_LIBS)				\
 	$(PORTAUDIO_LIBS)			\
-	$(SPEEX_LIBS)				\
-	$(THEORA_LIBS)				\
-	$(OGG_LIBS)
+	$(SPEEX_LIBS)
 
 AM_LDFLAGS =					\
 	-no-undefined				\
@@ -41,16 +40,32 @@ NODIST_SRCS =
 if WIN32
 SRCS += $(SRCS_WIN32)
 libiaxclient_la_LIBADD += -lwinmm -lwsock32
+
+if VIDEO
+SRCS += $(SRCS_WIN32_VIDEO)
+AM_CPPFLAGS += -I$(srcdir)/videoLib
+endif VIDEO
 endif WIN32
 
 if LINUX
 SRCS += $(SRCS_LINUX)
+
+if VIDEO
+SRCS += $(SRCS_LINUX_VIDEO)
+endif
 endif LINUX
 
 if MACOSX
 SRCS += $(SRCS_MACOSX)
 AM_LDFLAGS += -framework Quicktime
+if VIDEO
+SRCS += $(SRCS_MACOSX_VIDEO)
+endif
 endif MACOSX
+
+if VIDEO
+SRCS += $(SRCS_VIDEO)
+endif
 
 if USE_LOCAL_GSM
 SRCS += $(SRCS_LIBGSM)
@@ -70,6 +85,17 @@ if USE_CODEC_GSM
 SRCS += codec_gsm.c codec_gsm.h
 libiaxclient_la_LIBADD += $(GSM_LIBS)
 AM_CFLAGS += $(GSM_CFLAGS)
+endif
+
+if OGG
+libiaxclient_la_LIBADD += $(OGG_LIBS)
+AM_CFLAGS += $(OGG_CFLAGS)
+endif
+
+if THEORA
+SRCS += codec_theora.c codec_theora.h
+libiaxclient_la_LIBADD += $(THEORA_LIBS)
+AM_CFLAGS += $(THEORA_CFLAGS)
 endif
 
 SRCS_LIBGSM=					\
@@ -107,8 +133,6 @@ SRCS +=						\
 	codec_ilbc.h				\
 	codec_speex.c				\
 	codec_speex.h				\
-	codec_theora.c				\
-	codec_theora.h				\
 	codec_ulaw.c				\
 	codec_ulaw.h				\
 	iaxclient_lib.c				\
@@ -117,7 +141,9 @@ SRCS +=						\
 	ringbuffer.h				\
 	portmixer/px_common/portmixer.h		\
 	spandsp/plc.c				\
-	spandsp/plc.h				\
+	spandsp/plc.h
+
+SRCS_VIDEO=					\
 	video.c					\
 	video.h					\
 	videoLib/video_grab.c			\
@@ -152,9 +178,14 @@ SRCS_WIN32=					\
 	winfuncs.c				\
 	portmixer/px_win_wmme/px_win_wmme.c
 
+SRCS_WIN32_VIDEO=				\
+	videoLib/win32/wingrab.cpp
+
 SRCS_LINUX=					\
 	portmixer/px_unix_oss/px_unix_oss.c	\
-	unixfuncs.c				\
+	unixfuncs.c
+
+SRCS_LINUX_VIDEO=				\
 	videoLib/linux/libfg/capture.c		\
 	videoLib/linux/libfg/capture.h		\
 	videoLib/linux/libfg/frame.c		\
@@ -164,7 +195,9 @@ SRCS_LINUX=					\
 
 SRCS_MACOSX=					\
 	portmixer/px_mac_core/px_mac_core.c	\
-	unixfuncs.c				\
+	unixfuncs.c
+
+SRCS_MACOSX_VIDEO=				\
 	videoLib/macosx/macgrab.c		\
 	videoLib/macosx/vdigGrab.c		\
 	videoLib/macosx/vdigGrab.h
