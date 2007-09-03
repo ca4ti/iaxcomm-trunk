@@ -26,9 +26,6 @@
 #ifdef USE_THEORA
 #include "codec_theora.h"
 #endif
-#ifdef USE_H264_VSS
-#include "codec_h264_vss.h"
-#endif
 
 #define VIDEO_BUFSIZ (1<<19)
 
@@ -190,11 +187,6 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 		real_pref = preferred;
 #endif
 
-#ifdef USE_H264_VSS
-	if ( preferred & IAXC_FORMAT_H264 )
-		real_pref = IAXC_FORMAT_H264;
-#endif
-
 	if ( !real_pref )
 	{
 		// If preferred codec is not available switch to the
@@ -224,11 +216,6 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 	}
 #endif
 
-#ifdef USE_H264_VSS
-	if ( allowed & IAXC_FORMAT_H264 )
-		real_allowed |= IAXC_FORMAT_H264;
-#endif
-
 	if ( !real_pref )
 	{
 		fprintf(stderr, "Audio-only client!\n");
@@ -252,9 +239,6 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate,
 				| IAXC_FORMAT_H263
 				| IAXC_FORMAT_MPEG4
 				| IAXC_FORMAT_H264;
-#endif
-#ifdef USE_H264_VSS
-			iaxc_video_format_allowed |= IAXC_FORMAT_H264;
 #endif
 			iaxc_video_format_allowed |= IAXC_FORMAT_THEORA;
 		}
@@ -339,14 +323,6 @@ static struct iaxc_video_codec *create_codec(int format, int encode)
 #endif
 
 	case IAXC_FORMAT_H264:
-#ifdef USE_H264_VSS
-		return codec_video_h264_new(format,
-				iaxc_video_width,
-				iaxc_video_height,
-				iaxc_video_framerate,
-				iaxc_video_bitrate,
-				iaxc_video_fragsize);
-#endif
 #ifdef USE_FFMPEG
 		return codec_video_ffmpeg_new(format,
 				iaxc_video_width,

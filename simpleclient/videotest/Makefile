@@ -4,7 +4,6 @@
 AMR=0
 AMR_WB=0
 USE_FFMPEG=0
-USE_H264_VSS=0
 
 CFLAGS= -I../../lib -I../../lib/videoLib -I../../lib/libiax2/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude `sdl-config --cflags` -I../../lib/ogg/include -I../../lib/theora/include -I../../lib/SDL/include
 
@@ -83,14 +82,6 @@ endif
 
 ifeq ($(USE_FFMPEG),1)
 	CFLAGS:= $(CFLAGS) -DUSE_FFMPEG
-endif
-
-ifeq ($(USE_H264_VSS),1)
-	CFLAGS:= $(CFLAGS) -DUSE_H264_VSS
-	LIBS:= $(LIBS) -L../../lib/vssh_sdk/lib -lvsshdec -lvsshenc -lvsshprep -lvsshcsp -lvsshcom
-	ifeq ($(OSTYPE),LINUX)
-		LIBS:= $(LIBS) -limf -lirc
-	endif
 endif
 
 ifeq ($(OSTYPEREAL),FREEBSD)
