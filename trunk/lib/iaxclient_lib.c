@@ -34,7 +34,9 @@
 #include "iaxclient_lib.h"
 #include "audio_portaudio.h"
 #include "audio_encode.h"
+#ifdef USE_VIDEO
 #include "video.h"
+#endif
 #include "iax-client.h"
 #include "jitterbuf.h"
 
@@ -114,15 +116,21 @@ static iaxc_recvfrom_t iaxc_recvfrom = (iaxc_recvfrom_t)recvfrom;
 
 
 static THREAD main_proc_thread;
+#ifdef USE_VIDEO
 static THREAD video_proc_thread;
+#endif
 #if defined(WIN32) || defined(_WIN32_WCE)
 static THREADID main_proc_thread_id;
+#ifdef USE_VIDEO
 static THREADID video_proc_thread_id;
+#endif
 #endif
 
 /* 0 running, 1 should quit, -1 not running */
 static int main_proc_thread_flag = -1;
+#ifdef USE_VIDEO
 static int video_proc_thread_flag = -1;
+#endif
 
 static iaxc_event_callback_t iaxc_event_callback = NULL;
 
@@ -634,11 +642,13 @@ EXPORT int iaxc_initialize(int num_calls)
 		IAXC_FORMAT_SPEEX;
 	audio_format_preferred = IAXC_FORMAT_SPEEX;
 
+#ifdef USE_VIDEO
 	if ( video_initialize() )
 	{
 		iaxci_usermsg(IAXC_ERROR,
 				"iaxc_initialize: cannot initialize video!\n");
 	}
+#endif
 
 	return 0;
 }
@@ -650,7 +660,9 @@ EXPORT void iaxc_shutdown()
 	get_iaxc_lock();
 
 	audio_driver.destroy(&audio_driver);
+#ifdef USE_VIDEO
 	video_destroy();
+#endif
 
 	put_iaxc_lock();
 #ifdef WIN32
@@ -759,6 +771,7 @@ static THREADFUNCDECL(main_proc_thread_func)
 	return ret;
 }
 
+#ifdef USE_VIDEO
 #define VIDEO_STATS_INTERVAL 1000 // In ms
 static struct timeval video_stats_start;
 
@@ -814,6 +827,7 @@ static THREADFUNCDECL(video_proc_thread_func)
 
 	return 0;
 }
+#endif	/* USE_VIDEO */
 
 EXPORT int iaxc_start_processing_thread()
 {
@@ -823,11 +837,13 @@ EXPORT int iaxc_start_processing_thread()
 				main_proc_thread_id) == THREADCREATE_ERROR)
 		return -1;
 
+#ifdef USE_VIDEO
 	video_proc_thread_flag = 0;
 
 	if ( THREADCREATE(video_proc_thread_func, NULL, video_proc_thread,
 				video_proc_thread_id) == THREADCREATE_ERROR)
 		return -1;
+#endif
 
 	return 0;
 }
@@ -840,11 +856,13 @@ EXPORT int iaxc_stop_processing_thread()
 		THREADJOIN(main_proc_thread);
 	}
 
+#ifdef USE_VIDEO
 	if ( video_proc_thread_flag >= 0 )
 	{
 		video_proc_thread_flag = 1;
 		THREADJOIN(video_proc_thread);
 	}
+#endif
 
 	return 0;
 }
@@ -1116,6 +1134,7 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 	} while ( total_consumed < e->datalen );
 }
 
+#ifdef USE_VIDEO
 static void handle_video_event(struct iax_event *e, int callNo)
 {
 	struct iaxc_call *call;
@@ -1148,6 +1167,7 @@ static void handle_video_event(struct iax_event *e, int callNo)
 		}
 	}
 }
+#endif	/* USE_VIDEO */
 
 static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 {
@@ -1203,6 +1223,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 				     callNo);
 		}
 		break;
+#ifdef USE_VIDEO
 	case IAX_EVENT_VIDEO:
 		// Mihai: why do we need to lower priority here?
 		// TODO: investigate
@@ -1210,6 +1231,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		handle_video_event(e, callNo);
 		//iaxci_prioboostbegin();
 		break;
+#endif
 	case IAX_EVENT_TEXT:
 		handle_text_event(e, callNo);
 		break;
@@ -1317,8 +1339,8 @@ static void codec_destroy( int callNo )
 
 EXPORT int iaxc_call(const char * num)
 {
-	int video_format_capability;
-	int video_format_preferred;
+	int video_format_capability = 0;
+	int video_format_preferred = 0;
 	int callNo = -1;
 	struct iax_session *newsession;
 	char *ext = strstr(num, "/");
@@ -1377,7 +1399,9 @@ EXPORT int iaxc_call(const char * num)
 	iaxc_note_activity(callNo);
 	calls[callNo].last_ping = calls[callNo].last_activity;
 
+#ifdef USE_VIDEO
 	iaxc_video_format_get_cap(&video_format_preferred, &video_format_capability);
+#endif
 
 	iaxci_usermsg(IAXC_NOTICE, "Originating an %s call",
 			video_format_preferred ? "audio+video" : "audio only");
@@ -1573,8 +1597,10 @@ static int iaxc_choose_codec(int formats)
 
 static void iaxc_handle_connect(struct iax_event * e)
 {
+#ifdef USE_VIDEO
 	int video_format_capability;
 	int video_format_preferred;
+#endif
 	int video_format = 0;
 	int format = 0;
 	int callno;
@@ -1620,6 +1646,7 @@ static void iaxc_handle_connect(struct iax_event * e)
 		return;
 	}
 
+#ifdef USE_VIDEO
 	iaxc_video_format_get_cap(&video_format_preferred,
 			&video_format_capability);
 
@@ -1662,6 +1689,7 @@ static void iaxc_handle_connect(struct iax_event * e)
 			return;
 		}
 	}
+#endif	/* USE_VIDEO */
 
 	calls[callno].vformat = video_format;
 	calls[callno].format = format;

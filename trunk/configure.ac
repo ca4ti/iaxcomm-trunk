@@ -120,6 +120,21 @@ AC_ARG_WITH(wish,
       WISH="${with_wish}",
       with_wish="auto")
 
+AC_ARG_WITH(video,
+      [AS_HELP_STRING([--without-video],
+         [Video support])],,
+      with_video="yes")
+
+AC_ARG_WITH(ogg,
+      [AS_HELP_STRING([--without-ogg],
+         [OGG support])],,
+      with_ogg="auto")
+
+AC_ARG_WITH(theora,
+      [AS_HELP_STRING([--without-theora],
+         [Theora support])],,
+      with_theora="auto")
+
 if test ! "x$enable_clients" = "xauto"; then
    for client in ${enable_clients}; do
       case "$client" in
@@ -174,23 +189,46 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
-PKG_CHECK_MODULES(OGG, [ogg >= 1.1.3],,AC_MSG_ERROR([
-   libogg is required to build this package!
-   please see http://www.xiph.org/ for how to
-   obtain a copy.
-]))
+if test x$with_video = xyes; then
+   AC_DEFINE(USE_VIDEO, 1, [Define to 1 to enable Video support])
+fi
+AM_CONDITIONAL(VIDEO, test x$with_video = xyes)
 
+has_ogg=no
+if test ! x$with_ogg = xno; then
+PKG_CHECK_MODULES(OGG, [ogg >= 1.1.3],has_ogg=yes)
+if test x$has_ogg = xyes; then
+   AC_DEFINE(USE_OGG, 1, [OGG])
+elif test ! x$with_ogg = xauto ; then
+   AC_MSG_ERROR([
+      libogg is required to build this package!
+      please see http://www.xiph.org/ for how to
+      obtain a copy.
+   ])
+fi
+fi
+AM_CONDITIONAL(OGG, test x$has_ogg = xyes)
+  
 PKG_CHECK_MODULES(SPEEX, [speex >= 1.2],,AC_MSG_ERROR([
    speex is required to build this package!
    please see http://www.xiph.org/ for how to
    obtain a copy.
 ]))
 
-PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],,AC_MSG_ERROR([
-   libtheora is required to build this package!
-   please see http://www.xiph.org/ for how to
-   obtain a copy.
-]))
+has_teora=no
+if test ! x$with_theora = xno; then
+PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],has_theora=yes)
+if test x$has_theora = xyes; then
+   AC_DEFINE(USE_THEORA, 1, [THEORA])
+elif test ! x$with_theora = xauto ; then
+   AC_MSG_ERROR([
+      libtheora is required to build this package!
+      please see http://www.xiph.org/ for how to
+      obtain a copy.
+   ])
+fi
+fi
+AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
 
 PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
 PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
@@ -314,7 +352,7 @@ if test "x$enable_clients" = "xauto"; then
       fi
    fi
 
-   if test x$has_sdl = xyes; then
+   if test x$has_sdl = xyes && test x$with_video = xyes; then
       clients="$clients vtestcall"
    fi
 
@@ -334,8 +372,8 @@ do
          CLIENTS="$CLIENTS $client";;
 
       vtestcall)
-         if ! test x$has_sdl = xyes; then
-            AC_MSG_ERROR([vtestcall requires SDL])
+         if test ! x$has_sdl = xyes || test ! x$with_video = xyes ; then
+            AC_MSG_ERROR([vtestcall requires SDL and video])
          fi
          CLIENTS="$CLIENTS $client";;
 
