@@ -58,7 +58,7 @@ static float vol_to_db(float vol)
 	/* avoid calling log10() on zero which yields inf or
 	 * negative numbers which yield nan */
 	if ( vol <= 0.0 )
-		return 0.0;
+		return -99.9;
 	else
 		return log10f(vol) * 20;
 }
