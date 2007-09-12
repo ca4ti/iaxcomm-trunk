@@ -98,6 +98,12 @@ libiaxclient_la_LIBADD += $(THEORA_LIBS)
 AM_CFLAGS += $(THEORA_CFLAGS)
 endif
 
+if FFMPEG
+SRCS += codec_ffmpeg.c codec_ffmpeg.h
+libiaxclient_la_LIBADD += $(FFMPEG_LIBS)
+AM_CFLAGS += $(FFMPEG_CFLAGS)
+endif
+
 SRCS_LIBGSM=					\
 	gsm/src/add.c				\
 	gsm/src/code.c				\
