@@ -1439,7 +1439,21 @@ EXPORT void iaxc_answer_call(int callNo)
 
 EXPORT void iaxc_blind_transfer_call(int callNo, const char * dest_extension)
 {
+	if ((callNo < 0) ||
+			!(calls[callNo].state & IAXC_CALL_STATE_ACTIVE))
+		return;
+
 	iax_transfer(calls[callNo].session, dest_extension);
+}
+
+EXPORT void iaxc_setup_call_transfer(int sourceCallNo, int targetCallNo)
+{
+	if ((sourceCallNo < 0) || (targetCallNo < 0) ||
+			((calls[sourceCallNo].state & IAXC_CALL_STATE_ACTIVE) == 0) || 
+			((calls[targetCallNo].state & IAXC_CALL_STATE_ACTIVE) == 0))
+		return;
+
+	iax_setup_transfer(calls[sourceCallNo].session, calls[targetCallNo].session);
 }
 
 static void iaxc_dump_one_call(int callNo)

@@ -295,6 +295,7 @@ EXPORT int iaxc_register(const char * user, const char * pass, const char * host
 EXPORT void iaxc_send_busy_on_incoming_call(int callNo);
 EXPORT void iaxc_answer_call(int callNo);
 EXPORT void iaxc_blind_transfer_call(int callNo, const char * number);
+EXPORT void iaxc_setup_call_transfer(int sourceCallNo, int targetCallNo);
 EXPORT void iaxc_dump_all_calls(void);
 EXPORT void iaxc_dump_call(void);
 EXPORT void iaxc_reject_call(void);
