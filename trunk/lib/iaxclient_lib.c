@@ -1340,6 +1340,11 @@ static void codec_destroy( int callNo )
 
 EXPORT int iaxc_call(const char * num)
 {
+	return iaxc_call_ex(num, NULL, NULL, 1);
+}
+
+EXPORT int iaxc_call_ex(const char *num, const char* callerid_name, const char* callerid_number, int video)
+{
 	int video_format_capability = 0;
 	int video_format_preferred = 0;
 	int callNo = -1;
@@ -1391,6 +1396,12 @@ EXPORT int iaxc_call(const char * num)
 		strncpy(calls[callNo].remote,      "" , IAXC_EVENT_BUFSIZ);
 	}
 
+	if (callerid_number != NULL)
+		strncpy(calls[callNo].callerid_number, callerid_number, IAXC_EVENT_BUFSIZ);
+		
+	if (callerid_name != NULL)
+		strncpy(calls[callNo].callerid_name, callerid_name, IAXC_EVENT_BUFSIZ);
+
 	strncpy(calls[callNo].local        , calls[callNo].callerid_name, IAXC_EVENT_BUFSIZ);
 	strncpy(calls[callNo].local_context, "default", IAXC_EVENT_BUFSIZ);
 
@@ -1401,7 +1412,8 @@ EXPORT int iaxc_call(const char * num)
 	calls[callNo].last_ping = calls[callNo].last_activity;
 
 #ifdef USE_VIDEO
-	iaxc_video_format_get_cap(&video_format_preferred, &video_format_capability);
+	if (video)
+		iaxc_video_format_get_cap(&video_format_preferred, &video_format_capability);
 #endif
 
 	iaxci_usermsg(IAXC_NOTICE, "Originating an %s call",
@@ -1665,27 +1677,32 @@ static void iaxc_handle_connect(struct iax_event * e)
 	iaxc_video_format_get_cap(&video_format_preferred,
 			&video_format_capability);
 
-	/* first, try _their_ preferred format */
-	video_format = video_format_capability &
-		(e->ies.format & IAXC_VIDEO_FORMAT_MASK);
+	/* first, see if they even want video */
+	video_format = (e->ies.format & IAXC_VIDEO_FORMAT_MASK);
 
-	if ( !video_format )
+	if (video_format)
 	{
-		/* then, try our preferred format */
-		video_format = video_format_preferred &
-			(e->ies.capability & IAXC_VIDEO_FORMAT_MASK);
-	}
+		/* next, try _their_ preferred format */
+		video_format &= video_format_capability;
 
-	if ( !video_format )
-	{
-		/* finally, see if we have one in common */
-		video_format = video_format_capability &
-			(e->ies.capability & IAXC_VIDEO_FORMAT_MASK);
-
-		/* now choose amongst these, if we got one */
-		if ( video_format )
+		if ( !video_format )
 		{
-			video_format = iaxc_choose_codec(video_format);
+			/* then, try our preferred format */
+			video_format = video_format_preferred &
+				(e->ies.capability & IAXC_VIDEO_FORMAT_MASK);
+		}
+
+		if ( !video_format )
+		{
+			/* finally, see if we have one in common */
+			video_format = video_format_capability &
+				(e->ies.capability & IAXC_VIDEO_FORMAT_MASK);
+			
+			/* now choose amongst these, if we got one */
+			if ( video_format )
+			{
+				video_format = iaxc_choose_codec(video_format);
+			}
 		}
 	}
 

@@ -448,8 +448,9 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 
 	// If we don't need to send encoded video to the network or back
 	// to the main application, just return here.
-	if ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED) &&
-	     (iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE) )
+	if ( ( !(iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED) &&
+	       (iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE) ) || 
+ 	     (format == 0) )
 	{
 		if ( call->vencoder )
 		{

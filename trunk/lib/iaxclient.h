@@ -290,6 +290,7 @@ EXPORT void iaxc_set_callerid(const char * name, const char * number);
 EXPORT int iaxc_start_processing_thread();
 EXPORT int iaxc_stop_processing_thread();
 EXPORT int iaxc_call(const char * num);
+EXPORT int iaxc_call_ex(const char* num, const char* callerid_name, const char* callerid_number, int video);
 EXPORT int iaxc_unregister( int id );
 EXPORT int iaxc_register(const char * user, const char * pass, const char * host);
 EXPORT void iaxc_send_busy_on_incoming_call(int callNo);

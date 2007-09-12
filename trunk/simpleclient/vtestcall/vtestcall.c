@@ -597,14 +597,10 @@ int main(int argc, char **argv)
 					fflush(stdin);
 					// TODO: Better control on inserted strings
 					fscanf(stdin,"%s",mydest);
-					// Force to have a A or A/V call
-					if (mydest[0]=='A') {
-						iaxc_video_format_set(0, 0, framerate, bitrate, width, height, fragsize);
-					}
-					else {
-						fprintf(stderr,"format_set a %d,%d,%d,%d,%d,%d,%d\n",formatp, format, framerate, bitrate, width, height, fragsize);
-						iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
-					}
+
+					fprintf(stderr,"format_set a %d,%d,%d,%d,%d,%d,%d\n",formatp, format, framerate, bitrate, width, height, fragsize);
+					iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
+
 					/*
 					if (iaxc_initialize(Vmode|Amode,MAX_CALLS))
 					fatal_error("cannot initialize iaxclient!");
@@ -615,7 +611,8 @@ int main(int argc, char **argv)
 					sprintf(caption,"Calling to %s",mydest);
 					my_safe_caption(caption);
 					//iaxc_play_sound(&sound_ringOUT, 1 /* ring device */ );
-					iaxc_call(mydest);
+					// Force to have a A or A/V call
+					iaxc_call_ex(mydest, NULL, NULL, (mydest[0]!='A'));
 					break;
 				case SDLK_c:
 					{
