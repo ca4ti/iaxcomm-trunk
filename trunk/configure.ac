@@ -135,6 +135,13 @@ AC_ARG_WITH(theora,
          [Theora support])],,
       with_theora="auto")
 
+AC_ARG_WITH(ffmpeg,
+      [AS_HELP_STRING([--with-ffmpeg],
+         [FFmpeg support])],
+      FFMPEG="${with_ffmpeg}",
+      with_ffmpeg="no")
+
+
 if test ! "x$enable_clients" = "xauto"; then
    for client in ${enable_clients}; do
       case "$client" in
@@ -231,6 +238,22 @@ elif test ! x$with_theora = xauto ; then
 fi
 fi
 AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
+
+has_ffmpeg=no
+if test ! x$with_ffmpeg = xno; then
+PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.40.3],has_ffmpeg=yes)
+if test x$has_ffmpeg = xyes; then
+   AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
+   PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
+elif test ! x$with_ffmpeg = xauto ; then
+   AC_MSG_ERROR([
+      FFmpeg is required to build this package!
+      please see http://ffmpeg.mplayerhq.hu/ for how to
+      obtain a copy.
+   ])
+fi
+fi
+AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes)
 
 PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
 PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
