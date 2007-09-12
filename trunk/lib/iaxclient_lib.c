@@ -607,7 +607,7 @@ EXPORT int iaxc_initialize(int num_calls)
 		return -1;
 	}
 
-	selected_call = 0;
+	selected_call = -1;
 
 	for ( i = 0; i < max_calls; i++ )
 	{
@@ -1215,7 +1215,8 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		break;
 	case IAX_EVENT_VOICE:
 		handle_audio_event(e, callNo);
-		if (calls[callNo].state & IAXC_CALL_STATE_RINGING)
+		if ((calls[callNo].state & IAXC_CALL_STATE_OUTGOING) && 
+		    (calls[callNo].state & IAXC_CALL_STATE_RINGING) )
 		{
 			calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
 			iaxci_do_state_callback(callNo);
