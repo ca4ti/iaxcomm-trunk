@@ -1704,21 +1704,14 @@ static void iaxc_handle_connect(struct iax_event * e)
 				video_format = iaxc_choose_codec(video_format);
 			}
 		}
-	}
 
-	if ( !video_format )
-	{
-		if ( format )
+		/* All video negotiations failed, then warn */
+		if ( !video_format )
 		{
 			iaxci_usermsg(IAXC_NOTICE,
-					"Notice: could not negotiate common video codec");
+										"Notice: could not negotiate common video codec");
 			iaxci_usermsg(IAXC_NOTICE,
-					"Notice: switching to audio-only call");
-		} else
-		{
-			iax_reject(e->session,
-					"Could not negotiate common audio and video codec");
-			return;
+										"Notice: switching to audio-only call");
 		}
 	}
 #endif	/* USE_VIDEO */
