@@ -940,14 +940,16 @@ static int service_audio()
 
 		audio_driver.stop(&audio_driver);
 
-		/* Q: Why do we continuously send IAXC_EVENT_LEVELS events
-		 * when there is no selected call?
-		 *
-		 * A: So that certain users of iaxclient do not have to
-		 * reset their vu meters when a call ends -- they can just
-		 * count on getting level callbacks. This is a bit of a hack
-		 * so any applications relying on this behavior should maybe
-		 * be changed.
+		/*!
+			\deprecated
+			Q: Why do we continuously send IAXC_EVENT_LEVELS events
+		   when there is no selected call?
+		 
+		 A: So that certain users of iaxclient do not have to
+		   reset their vu meters when a call ends -- they can just
+		   count on getting level callbacks. This is a bit of a hack
+		   so any applications relying on this behavior should maybe
+		   be changed.
 		 */
 		if ( i++ % 50 == 0 )
 			iaxci_do_levels_callback(-99,-99);

@@ -363,6 +363,8 @@ static struct iaxc_video_codec *create_codec(int format, int encode)
  *             - source - either IAXC_SOURCE_LOCAL or IAXC_SOURCE_REMOTE
  *             - encoded - true if data is encoded
  *             - rgb32 - if true, convert data to RGB32 before showing
+
+ \todo For encoded data, set the event format to the calls video format. For raw data, set the format to 0.
  */
 void show_video_frame(char *videobuf, int size, int cn, int source, int encoded,
 		unsigned int ts, int rgb32)
@@ -512,7 +514,7 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 	for ( i = 0; i < slice_set.num_slices; i++ )
 	{
 		//Pass the encoded frame to the main app
-		// TODO: fix the call number
+		// \todo Fix the call number
 		if ( iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED )
 		{
 			show_video_frame(slice_set.data[i], slice_set.size[i],
