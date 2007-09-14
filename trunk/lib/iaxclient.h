@@ -35,6 +35,7 @@ extern "C" {
   require the inclusion of library internals (or sub-libraries) 
 */
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifdef _MSC_VER
 typedef int socklen_t;
 #endif
@@ -59,6 +60,7 @@ typedef int socklen_t;
 #else
 # define EXPORT
 #endif
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 #if defined(_MSC_VER)
@@ -73,13 +75,26 @@ typedef int socklen_t;
 			struct sockaddr *, int *);
 #endif
 #else
+	/*!
+		Defines the portotype for an application provided sendto implementation.
+	*/
 	typedef int (*iaxc_sendto_t)(int, const void *, size_t, int,
 			const struct sockaddr *, socklen_t);
+	/*!
+		Defines the portotype for an application provided recvfrom implementation.
+	*/
 	typedef int (*iaxc_recvfrom_t)(int, void *, size_t, int,
 			struct sockaddr *, socklen_t *);
 #endif
 
+/*!
+	Mask containing all potentially valid audio formats
+*/
 #define IAXC_AUDIO_FORMAT_MASK  ((1<<16)-1)
+
+/*!
+	Mask containing all potentially valid video formats
+*/
 #define IAXC_VIDEO_FORMAT_MASK  (((1<<25)-1) & ~IAXC_AUDIO_FORMAT_MASK)
 
 /* payload formats : WARNING: must match libiax values!!! */
@@ -107,25 +122,25 @@ typedef int socklen_t;
 #define IAXC_FORMAT_THEORA       (1 << 24)  /*!< Theora Video */
 #define IAXC_FORMAT_MAX_VIDEO    (1 << 24)  /*!< Maximum Video format value*/
 
-#define IAXC_EVENT_TEXT          1   /*!< Indicates a text event. */
-#define IAXC_EVENT_LEVELS        2   /*!< Indicates a level event. */
-#define IAXC_EVENT_STATE         3   /*!< Indicates a call state change event. */
-#define IAXC_EVENT_NETSTAT       4   /*!< Indicates a network statistics update event. */
-#define IAXC_EVENT_URL           5   /*!< Indicates a URL push via IAX(2). */
-#define IAXC_EVENT_VIDEO         6   /*!< Indicates a video event. */
-#define IAXC_EVENT_REGISTRATION  8   /*!< Indicates a registration event. */
-#define IAXC_EVENT_DTMF          9   /*!< Indicates a DTMF event. */
-#define IAXC_EVENT_AUDIO         10  /*!< Indicates an audio event. */
-#define IAXC_EVENT_VIDEOSTATS    11  /*!< Indicates a video statistics update event. */
+#define IAXC_EVENT_TEXT          1   /*!< Indicates a text event */
+#define IAXC_EVENT_LEVELS        2   /*!< Indicates a level event */
+#define IAXC_EVENT_STATE         3   /*!< Indicates a call state change event */
+#define IAXC_EVENT_NETSTAT       4   /*!< Indicates a network statistics update event */
+#define IAXC_EVENT_URL           5   /*!< Indicates a URL push via IAX(2) */
+#define IAXC_EVENT_VIDEO         6   /*!< Indicates a video event */
+#define IAXC_EVENT_REGISTRATION  8   /*!< Indicates a registration event */
+#define IAXC_EVENT_DTMF          9   /*!< Indicates a DTMF event */
+#define IAXC_EVENT_AUDIO         10  /*!< Indicates an audio event */
+#define IAXC_EVENT_VIDEOSTATS    11  /*!< Indicates a video statistics update event */
 
-#define IAXC_CALL_STATE_FREE     0       /*!< Indicates a call slot is free. */
-#define IAXC_CALL_STATE_ACTIVE   (1<<1)  /*!< Indicates a call is active. */
-#define IAXC_CALL_STATE_OUTGOING (1<<2)  /*!< Indicates a call is outgoing. */
-#define IAXC_CALL_STATE_RINGING  (1<<3)  /*!< Indicates a call is ringing. */
-#define IAXC_CALL_STATE_COMPLETE (1<<4)  /*!< Indicates a completed call. */
-#define IAXC_CALL_STATE_SELECTED (1<<5)  /*!< Indicates the call is selected. */
-#define IAXC_CALL_STATE_BUSY     (1<<6)  /*!< Indicates a call is busy. */
-#define IAXC_CALL_STATE_TRANSFER (1<<7)  /*!< Indicates the call transfer has been released. */
+#define IAXC_CALL_STATE_FREE     0       /*!< Indicates a call slot is free */
+#define IAXC_CALL_STATE_ACTIVE   (1<<1)  /*!< Indicates a call is active */
+#define IAXC_CALL_STATE_OUTGOING (1<<2)  /*!< Indicates a call is outgoing */
+#define IAXC_CALL_STATE_RINGING  (1<<3)  /*!< Indicates a call is ringing */
+#define IAXC_CALL_STATE_COMPLETE (1<<4)  /*!< Indicates a completed call */
+#define IAXC_CALL_STATE_SELECTED (1<<5)  /*!< Indicates the call is selected */
+#define IAXC_CALL_STATE_BUSY     (1<<6)  /*!< Indicates a call is busy */
+#define IAXC_CALL_STATE_TRANSFER (1<<7)  /*!< Indicates the call transfer has been released */
 
 /*! Indicates that text is for an IAXClient status change */
 #define IAXC_TEXT_TYPE_STATUS     1   
@@ -133,15 +148,19 @@ typedef int socklen_t;
 #define IAXC_TEXT_TYPE_NOTICE     2   
 /*!  Represents that text is for an IAXClient error message */
 #define IAXC_TEXT_TYPE_ERROR      3   
-/*!  Represents a fatal error has occurred in IAXClient and that the User Agent should probably display error message text, then die. */
+/*!  
+	Represents that text is for an IAXClient fatal error message.
+	
+	The User Agent should probably display error message text, then die 
+*/
 #define IAXC_TEXT_TYPE_FATALERROR 4   
 /*!  Represents a message sent from the server across the IAX stream*/
 #define IAXC_TEXT_TYPE_IAX        5   
 
 /* registration replys, corresponding to IAX_EVENTs*/
-#define IAXC_REGISTRATION_REPLY_ACK     18   /*!< Indicates the registration was accepted (See IAX_EVENT_REGACC).  */
-#define IAXC_REGISTRATION_REPLY_REJ     30   /*!< Indicates the registration was rejected (See IAX_EVENT_REGREJ).  */
-#define IAXC_REGISTRATION_REPLY_TIMEOUT 6    /*!< Indicates the registration timed out (See IAX_EVENT_TIMEOUT). */
+#define IAXC_REGISTRATION_REPLY_ACK     18   /*!< Indicates the registration was accepted (See IAX_EVENT_REGACC)  */
+#define IAXC_REGISTRATION_REPLY_REJ     30   /*!< Indicates the registration was rejected (See IAX_EVENT_REGREJ)  */
+#define IAXC_REGISTRATION_REPLY_TIMEOUT 6    /*!< Indicates the registration timed out (See IAX_EVENT_TIMEOUT) */
 
 #define IAXC_URL_URL              1  /*!< URL received */
 #define IAXC_URL_LDCOMPLETE       2  /*!< URL loading complete */
@@ -150,8 +169,8 @@ typedef int socklen_t;
 #define IAXC_URL_UNLINK           5  /*!< URL unlink */
 
 /* The source of the video or audio data triggering the event. */
-#define IAXC_SOURCE_LOCAL  1 /*!<  Indicates that the event data source is local. */
-#define IAXC_SOURCE_REMOTE 2 /*!<  Indicates that the event data source is remote. */
+#define IAXC_SOURCE_LOCAL  1 /*!<  Indicates that the event data source is local */
+#define IAXC_SOURCE_REMOTE 2 /*!<  Indicates that the event data source is remote */
 
 /*!
 	The maximum size of a string contained within an event
@@ -319,7 +338,7 @@ struct iaxc_ev_netstats {
 	struct iaxc_netstat remote;
 };
 
-/*
+/*!
 	A structure containing video statistics data.
 */
 struct iaxc_video_stats
@@ -859,11 +878,13 @@ EXPORT char* iaxc_version(char *ver);
 */
 EXPORT void iaxc_set_jb_target_extra( long value );
 
-/*
-	Application-defined networking; give substiture sendto and recvfrom 
-	functions, must be called before iaxc_initialize! 
-	\param st
-	\param rf
+/*!
+	Application-defined networking; give substitute sendto and recvfrom 
+	functions.
+	\param st The send function to use.
+	\param rf The receive function to use.
+
+	\note Must be called before iaxc_initialize! 
 */
 EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
 
@@ -961,7 +982,7 @@ struct iaxc_sound {
 	struct iaxc_sound *next; /*!< \internal use: next in list. */
 };
 
-/*
+/*!
 	Play a sound.
 	\param sound An iaxc_sound structure.
 	\param ring 0 to play through output device or 1 to play through the "ring" device.
@@ -1048,7 +1069,7 @@ EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitra
 */
 #define IAXC_AUDIO_PREF_SEND_DISABLE        (1 << 4) 
 
-/* 
+/*! 
 	 Returns the various audio delivery preferences.
 
 	 The preferences are represented using the AIXC_AUDIO_PREF_{} family of defines.
@@ -1188,7 +1209,7 @@ EXPORT void iaxc_video_format_set_cap(int preferred, int allowed);
 */
 EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate, int bitrate, int width, int height, int fs);
 
-/*
+/*!
  Change video params for the current call on the fly
  This will destroy the existing encoder and create a new one
  use negative values for parameters that should not change
@@ -1200,7 +1221,7 @@ EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate, int
 */
 EXPORT void iaxc_video_params_change(int framerate, int bitrate, int width, int height, int fs);
 
-/* Set holding frame to be used in some kind of video calls */
+/*! Set holding frame to be used in some kind of video calls */
 EXPORT int iaxc_set_holding_frame(char *);
 
 /*!
@@ -1211,7 +1232,7 @@ EXPORT int iaxc_set_holding_frame(char *);
 
 EXPORT int iaxc_video_bypass_jitter(int);
 
-/*
+/*!
   Returns 1 if the default camera is working; 0 otherwise
  */
 EXPORT int iaxc_is_camera_working();
