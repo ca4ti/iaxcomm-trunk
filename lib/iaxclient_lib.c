@@ -772,41 +772,9 @@ static THREADFUNCDECL(main_proc_thread_func)
 }
 
 #ifdef USE_VIDEO
-#define VIDEO_STATS_INTERVAL 1000 // In ms
-static struct timeval video_stats_start;
-
-static void send_video_stats()
-{
-	iaxc_event e;
-	struct timeval now;
-	long time;
-
-	// make sure there is a call to do stats on
-	if (selected_call < 0)
-		return;
-
-	gettimeofday(&now, NULL);
-	time = iaxci_msecdiff(&now, &video_stats_start);
-	if ( time > VIDEO_STATS_INTERVAL )
-	{
-		video_get_stats(&calls[selected_call], &e.ev.videostats.stats, 1);
-/*		fprintf(stderr, "Video stats: sent_slices=%ld, acc_sent_size=%ld, outbound_frames=%ld, avg_outbound_fps=%f, avg_outbound_bps=%ld, "
-		                "received_slices=%ld, acc_recv_size=%ld, inbound_frames=%ld, dropped_frames=%ld, avg_inbound_fps=%f, avg_inbound_bps=%ld\n",
-		                stats.sent_slices, stats.acc_sent_size, stats.outbound_frames, stats.avg_outbound_fps, stats.avg_outbound_bps,
-				stats.received_slices, stats.acc_recv_size, stats.inbound_frames, stats.dropped_frames, stats.avg_inbound_fps, stats.avg_inbound_bps);*/
-		e.type = IAXC_EVENT_VIDEOSTATS;
-		e.ev.videostats.callNo = selected_call;
-		iaxci_post_event(e);
-
-		video_stats_start = now;
-	}
-}
-
 static THREADFUNCDECL(video_proc_thread_func)
 {
 	struct iaxc_call *call;
-
-	gettimeofday(&video_stats_start, NULL);
 
 	while ( !video_proc_thread_flag )
 	{
@@ -816,8 +784,7 @@ static THREADFUNCDECL(video_proc_thread_func)
 			call = NULL;
 
 		video_send_video(call, selected_call);
-
-		send_video_stats();
+		video_send_stats(call);
 
 		// Tight spinloops are bad, mmmkay?
 		iaxc_millisleep(LOOP_SLEEP);
@@ -827,7 +794,7 @@ static THREADFUNCDECL(video_proc_thread_func)
 
 	return 0;
 }
-#endif	/* USE_VIDEO */
+#endif
 
 EXPORT int iaxc_start_processing_thread()
 {
