@@ -52,15 +52,12 @@ int video_initialize(void);
 
 int video_destroy(void);
 
-int video_get_stats(struct iaxc_call * call,
-		struct iaxc_video_stats * stats, int reset);
-
-void video_reset_codec_stats(struct iaxc_video_codec * codec);
-
 int video_send_video(struct iaxc_call *, int);
 
 int video_recv_video(struct iaxc_call * call, int sel_call,
 		void * encoded_video, int encoded_video_len,
 		unsigned int ts, int format);
+
+int video_send_stats(struct iaxc_call *);
 
 #endif

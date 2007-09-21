@@ -284,6 +284,62 @@ void iaxc_video_params_change(int framerate, int bitrate, int width,
 		call->vencoder->fragsize = fs;
 }
 
+static void reset_codec_stats(struct iaxc_video_codec *vcodec)
+{
+	if ( !vcodec )
+		return;
+
+	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
+	gettimeofday(&vcodec->video_stats.start_time, 0);
+}
+
+static void reset_video_stats(struct iaxc_call *call)
+{
+	if ( !call )
+		return;
+
+	reset_codec_stats(call->vdecoder);
+	reset_codec_stats(call->vencoder);
+}
+
+/* Collect and return video statistics. Also reset statistics if required.
+ * Returns a pointer to the data.
+ * Right now we use two different codecs for encoding and decoding. We need
+ * to collate information from both and wrap it into one nice struct.
+ */
+static int get_stats(struct iaxc_call *call, struct iaxc_video_stats *stats,
+		int reset)
+{
+	if ( !call || !stats )
+		return -1;
+
+	memset(stats, 0, sizeof(*stats));
+
+	if ( call->vencoder )
+	{
+		stats->sent_slices = call->vencoder->video_stats.sent_slices;
+		stats->acc_sent_size = call->vencoder->video_stats.acc_sent_size;
+		stats->outbound_frames = call->vencoder->video_stats.outbound_frames;
+		stats->avg_outbound_bps = call->vencoder->video_stats.avg_outbound_bps;
+		stats->avg_outbound_fps = call->vencoder->video_stats.avg_outbound_fps;
+	}
+
+	if ( call->vdecoder )
+	{
+		stats->received_slices = call->vdecoder->video_stats.received_slices;
+		stats->acc_recv_size = call->vdecoder->video_stats.acc_recv_size;
+		stats->inbound_frames = call->vdecoder->video_stats.inbound_frames;
+		stats->dropped_frames = call->vdecoder->video_stats.dropped_frames;
+		stats->avg_inbound_bps = call->vdecoder->video_stats.avg_inbound_bps;
+		stats->avg_inbound_fps = call->vdecoder->video_stats.avg_inbound_fps;
+	}
+
+	if ( reset )
+		reset_video_stats(call);
+
+	return 0;
+}
+
 /* TODO: The encode parameter to this function is unused within this
  * function. However, clients of this function still use this parameter.
  * What ends up happening is we instantiate the codec encoder/decoder
@@ -303,52 +359,43 @@ void iaxc_video_params_change(int framerate, int bitrate, int width,
  */
 static struct iaxc_video_codec *create_codec(int format, int encode)
 {
+	struct iaxc_video_codec * vcodec = 0;
+
 	iaxci_usermsg(IAXC_TEXT_TYPE_NOTICE, "Creating codec format 0x%x",
 			format);
+
 	switch ( format )
 	{
 	case IAXC_FORMAT_H261:
 	case IAXC_FORMAT_H263:
 	case IAXC_FORMAT_H263_PLUS:
 	case IAXC_FORMAT_MPEG4:
-#ifdef USE_FFMPEG
-		return codec_video_ffmpeg_new(format,
-				iaxc_video_width,
-				iaxc_video_height,
-				iaxc_video_framerate,
-				iaxc_video_bitrate,
-				iaxc_video_fragsize);
-#else
-		return NULL;
-#endif
-
 	case IAXC_FORMAT_H264:
 #ifdef USE_FFMPEG
-		return codec_video_ffmpeg_new(format,
+		vcodec = codec_video_ffmpeg_new(format,
 				iaxc_video_width,
 				iaxc_video_height,
 				iaxc_video_framerate,
 				iaxc_video_bitrate,
 				iaxc_video_fragsize);
-#else
-		return NULL;
 #endif
+		break;
 
-#ifdef USE_THEORA
 	case IAXC_FORMAT_THEORA:
-		return codec_video_theora_new(format,
+#ifdef USE_THEORA
+		vcodec = codec_video_theora_new(format,
 				iaxc_video_width,
 				iaxc_video_height,
 				iaxc_video_framerate,
 				iaxc_video_bitrate,
 				iaxc_video_fragsize);
-#else
-		return NULL;
 #endif
+		break;
 	}
 
-	// Must never happen...
-	return NULL;
+	reset_codec_stats(vcodec);
+
+	return vcodec;
 }
 
 /*
@@ -422,9 +469,7 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 	/* It is okay if we do not get any video; video capture may be
 	 * disabled.
 	 */
-	if ( !videobuf ||
-	     (iaxc_video_prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE)
-	   )
+	if ( !videobuf || (iaxc_video_prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE) )
 		return 0;
 
 	// Send the raw frame to the main app, if necessary
@@ -434,7 +479,9 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 				iaxc_video_prefs & IAXC_VIDEO_PREF_RECV_RGB32);
 	}
 
-	if ( sel_call < 0 || !call || !(call->state & (IAXC_CALL_STATE_COMPLETE | IAXC_CALL_STATE_OUTGOING) ) )
+	if ( sel_call < 0 || !call ||
+			!(call->state & (IAXC_CALL_STATE_COMPLETE |
+					IAXC_CALL_STATE_OUTGOING)) )
 	{
 		return -1;
 	}
@@ -498,7 +545,7 @@ int video_send_video(struct iaxc_call *call, int sel_call)
 	}
 
 	// Statistics
-	gettimeofday(&now, NULL);
+	gettimeofday(&now, 0);
 	call->vencoder->video_stats.outbound_frames++;
 	time = iaxci_msecdiff(&now, &call->vencoder->video_stats.start_time);
 	if ( time > 0 )
@@ -600,7 +647,7 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 	}
 
 	/* Statistics */
-	gettimeofday(&now, NULL);
+	gettimeofday(&now, 0);
 	time = iaxci_msecdiff(&now, &call->vdecoder->video_stats.start_time);
 	call->vdecoder->video_stats.received_slices++;
 	call->vdecoder->video_stats.acc_recv_size += encoded_video_len;
@@ -727,7 +774,6 @@ static void iaxc_init_yuv2rgb_tables(void)
 	yuv2rgb_tables_initialized = 1;
 }
 
-
 /*
  * Faster function to convert YUV420 images to RGB32
  * RGB32: 0xFFRRGGBB
@@ -784,133 +830,36 @@ void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
 	}
 }
 
-/*
- * Original function that converts YUV420 images to RGB32
- * RGB32: 0xFFRRGGBB
- * Make sure the src and dest buffers have enough room
- * dest should be width * height * 4 bytes in size
- * Based on the formulas found at http://en.wikipedia.org/wiki/YUV
- */
-// void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest)
-// {
-// 	int i;
-// 	unsigned char * y = (unsigned char *)src;
-// 	unsigned char * u = y + width * height;
-// 	unsigned char * v = u + width * height / 4;
-// 	unsigned int * dst = (unsigned int *)dest;
-//
-// 	for ( i = 0; i < height; i++ )
-// 	{
-// 		int j;
-//
-// 		unsigned char * uu = u;
-// 		unsigned char * vv = v;
-//
-// 		for ( j = 0; j < width; j++ )
-// 		{
-// 			int yyy =  *y -  16;
-// 			int uuu = *uu - 128;
-// 			int vvv = *vv - 128;
-//
-// 			int r = ( 298*yyy + 409*vvv + 128) >> 8;
-// 			int g = ( 298*yyy - 100*uuu - 208*vvv + 128) >> 8;
-// 			int b = ( 298*yyy + 516*uuu + 128) >> 8;
-//
-// 			// Clip values to make sure they fit in range
-// 			if ( r < 0 )
-// 				r = 0;
-// 			else if ( r > 255 )
-// 				r = 255;
-//
-// 			if ( g < 0 )
-// 				g = 0;
-// 			else if ( g > 255 )
-// 				g = 255;
-//
-// 			if ( b < 0 )
-// 				b = 0;
-// 			else if ( b > 255 )
-// 				b = 255;
-//
-// 			*(dst++) = 0xff000000 |
-// 				((unsigned char)r << 16) |
-// 				((unsigned char)g << 8) |
-// 				((unsigned char)b << 0);
-//
-// 			y++;
-//
-// 			if ( j & 1 )
-// 			{
-// 				uu++;
-// 				vv++;
-// 			}
-// 		}
-//
-// 		if ( i & 1 )
-// 		{
-// 			u += width >> 1;
-// 			v += width >> 1;
-// 		}
-// 	}
-// }
-
 int iaxc_is_camera_working()
 {
 	return video_driver.is_camera_working(&video_driver);
 }
 
-static void reset_video_stats(struct iaxc_call *call)
+int video_send_stats(struct iaxc_call * call)
 {
+	const long video_stats_interval = 1000; /* milliseconds */
+	static struct timeval video_stats_start = {0, 0};
+	iaxc_event e;
+	struct timeval now;
+
 	if ( !call )
-		return;
-
-	video_reset_codec_stats(call->vdecoder);
-	video_reset_codec_stats(call->vencoder);
-}
-
-// Collect and return video statistics
-// Also reset statistics if required;
-// Returns a pointer to the data
-// Right now we use two different codecs for encoding and decoding. We need to collate information
-// from both and wrap it into one nice struct
-int video_get_stats(struct iaxc_call *call, struct iaxc_video_stats *stats,
-		int reset)
-{
-	if ( !call || !stats )
 		return -1;
 
-	memset(stats, 0, sizeof(*stats));
+	if ( video_stats_start.tv_sec == 0 && video_stats_start.tv_usec == 0 )
+		gettimeofday(&video_stats_start, 0);
 
-	if ( call->vencoder != NULL )
+	gettimeofday(&now, 0);
+
+	if ( iaxci_msecdiff(&now, &video_stats_start) > video_stats_interval )
 	{
-		stats->sent_slices = call->vencoder->video_stats.sent_slices;
-		stats->acc_sent_size = call->vencoder->video_stats.acc_sent_size;
-		stats->outbound_frames = call->vencoder->video_stats.outbound_frames;
-		stats->avg_outbound_bps = call->vencoder->video_stats.avg_outbound_bps;
-		stats->avg_outbound_fps = call->vencoder->video_stats.avg_outbound_fps;
-	}
+		get_stats(call, &e.ev.videostats.stats, 1);
+		e.type = IAXC_EVENT_VIDEOSTATS;
+		e.ev.videostats.callNo = selected_call;
+		iaxci_post_event(e);
 
-	if ( call->vdecoder != NULL )
-	{
-		stats->received_slices = call->vdecoder->video_stats.received_slices;
-		stats->acc_recv_size = call->vdecoder->video_stats.acc_recv_size;
-		stats->inbound_frames = call->vdecoder->video_stats.inbound_frames;
-		stats->dropped_frames = call->vdecoder->video_stats.dropped_frames;
-		stats->avg_inbound_bps = call->vdecoder->video_stats.avg_inbound_bps;
-		stats->avg_inbound_fps = call->vdecoder->video_stats.avg_inbound_fps;
+		video_stats_start = now;
 	}
-
-	if ( reset )
-		reset_video_stats(call);
 
 	return 0;
-}
-
-void video_reset_codec_stats(struct iaxc_video_codec *vcodec)
-{
-	if ( vcodec == NULL ) return;
-
-	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
-	gettimeofday(&vcodec->video_stats.start_time, NULL);
 }
 
