@@ -88,7 +88,7 @@ AC_ARG_WITH(echo-can,
 
 AC_ARG_ENABLE(clients,
       [AS_HELP_STRING([--enable-clients],
-         [Select clients (all iaxcomm iaxphone testcall tkphone vtestcall WinIAX wx) [default=auto]])],,
+         [Select clients (all iaxcomm iaxphone stresstest testcall tkphone vtestcall WinIAX wx) [default=auto]])],,
       enable_clients="auto")
 
 AC_ARG_WITH(ilbc,
@@ -145,10 +145,10 @@ AC_ARG_WITH(ffmpeg,
 if test ! "x$enable_clients" = "xauto"; then
    for client in ${enable_clients}; do
       case "$client" in
-         iaxcomm | iaxphone | testcall | tkphone | vtestcall | WinIAX | wx)
+         iaxcomm | iaxphone | stresstest | testcall | tkphone | vtestcall | WinIAX | wx)
             clients="$clients $client" ;;
          all | yes)
-            clients="iaxcomm iaxphone testcall tkphone vtestcall WinIAX wx"
+            clients="iaxcomm iaxphone stresstest testcall tkphone vtestcall WinIAX wx"
             break ;;
          none | no)
             clients=""
@@ -259,6 +259,7 @@ PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
 PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
 PKG_CHECK_MODULES(GDK2, [gdk-2.0 >= 2.0.0], has_gdk2=yes, has_gdk2=no)
 PKG_CHECK_MODULES(ALSA, [alsa >= 1.0], has_alsa=yes, has_alsa=no)
+PKG_CHECK_MODULES(OGGZ, [oggz >= 0.9.5], has_oggz=yes, has_oggz=no)
 
 has_iax2=no
 if test ! x$enable_local_iax = xyes; then
@@ -364,7 +365,7 @@ AM_CONDITIONAL(MACOSX, test x$OSTYPE = xMACOSX)
 
 # Autodetect clients
 if test "x$enable_clients" = "xauto"; then
-   clients="$clients testcall"
+   clients="$clients testcall stresstest"
 
    if test ! x$has_wx = xno; then
       clients="$clients iaxphone"
@@ -394,6 +395,9 @@ for client in $clients
 do
    case "$client" in
       testcall)
+         CLIENTS="$CLIENTS $client";;
+
+      stresstest)
          CLIENTS="$CLIENTS $client";;
 
       vtestcall)
@@ -445,6 +449,7 @@ AC_CONFIG_FILES([
       simpleclient/Makefile
       iaxclient.pc
       simpleclient/testcall/Makefile
+      simpleclient/stresstest/Makefile
       simpleclient/vtestcall/Makefile
       simpleclient/iaxcomm/Makefile
       simpleclient/iaxphone/Makefile

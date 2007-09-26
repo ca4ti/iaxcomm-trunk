@@ -36,14 +36,16 @@ static int video = 0;
 
 //int format = IAXC_FORMAT_THEORA | IAXC_FORMAT_SPEEX;
 int format = IAXC_FORMAT_H263 | IAXC_FORMAT_H263_PLUS | IAXC_FORMAT_H264 | IAXC_FORMAT_MPEG4 | IAXC_FORMAT_THEORA;
-int formatp = IAXC_FORMAT_H264; //IAXC_FORMAT_THEORA;
+int formatp = IAXC_FORMAT_THEORA;
 int framerate = 15;
-int bitrate = 400000;
+int bitrate = 200000;
 int width = 320;
 int height = 240;
-int fragsize = 4000;
+int fragsize = 1400;
 
 int preview = 1;
+
+int call_established = 0;
 
 // Forward declaration
 int display_video(struct iaxc_ev_video v, int remote);
@@ -175,6 +177,7 @@ int state_callback(struct iaxc_ev_call_state s)
 	if (s.state == (IAXC_CALL_STATE_ACTIVE | IAXC_CALL_STATE_COMPLETE)) 
 	{
 		iaxc_stop_sound(sound_ringIN.id);
+		call_established = 1;
 	}
 	if (!(s.state & (IAXC_CALL_STATE_BUSY|IAXC_CALL_STATE_TRANSFER))) 
 	{
@@ -192,6 +195,7 @@ int state_callback(struct iaxc_ev_call_state s)
 		iaxc_millisleep(1000);
 		iaxc_answer_call(s.callNo);
 		iaxc_select_call(s.callNo);
+		call_established = 1;
 		//iaxc_millisleep(1000);
 		return 0;
 	}
@@ -285,13 +289,9 @@ void usage()
 		"\n"
 		"Usage is: tescall <options>\n\n"
 		"available options:\n"
-		"-F [codec,framerate,bitrate,width,height,fragsize]\t \n"
-		"-V force video mode\n"
+		"-F <codec,framerate,bitrate,width,height,fragsize> set video parameters\n"
+		"-r <user password host> register to server host, with credentials user and password\n"
 		"-s set silence threshold\n"
-		"-v [input_video_filename]\n"
-		"-f [output_video_filename]\n"
-		"-i [input_audio_filename]\n"
-		"-a [output_audio_filename]\n"
 		"\n"
 		);
 
@@ -431,8 +431,7 @@ int main(int argc, char **argv)
 	char	c;
 	int	i; //,OutLoop=0;
 	char	mydest[80], *dest = NULL;
-	double	silence_threshold = -99;
-	char	*WF_file = NULL;
+	double	silence_threshold = -99;;
 	int	jbypass = 0;
 	
 	/* install signal handler to catch CRTL-Cs */
@@ -446,9 +445,6 @@ int main(int argc, char **argv)
 		{
 			switch(argv[i][1])
 			{
-			case 'V': /* v is taken; p: picturephone.  Ok, that's lame.. */
-				video = 1;
-				break;
 			case 'F': /* set video formats */
 				{
 					formatp = 1<<atoi(argv[++i]);
@@ -471,21 +467,13 @@ int main(int argc, char **argv)
 				iaxc_register(argv[i+1],argv[i+2],argv[i+3]);
 				i+=3;
 				break;
-			case 'h':
-				if(i+1 >= argc) usage();
-				WF_file=argv[++i];
-				break;
-
 			default:
 				usage();
 			}
 		} else 
-		{
 			dest=argv[i];
-			//iaxc_register("send", "send", "217.9.64.180");
-		}
 	}
-
+	
 	if ( width<128 || height<96 ) 
 	{
 		fprintf(stderr,"Frame is too small\n");

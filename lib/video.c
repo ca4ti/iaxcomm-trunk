@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #include "video.h"
+#include "slice.h"
 #include "iaxclient_lib.h"
 #include "videoLib/video_grab.h"
 #include "iax-client.h"
@@ -30,6 +31,7 @@
 #define VIDEO_BUFSIZ (1<<19)
 
 extern int selected_call;
+extern int test_mode;
 extern struct iaxc_call * calls;
 
 static int iaxc_video_width = 320;
@@ -40,6 +42,8 @@ static int iaxc_video_fragsize = 1500;
 static int iaxc_video_format_preferred = 0;
 static int iaxc_video_format_allowed = 0;
 static struct iaxc_video_driver video_driver;
+
+static struct slice_set_t slice_set;
 
 /* Set the default so that the local and remote raw video is
  * sent to the client application and encoded video is sent out.
@@ -91,6 +95,11 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 	if ( prefs & ~prefs_mask )
 		return -1;
 
+	iaxc_video_prefs = prefs;
+	
+	if ( test_mode ) 
+		return 0;
+	
 	/* Not sending any video and not needing any form of
 	 * local video implies that we do not need to capture
 	 * video.
@@ -117,8 +126,6 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 				return -1;
 		}
 	}
-
-	iaxc_video_prefs = prefs;
 
 	return 0;
 }
@@ -456,7 +463,6 @@ void show_video_frame(char *videobuf, int size, int cn, int source, int encoded,
 /* try to get the next frame, encode and send */
 int video_send_video(struct iaxc_call *call, int sel_call)
 {
-	static struct slice_set_t slice_set;
 	int format;
 	int i = 0;
 	const int inlen = iaxc_video_width * iaxc_video_height * 6 / 4;
@@ -690,17 +696,20 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 
 int video_initialize(void)
 {
-	if ( pv_initialize(&video_driver, iaxc_video_width, iaxc_video_height,
-			iaxc_video_framerate) )
+	if ( !test_mode )
 	{
-		fprintf(stderr, "ERROR: cannot initialize pv\n");
-		return -1;
+		if ( pv_initialize(&video_driver, iaxc_video_width, iaxc_video_height,
+				iaxc_video_framerate) )
+		{
+			fprintf(stderr, "ERROR: cannot initialize pv\n");
+			return -1;
+		}
+	
+		/* We reset the existing video preferences to yield the side-effect
+		* of potentially starting or stopping the video capture.
+		*/
+		iaxc_set_video_prefs(iaxc_video_prefs);
 	}
-
-	/* We reset the existing video preferences to yield the side-effect
-	 * of potentially starting or stopping the video capture.
-	 */
-	iaxc_set_video_prefs(iaxc_video_prefs);
 
 	return 0;
 }
@@ -863,3 +872,64 @@ int video_send_stats(struct iaxc_call * call)
 	return 0;
 }
 
+void video_reset_codec_stats(struct iaxc_video_codec *vcodec)
+{
+	if ( vcodec == NULL ) return;
+
+	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
+	gettimeofday(&vcodec->video_stats.start_time, NULL);
+}
+
+static struct slicer_context *sc = NULL;
+
+EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
+{
+	struct iaxc_call *call;
+	
+	if (selected_call < 0)
+		return -1;
+	
+	call = &calls[selected_call];
+
+	if ( iaxc_video_prefs & IAXC_VIDEO_PREF_SEND_DISABLE )
+		return 0;
+	
+	//fprintf(stderr, "iaxc_push_video: sending video size %d\n", size);
+	
+	// Fragment if needed
+	if ( fragment )
+	{
+		int i;
+		
+		if ( sc == NULL )
+			sc = create_slicer_context(random(), iaxc_video_fragsize);
+		
+		slice(data, size, &slice_set, sc);
+		for ( i = 0 ; i < slice_set.num_slices ; i++ )
+		{
+			if ( iax_send_video_trunk(call->session,
+			                          call->vformat,
+			                          slice_set.data[i],
+			                          slice_set.size[i],
+			                          0,
+			                          i
+			                         ) == -1
+			   )
+			{
+				fprintf(stderr, "Failed to send a slice, call %d, size %d\n",
+					selected_call, slice_set.size[i]);
+				return -1;
+			}
+
+		}
+	} else
+	{
+		if ( iax_send_video_trunk(call->session, call->vformat, data, size, 0, 0) == -1 )
+		{
+			fprintf(stderr, "iaxc_push_video: failed to send video frame of size %d on call %d\n", size, selected_call);
+			return -1;
+		}
+	}
+
+	return 0;
+}

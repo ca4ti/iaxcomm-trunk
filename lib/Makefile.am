@@ -146,6 +146,8 @@ SRCS +=						\
 	ringbuffer.c				\
 	ringbuffer.h				\
 	portmixer/px_common/portmixer.h		\
+	slice.c					\
+	slice.h					\
 	spandsp/plc.c				\
 	spandsp/plc.h
 

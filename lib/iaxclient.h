@@ -22,7 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+	
 /*!
   \file iaxclient.h
   \brief The IAXClient API
@@ -1249,6 +1249,22 @@ EXPORT int iaxc_is_camera_working();
 */
 EXPORT void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest);
 
+
+/*
+ * Test mode functionality
+ * In test mode, iaxclient will do the following:
+ *   - skip audio and video hardware initialization
+ *   - wait for outgoing media to be provided by the main application
+ *   - return incoming media to the calling application if required, via callbacks
+ *   - not generate any meaningful statistics
+ * Test mode is designed to be used without a GUI, and with multiple instances of iaxclient
+ * running on the same machine. However, some applications might actually benefit from having
+ * this level of control.
+ * iaxc_set_test_mode() should be called before iaxc_initialize()
+ */
+EXPORT void iaxc_set_test_mode(int);
+EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples);
+EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment);
 #ifdef __cplusplus
 }
 #endif

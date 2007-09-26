@@ -13,6 +13,9 @@
  * the GNU Lesser (Library) General Public License.
  *
  * A video codec using the ffmpeg library.
+ * 
+ * TODO: this code still uses its own slicing mechanism
+ * It should be converted to use the API provided in slice.[ch]
  */
 
 #include <stdlib.h>
