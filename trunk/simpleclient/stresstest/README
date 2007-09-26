@@ -1,24 +1,34 @@
+Reads an ogg file that contains a theora video stream and a speex audio 
+stream. Connects to a server and sends media.
+
 Use the following command line:
 
-vtestcall -F <codec> <framerate> <bps> <width> <height> <fragment size>
-[destination]
+stresstest <options> destination
+
+Options:
+-o <filename> run file filename
+-a do not send audio
+-v do not send video
+-l loop file
+-F <codec> <fps> <bitrate> <xres> <yres> <fragment size> 
+ set video parameters (defaults to 24 15 200000 320 240 1400 
+
 
 See iaxclient/lib/iaxclient.h for codec types.
-Theora is 24
-H.264 is 21
 
-Example:
+Run myfile.ogg in a loop to server host, authenticating with user and pass
+and calling extension ext.  Video params are the defaults
+vtestcall -o myfile.ogg -l user:pass@host/ext
 
-Theora stream, 15 fps, 200kbps, 320x240
-vtestcall -F 24 15 200000 320 240 1400
+Same thing but with different video params and no audio:
+vtestcall -F 24 30 250000 320 240 1400 -a -o myfile.ogg -l user:pass@host/ext
 
-If destination is missing, vtestcall will wait for incoming calls.
+Notes:
+- The fragment size parameter needs to be less than around 4K due to Asterisk
+limitations.  The normal MTU is about 1.5K, so a value of 1400 would be
+recommended
+- if -F is used, then all 5 parameters need to be present due to limitations
+in the command line parsing code
 
-The fragment size parameter is now working.  However, Asterisk seems to have 
-problems with frames bigger than 4K so don't go over that.  
-
-Right now, you need all parameters, mainly because command line parsing in 
-vtestcall sucks and I am too lazy to fix it. If it bothers you, fix it
-yourself and post a patch.
 
 
