@@ -4,6 +4,7 @@ DIST_SUBDIRS = \
 	WinIAX					\
 	iaxcomm					\
 	iaxphone				\
+	stresstest				\
 	testcall				\
 	tkphone					\
 	vtestcall				\

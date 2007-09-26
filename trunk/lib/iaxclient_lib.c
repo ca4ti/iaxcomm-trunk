@@ -61,6 +61,9 @@
 
 #undef JB_DEBUGGING
 
+/* global test mode flag */
+int test_mode = 0;
+
 /* configurable jitterbuffer options */
 static long jb_target_extra = -1;
 
@@ -615,33 +618,26 @@ EXPORT int iaxc_initialize(int num_calls)
 		strncpy(calls[i].callerid_number, DEFAULT_CALLERID_NUMBER, IAXC_EVENT_BUFSIZ);
 	}
 
-#ifndef AUDIO_ALSA
-	if ( pa_initialize(&audio_driver, 8000) )
+	if ( !test_mode )
 	{
-		iaxci_usermsg(IAXC_ERROR, "failed pa_initialize");
-		return -1;
-	}
+#ifndef AUDIO_ALSA
+		if ( pa_initialize(&audio_driver, 8000) )
+		{
+			iaxci_usermsg(IAXC_ERROR, "failed pa_initialize");
+			return -1;
+		}
 #else
-	/* TODO: It is unknown whether this stuff for direct access to
-	 * alsa should be left in iaxclient. We're leaving it in here for
-	 * the time being, but unless it becomes clear that someone cares
-	 * about having it, it will be removed. Also note that portaudio
-	 * is capable of using alsa. This is another reason why this
-	 * direct alsa access may be unneeded.
-	 */
-	if ( alsa_initialize(&audio_driver, 8000) )
-		return -1;
+		/* TODO: It is unknown whether this stuff for direct access to
+		* alsa should be left in iaxclient. We're leaving it in here for
+		* the time being, but unless it becomes clear that someone cares
+		* about having it, it will be removed. Also note that portaudio
+		* is capable of using alsa. This is another reason why this
+		* direct alsa access may be unneeded.
+		*/
+		if ( alsa_initialize(&audio_driver, 8000) )
+			return -1;
 #endif
-
-	audio_format_capability =
-		IAXC_FORMAT_ULAW |
-		IAXC_FORMAT_ALAW |
-#ifdef CODEC_GSM
-		IAXC_FORMAT_GSM |
-#endif
-		IAXC_FORMAT_SPEEX;
-	audio_format_preferred = IAXC_FORMAT_SPEEX;
-
+	}
 #ifdef USE_VIDEO
 	if ( video_initialize() )
 	{
@@ -650,6 +646,16 @@ EXPORT int iaxc_initialize(int num_calls)
 	}
 #endif
 
+	/* Default audio format capabilities */
+	audio_format_capability =
+	    IAXC_FORMAT_ULAW |
+	    IAXC_FORMAT_ALAW |
+#ifdef CODEC_GSM
+	    IAXC_FORMAT_GSM |
+#endif
+	    IAXC_FORMAT_SPEEX;
+	audio_format_preferred = IAXC_FORMAT_SPEEX;
+	
 	return 0;
 }
 
@@ -660,9 +666,13 @@ EXPORT void iaxc_shutdown()
 	get_iaxc_lock();
 
 	audio_driver.destroy(&audio_driver);
+	if ( !test_mode )
+	{
+		audio_driver.destroy(&audio_driver);
 #ifdef USE_VIDEO
-	video_destroy();
+		video_destroy();
 #endif
+	}
 
 	put_iaxc_lock();
 #ifdef WIN32
@@ -749,7 +759,8 @@ static THREADFUNCDECL(main_proc_thread_func)
 		get_iaxc_lock();
 
 		service_network();
-		service_audio();
+		if ( !test_mode ) 
+			service_audio();
 
 		// Check registration refresh once a second
 		if ( refresh_registration_count++ > 1000/LOOP_SLEEP )
@@ -783,7 +794,8 @@ static THREADFUNCDECL(video_proc_thread_func)
 		else
 			call = NULL;
 
-		video_send_video(call, selected_call);
+		if ( !test_mode )
+			video_send_video(call, selected_call);
 		video_send_stats(call);
 
 		// Tight spinloops are bad, mmmkay?
@@ -1098,8 +1110,10 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 		if ( iaxci_audio_output_mode )
 			continue;
 
-		audio_driver.output(&audio_driver, fr,
-				fr_samples - samples - mainbuf_delta);
+		if ( !test_mode )
+			audio_driver.output(&audio_driver, fr, 
+			    fr_samples - samples - mainbuf_delta);
+		
 	} while ( total_consumed < e->datalen );
 }
 
@@ -1784,6 +1798,9 @@ static void service_network()
 EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs,
 		int *input, int *output, int *ring)
 {
+	if ( test_mode )
+		return 0;
+
 	*devs = audio_driver.devices;
 	*nDevs = audio_driver.nDevices;
 	audio_driver.selected_devices(&audio_driver, input, output, ring);
@@ -1792,6 +1809,9 @@ EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs,
 
 EXPORT int iaxc_audio_devices_set(int input, int output, int ring)
 {
+	if ( test_mode )
+		return 0;
+
 	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.select_devices(&audio_driver, input, output, ring);
@@ -1801,26 +1821,41 @@ EXPORT int iaxc_audio_devices_set(int input, int output, int ring)
 
 EXPORT float iaxc_input_level_get()
 {
+	if ( test_mode )
+		return 0;
+
 	return audio_driver.input_level_get(&audio_driver);
 }
 
 EXPORT float iaxc_output_level_get()
 {
+	if ( test_mode )
+		return 0;
+
 	return audio_driver.output_level_get(&audio_driver);
 }
 
 EXPORT int iaxc_input_level_set(float level)
 {
+	if ( test_mode )
+		return 0;
+
 	return audio_driver.input_level_set(&audio_driver, level);
 }
 
 EXPORT int iaxc_output_level_set(float level)
 {
+	if ( test_mode )
+		return 0;
+
 	return audio_driver.output_level_set(&audio_driver, level);
 }
 
 EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring)
 {
+	if ( test_mode )
+		return 0;
+	
 	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.play_sound(s,ring);
@@ -1830,6 +1865,9 @@ EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring)
 
 EXPORT int iaxc_stop_sound(int id)
 {
+	if ( test_mode )
+		return 0;
+	
 	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.stop_sound(id);
@@ -1891,3 +1929,32 @@ EXPORT int iaxc_set_audio_prefs(unsigned int prefs)
 	audio_prefs = prefs;
 	return 0;
 }
+
+EXPORT void iaxc_set_test_mode(int tm)
+{
+	test_mode = tm;
+}
+
+EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples)
+{
+	struct iaxc_call *call;
+	
+	if (selected_call < 0)
+		return -1;
+	
+	call = &calls[selected_call];
+
+	if ( audio_prefs & IAXC_AUDIO_PREF_SEND_DISABLE )
+		return 0;
+	
+	//fprintf(stderr, "iaxc_push_audio: sending audio size %d\n", size);
+	
+	if ( iax_send_voice(call->session, call->format, data, size, samples) == -1 )
+	{
+		fprintf(stderr, "iaxc_push_audio: failed to send audio frame of size %d on call %d\n", size, selected_call);
+		return -1;
+	}
+
+	return 0;
+}
+

@@ -32,24 +32,9 @@
  * - No support for splitting the frame into multiple slices.  Frames can
  *   be relatively large. For a 320x240 video stream, you can see key
  *   frames larger than 9KB, which is the maximum UDP packet size on Mac
- *   OS X. We split the encoded frame artificially into slices that will
- *   fit into a typical MTU.  We also add six bytes at the beginning of
- *   each slice.
- *
- *   - version: right now, first bit should be 0, the rest are undefined
- *
- *   - source id: 2 bytes random number used to identify stream changes in
- *     conference applications this number is transmitted in big endian
- *     format over the wire
- *
- *   - frame index number - used to detect a new frame when some of the
- *     slices of the current frame are missing (only the least significant
- *     4 bits are used)
- *
- *   - index of slice in the frame, starting at 0
- *
- *   - total number of slices in the frame
- *
+ *   OS X. To work around this limitation, we use the slice API to fragment
+ *   encoded frames to a reasonable size that UDP can safely transport
+ * 
  * Other miscellaneous comments:
  *
  * - For quality reasons, when we detect a video stream switch, we reject all
@@ -68,34 +53,29 @@
 #include <stdlib.h>
 #include "iaxclient_lib.h"
 #include "video.h"
+#include "slice.h"
 #include "codec_theora.h"
 #include <theora/theora.h>
 
 #define MAX_SLICE_SIZE		8000
-#define MAX_ENCODED_FRAME_SIZE	48*1024
 
 struct theora_decoder
 {
-	theora_state	td;
-	theora_info	ti;
-	theora_comment	tc;
-	unsigned char	frame_index;
-	unsigned char	slice_count;
-	int		frame_size;
-	unsigned short	source_id;
-	int		got_key_frame;
-	unsigned char	buffer[MAX_ENCODED_FRAME_SIZE];
+	theora_state            td;
+	theora_info             ti;
+	theora_comment          tc;
+	struct deslicer_context *dsc;
+	int                     got_key_frame;
 };
 
 struct theora_encoder
 {
-	theora_state	td;
-	theora_info	ti;
-	theora_comment	tc;
-	int		needs_padding;
-	unsigned char	frame_index;
-	unsigned short	source_id;
-	unsigned char	*pad_buffer;
+	theora_state          td;
+	theora_info           ti;
+	theora_comment        tc;
+	int                   needs_padding;
+	struct slicer_context *sc;
+	unsigned char         *pad_buffer;
 };
 
 static void destroy( struct iaxc_video_codec *c)
@@ -111,6 +91,8 @@ static void destroy( struct iaxc_video_codec *c)
 		e = (struct theora_encoder *)c->encstate;
 		if ( e->pad_buffer )
 			free(e->pad_buffer);
+		if ( e->sc )
+			free_slicer_context(e->sc);
 		theora_comment_clear(&e->tc);
 		theora_info_clear(&e->ti);
 		theora_clear(&e->td);
@@ -119,6 +101,8 @@ static void destroy( struct iaxc_video_codec *c)
 	if ( c->decstate )
 	{
 		d = (struct theora_decoder *)c->decstate;
+		if ( d->dsc )
+			free_deslicer_context(d->dsc);
 		theora_comment_clear(&d->tc);
 		theora_info_clear(&d->ti);
 		theora_clear(&d->td);
@@ -127,25 +111,34 @@ static void destroy( struct iaxc_video_codec *c)
 	free(c);
 }
 
-static void reset_decoder_frame_state(struct theora_decoder * d)
+static int decode(struct iaxc_video_codec *c, int inlen, char *in, int *outlen, char *out)
 {
-	memset(d->buffer, 0, MAX_ENCODED_FRAME_SIZE);
-	d->frame_size = 0;
-	d->slice_count = 0;
-}
+	struct theora_decoder *d;
+	ogg_packet            op;
+	yuv_buffer            picture;
+	unsigned int          line;
+	int                   my_out_len;
+	int                   w, h, ph;	
+	int                   flen;
+	char                  *frame;
 
-static int pass_frame_to_decoder(struct theora_decoder *d, int *outlen, char *out)
-{
-	ogg_packet	op;
-	yuv_buffer	picture;
-	unsigned int	line;
-	int		my_out_len;
-	int		w, h, ph;
+	// Sanity checks
+	if ( !c || !c->decstate || !in || inlen <= 0 || !out || !outlen )
+		return -1;
 
+	// Assemble slices
+	d = (struct theora_decoder *)c->decstate;
+	if ( !d->dsc )
+		return -1;
+
+	frame = deslice(in, inlen, &flen, d->dsc);
+	if ( frame == NULL )
+		return 1;
+	
 	/* decode into an OP structure */
 	memset(&op, 0, sizeof(op));
-	op.bytes = d->frame_size;
-	op.packet = d->buffer;
+	op.bytes = flen;
+	op.packet = (unsigned char *)frame;
 
 	/* reject all incoming frames until we get a key frame */
 	if ( !d->got_key_frame )
@@ -190,116 +183,24 @@ static int pass_frame_to_decoder(struct theora_decoder *d, int *outlen, char *ou
 	{
 		// Y-even
 		memcpy(out + picture.y_width * 2 * line,
-				picture.y + 2 * line * picture.y_stride,
-				picture.y_width);
+		       picture.y + 2 * line * picture.y_stride,
+		       picture.y_width);
 		// Y-odd
 		memcpy(out + picture.y_width * (2 * line + 1),
-				picture.y + (2 * line + 1) * picture.y_stride,
-				picture.y_width);
+		       picture.y + (2 * line + 1) * picture.y_stride,
+		       picture.y_width);
 		// U + V
-		memcpy(out + (d->ti.frame_width * d->ti.frame_height) +
-				line * d->ti.frame_width / 2,
-				picture.u + line * picture.uv_stride,
-				picture.uv_width);
-		memcpy(out + (d->ti.frame_width * d->ti.frame_height * 5 / 4) +
-				line * d->ti.frame_width / 2,
-				picture.v + line * picture.uv_stride,
-				picture.uv_width);
+		memcpy(out + (d->ti.frame_width * d->ti.frame_height) + line * d->ti.frame_width / 2,
+		       picture.u + line * picture.uv_stride,
+		       picture.uv_width);
+		memcpy(out + (d->ti.frame_width * d->ti.frame_height * 5 / 4) + line * d->ti.frame_width / 2,
+		       picture.v + line * picture.uv_stride,
+		       picture.uv_width);
 	}
 
 	*outlen = my_out_len;
 
 	return 0;
-}
-
-static int decode(struct iaxc_video_codec *c, int inlen, char *in, int *outlen, char *out)
-{
-	struct theora_decoder	*d;
-	unsigned char		frame_index, slice_index, num_slices, version;
-	unsigned short		source_id;
-
-	// Sanity checks
-	if ( !c || !c->decstate || !in || inlen <= 0 || !out || !outlen )
-		return -1;
-
-	d = (struct theora_decoder *)c->decstate;
-
-	version = *in++;
-	source_id = (unsigned short)(*in++) << 8;
-	source_id |= *in++;
-	frame_index = *in++ & 0x0f;
-	slice_index = *in++;
-	num_slices = *in++;
-	inlen -= 6;
-
-	if ( version & 0x80 )
-	{
-		fprintf(stderr, "Theora: unknown slice protocol\n");
-		return -1;
-	}
-
-	if ( source_id == d->source_id )
-	{
-		/* We use only the least significant bits to calculate delta
-		 * this helps with conferencing and video muting/unmuting
-		 */
-		unsigned char frame_delta = (frame_index - d->frame_index) & 0x0f;
-
-		if ( frame_delta > 8 )
-		{
-			/* Old slice coming in late, ignore. */
-			return 1;
-		} else if ( frame_delta > 0 )
-		{
-			/* Slice belongs to a new frame */
-			d->frame_index = frame_index;
-
-			if ( d->slice_count > 0 )
-			{
-				/* Current frame is incomplete, drop it */
-				c->video_stats.dropped_frames++;
-				reset_decoder_frame_state(d);
-			}
-		}
-	} else
-	{
-		/* Video stream was switched, the existing frame/slice
-		 * indexes are meaningless.
-		 */
-		reset_decoder_frame_state(d);
-		d->source_id = source_id;
-		d->frame_index = frame_index;
-		d->got_key_frame = 0;
-	}
-
-	// Process current slice
-	if ( c->fragsize * slice_index + inlen > MAX_ENCODED_FRAME_SIZE )
-	{
-		// Frame would be too large, ignore slice
-		return -1;
-	}
-
-	memcpy(d->buffer + c->fragsize * slice_index, in, inlen);
-	d->slice_count++;
-
-	/* We only know the size of the frame when we get the final slice */
-	if ( slice_index == num_slices - 1 )
-		d->frame_size = c->fragsize * slice_index + inlen;
-
-	if ( d->slice_count < num_slices )
-	{
-		// we're still waiting for some slices
-		return 1;
-	} else
-	{
-		// Frame complete, send to decoder
-		int ret = pass_frame_to_decoder(d, outlen, out);
-
-		// Clean up in preparation for next frame
-		reset_decoder_frame_state(d);
-
-		return ret;
-	}
 }
 
 // Pads a w by h frame to bring it up to pw by ph size using value
@@ -329,8 +230,6 @@ static void pad_channel(const char *src, int w, int h, unsigned char *dst,
 static int encode(struct iaxc_video_codec *c, int inlen, char *in,
 		struct slice_set_t *slice_set)
 {
-	int			i, size, ssize;
-	const unsigned char	*p;
 	struct theora_encoder	*e;
 	ogg_packet		op;
 	yuv_buffer		picture;
@@ -402,30 +301,9 @@ static int encode(struct iaxc_video_codec *c, int inlen, char *in,
 
 	// Check to see if we have a key frame
 	slice_set->key_frame = theora_packet_iskeyframe(&op) == 1;
-
-	// We need to split the frame into one or more slices
-	p = op.packet;
-	size = op.bytes;
-
-	// Figure out how many slices we need
-	slice_set->num_slices = (size - 1) / c->fragsize + 1;
-
-	// Copy up to fragsize bytes into each slice
-	for ( i = 0; i < slice_set->num_slices; i++ )
-	{
-		slice_set->data[i][0] = 0;
-		slice_set->data[i][1] = (unsigned char)(e->source_id >> 8);
-		slice_set->data[i][2] = (unsigned char)(e->source_id & 0xff);
-		slice_set->data[i][3] = e->frame_index;
-		slice_set->data[i][4] = (unsigned char)i;
-		slice_set->data[i][5] = (unsigned char)slice_set->num_slices;
-		ssize = (i == slice_set->num_slices - 1) ?
-			size % c->fragsize : c->fragsize;
-		memcpy(&slice_set->data[i][6], p, ssize);
-		slice_set->size[i] = ssize + 6;
-		p += ssize;
-	}
-	e->frame_index++;
+	
+	// Slice the frame
+	slice((char *)op.packet, op.bytes, slice_set, e->sc);
 
 	return 0;
 }
@@ -433,10 +311,11 @@ static int encode(struct iaxc_video_codec *c, int inlen, char *in,
 struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 		int framerate, int bitrate, int fragsize)
 {
-	struct iaxc_video_codec	*c;
-	struct theora_encoder	*e;
-	struct theora_decoder	*d;
-	ogg_packet headerp, commentp, tablep;
+	struct iaxc_video_codec *c;
+	struct theora_encoder   *e;
+	struct theora_decoder   *d;
+	unsigned short          source_id;
+	ogg_packet              headerp, commentp, tablep;
 
 	/* Basic sanity checks */
 	if ( w <= 0 || h <= 0 || framerate <= 0 || bitrate <= 0 || fragsize <= 0 )
@@ -470,6 +349,8 @@ struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 	if ( !c->encstate )
 		goto bail;
 
+	video_reset_codec_stats(c);	
+
 	c->format = format;
 	c->width = w;
 	c->height = h;
@@ -484,6 +365,15 @@ struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 	e = (struct theora_encoder *)c->encstate;
 	d = (struct theora_decoder *)c->decstate;
 
+	// Initialize slicer	
+	// Generate random source id
+	srand((unsigned int)time(0));
+	source_id = rand() & 0xffff;
+	e->sc = create_slicer_context(source_id, fragsize);
+	if ( !e->sc ) 
+		goto bail;
+	
+	
 	/* set up some parameters in the contexts */
 
 	theora_info_init(&e->ti);
@@ -576,11 +466,12 @@ struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 	if ( theora_decode_init(&d->td, &d->ti) )
 		goto bail;
 
-	// Generate random source id
-	srand((unsigned int)time(0));
-	e->source_id = rand() & 0xffff;
-
 	d->got_key_frame = 0;
+	
+	// Initialize deslicer context
+	d->dsc = create_deslicer_context(c->fragsize);
+	if ( !d->dsc )
+		goto bail;
 
 	strcpy(c->name, "Theora");
 	return c;
@@ -591,11 +482,19 @@ bail:
 	if ( c )
 	{
 		if ( c->encstate )
+		{
+			e = (struct theora_encoder *)c->encstate;
+			if ( e->sc )
+				free_slicer_context(e->sc);
 			free(c->encstate);
-
+		}
 		if ( c->decstate )
+		{
+			d = (struct theora_decoder *)c->decstate;
+			if ( d->dsc )
+				free_deslicer_context(d->dsc);
 			free(c->decstate);
-
+		}
 		free(c);
 	}
 
