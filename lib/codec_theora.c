@@ -349,8 +349,6 @@ struct iaxc_video_codec *codec_video_theora_new(int format, int w, int h,
 	if ( !c->encstate )
 		goto bail;
 
-	video_reset_codec_stats(c);	
-
 	c->format = format;
 	c->width = w;
 	c->height = h;

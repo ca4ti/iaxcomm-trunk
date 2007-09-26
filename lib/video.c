@@ -872,14 +872,6 @@ int video_send_stats(struct iaxc_call * call)
 	return 0;
 }
 
-void video_reset_codec_stats(struct iaxc_video_codec *vcodec)
-{
-	if ( vcodec == NULL ) return;
-
-	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
-	gettimeofday(&vcodec->video_stats.start_time, NULL);
-}
-
 static struct slicer_context *sc = NULL;
 
 EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
