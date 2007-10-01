@@ -131,6 +131,7 @@ static int oneStream;
 static int auxStream;
 static int virtualMonoIn;
 static int virtualMonoOut;
+static int virtualMonoRing;
 
 static int running;
 
@@ -227,12 +228,12 @@ static void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples)
 	}
 }
 
-static void mix_slin(short *dst, short *src, int samples)
+static void mix_slin(short *dst, short *src, int samples, int virtualMono)
 {
 	int i=0,val=0;
 	for ( i=0; i < samples; i++ )
 	{
-		if ( virtualMonoOut )
+		if ( virtualMono )
 			val = ((short *)dst)[2*i] + ((short *)src)[i];
 		else
 			val = ((short *)dst)[i] + ((short *)src)[i];
@@ -245,7 +246,7 @@ static void mix_slin(short *dst, short *src, int samples)
 			val = -0x7fff+1;
 		}
 
-		if ( virtualMonoOut )
+		if ( virtualMono )
 		{
 			dst[2*i] = val;
 			dst[2*i+1] = val;
@@ -257,7 +258,7 @@ static void mix_slin(short *dst, short *src, int samples)
 	}
 }
 
-static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel)
+static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel, int virtualMono)
 {
 	struct iaxc_sound *s;
 	struct iaxc_sound **sp;
@@ -305,7 +306,7 @@ static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel)
 
 				/* mix in the frames */
 				mix_slin((short *)outputBuffer + outpos,
-						s->data+s->pos, n);
+						s->data+s->pos, n, virtualMono);
 
 				s->pos += n;
 				outpos += n;
@@ -497,10 +498,10 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 		/* zero underflowed space [ silence might be more golden
 		 * than garbage? ] */
 
-		pa_mix_sounds(outputBuffer, samplesPerFrame, 0);
+		pa_mix_sounds(outputBuffer, samplesPerFrame, 0, virtualMonoOut);
 
 		if(!auxStream)
-			pa_mix_sounds(outputBuffer, samplesPerFrame, 1);
+			pa_mix_sounds(outputBuffer, samplesPerFrame, 1, virtualMonoOut);
 	}
 
 
@@ -535,13 +536,12 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 	    PaStreamCallbackFlags statusFlags,
 	    void *userData)
 {
-	int totBytes = samplesPerFrame * sizeof(SAMPLE);
+	int totBytes = samplesPerFrame * sizeof(SAMPLE) * (virtualMonoRing + 1);
 
-	/* XXX: need to handle virtualMonoOut case!!! */
 	if ( outputBuffer )
 	{
 		memset((char *)outputBuffer, 0, totBytes);
-		pa_mix_sounds(outputBuffer, samplesPerFrame, 1);
+		pa_mix_sounds(outputBuffer, samplesPerFrame, 1, virtualMonoRing);
 	}
 	return 0;
 }
@@ -680,36 +680,20 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 {
 	PaError err;
 
-	/* FEEDBACK - iaxclient seems to assume that the ring device is a
-	 * mono device. I can't find any mono devices on the Mac and so
-	 * ring device opening will fail. My code assumes the ring device
-	 * is a stereo device - this might break stuff */
-	struct PaStreamParameters ring_stream_params, no_device;
+	struct PaStreamParameters ring_stream_params;
 
-	struct PaStreamParameters in_stream_params;
-	in_stream_params.device = selectedInput;
-	in_stream_params.channelCount = virtualMonoOut + 1;
-	in_stream_params.sampleFormat = paInt16;
-	in_stream_params.suggestedLatency =
-		Pa_GetDeviceInfo(selectedInput)->defaultLowInputLatency;
-	in_stream_params.hostApiSpecificStreamInfo = NULL;
-
+	// setup the ring parameters
 	ring_stream_params.device = selectedRing;
-	ring_stream_params.channelCount = virtualMonoOut+1;
 	ring_stream_params.sampleFormat = paInt16;
 	ring_stream_params.suggestedLatency =
 		Pa_GetDeviceInfo(selectedRing)->defaultLowOutputLatency;
 	ring_stream_params.hostApiSpecificStreamInfo = NULL;
 
-	no_device.device = paNoDevice;
-	no_device.channelCount = 0;
-	no_device.sampleFormat = paInt16;
-	no_device.suggestedLatency =
-		Pa_GetDeviceInfo(selectedInput)->defaultLowInputLatency; //TODOC
-	no_device.hostApiSpecificStreamInfo = NULL;
+	// first we'll try mono
+	ring_stream_params.channelCount = 1; 
 
 	err = Pa_OpenStream ( &aStream,
-			&in_stream_params,
+			NULL,
 			&ring_stream_params,
 			sample_rate,
 			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
@@ -719,27 +703,32 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 
 	if ( err != paNoError )
 	{
-		/* FEEDBACK, we try one more time, maybe ring device is a mono
-		 * output device */
-		err = Pa_OpenStream ( &aStream,
-				&no_device,
+	  // next we'll try virtual mono (stereo)
+	  ring_stream_params.channelCount = 1; 
+
+	  err = Pa_OpenStream ( &aStream,
+				NULL,
 				&ring_stream_params,
 				sample_rate,
 				paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
-				paNoFlag,   /* flags */
+				paNoFlag,
 				(PaStreamCallback *)pa_aux_callback,
 				NULL);
+
 	}
 
 	// mmok, failure...
 	if ( err != paNoError )
 	{
-		//fprintf(stderr, "Failure opening ring device with params: id: %d, output %d, default output %d\n",
-		//selectedRing, selectedOutput, Pa_GetDefaultOutputDevice());
+    // fprintf(stderr, "Failure opening ring device with params: id: %d, output %d, default output %d\n",
+    // selectedRing, selectedOutput, Pa_GetDefaultOutputDevice());
 
 		handle_paerror(err, "opening separate ring stream");
 		return -1;
 	}
+
+	// Determine whether virtual mono is being used
+	virtualMonoRing = ring_stream_params.channelCount - 1;
 
 	return 0;
 }
