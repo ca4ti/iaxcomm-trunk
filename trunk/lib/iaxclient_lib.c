@@ -665,7 +665,6 @@ EXPORT void iaxc_shutdown()
 
 	get_iaxc_lock();
 
-	audio_driver.destroy(&audio_driver);
 	if ( !test_mode )
 	{
 		audio_driver.destroy(&audio_driver);
