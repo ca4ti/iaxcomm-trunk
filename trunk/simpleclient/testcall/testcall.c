@@ -27,7 +27,7 @@
 
 #include "iaxclient.h"
 
-#define LEVEL_INCREMENT	0.10
+#define LEVEL_INCREMENT	0.10f
 
 /* static int answered_call; */
 static char *output_filename = NULL;
@@ -163,8 +163,8 @@ int main(int argc, char **argv)
 	char c;
 	int i;
 	char *dest = NULL;
-	double silence_threshold = -99;
-	double level;
+	float silence_threshold = -99.0f;
+	float level;
 
 	f = stdout;
 
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 		  break;
 		case 's':
 		  if(i+1 >= argc) usage();
-		  silence_threshold = atof(argv[++i]);
+		  silence_threshold = (float)atof(argv[++i]);
 		  break;
 		case 'u':
 		  if(i+1 >= argc) usage();
