@@ -692,7 +692,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 	// first we'll try mono
 	ring_stream_params.channelCount = 1; 
 
-	err = Pa_OpenStream ( &aStream,
+	err = Pa_OpenStream(&aStream,
 			NULL,
 			&ring_stream_params,
 			sample_rate,
@@ -703,10 +703,10 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 
 	if ( err != paNoError )
 	{
-	  // next we'll try virtual mono (stereo)
-	  ring_stream_params.channelCount = 1; 
+		// next we'll try virtual mono (stereo)
+		ring_stream_params.channelCount = 1; 
 
-	  err = Pa_OpenStream ( &aStream,
+		err = Pa_OpenStream(&aStream,
 				NULL,
 				&ring_stream_params,
 				sample_rate,
@@ -714,14 +714,13 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 				paNoFlag,
 				(PaStreamCallback *)pa_aux_callback,
 				NULL);
-
 	}
 
 	// mmok, failure...
 	if ( err != paNoError )
 	{
-    // fprintf(stderr, "Failure opening ring device with params: id: %d, output %d, default output %d\n",
-    // selectedRing, selectedOutput, Pa_GetDefaultOutputDevice());
+		// fprintf(stderr, "Failure opening ring device with params: id: %d, output %d, default output %d\n",
+		// selectedRing, selectedOutput, Pa_GetDefaultOutputDevice());
 
 		handle_paerror(err, "opening separate ring stream");
 		return -1;
@@ -756,7 +755,8 @@ static int pa_start(struct iaxc_audio_driver *d)
 	if ( errcnt > 5 )
 	{
 		iaxci_usermsg(IAXC_TEXT_TYPE_FATALERROR,
-				"iaxclient audio: Can't open Audio Device. Perhaps you do not have an input or output device?");
+				"iaxclient audio: Can't open Audio Device. "
+				"Perhaps you do not have an input or output device?");
 		/* OK, we'll give the application the option to abort or
 		 * not here, but we will throw a fatal error anyway */
 		iaxc_millisleep(1000);
