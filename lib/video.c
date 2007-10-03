@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include "video.h"
 #include "slice.h"
@@ -893,8 +894,9 @@ EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
 	{
 		int i;
 		
-		if ( sc == NULL )
-			sc = create_slicer_context(random(), iaxc_video_fragsize);
+		if ( !sc )
+			sc = create_slicer_context((unsigned short)rand(),
+					iaxc_video_fragsize);
 		
 		slice(data, size, &slice_set, sc);
 		for ( i = 0 ; i < slice_set.num_slices ; i++ )
