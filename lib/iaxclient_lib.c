@@ -1809,10 +1809,11 @@ EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs,
 
 EXPORT int iaxc_audio_devices_set(int input, int output, int ring)
 {
+	int ret;
+
 	if ( test_mode )
 		return 0;
 
-	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.select_devices(&audio_driver, input, output, ring);
 	put_iaxc_lock();
@@ -1853,10 +1854,11 @@ EXPORT int iaxc_output_level_set(float level)
 
 EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring)
 {
+	int ret;
+
 	if ( test_mode )
 		return 0;
 
-	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.play_sound(s,ring);
 	put_iaxc_lock();
@@ -1865,10 +1867,11 @@ EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring)
 
 EXPORT int iaxc_stop_sound(int id)
 {
+	int ret;
+
 	if ( test_mode )
 		return 0;
 
-	int ret = 0;
 	get_iaxc_lock();
 	ret = audio_driver.stop_sound(id);
 	put_iaxc_lock();
