@@ -17,10 +17,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,15 +40,15 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\lib\portaudio\pa_common;..\..\lib\speex\libspeex;&quot;.. \..\lib\portaudio\pablio&quot;;..\..\lib;..\..\lib\SDL\include;&quot;$(SDL_DIR)\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CONSOLE;WITH_THREAD;_USE_MATH_DEFINES;IAXC_IAX2;LIBIAX;SPEEX_PREPROCESS=1;PORTAUDIO_DIRECTX;USE_WIN_AUDIO=1;HIRES_TIME;NEWJB;PA_USE_TIMER_CALLBACK=1"
+				AdditionalIncludeDirectories="..\..\..\lib"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -61,10 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="dsound.lib iaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib videolib.lib libiax2.lib gsm.lib portaudio.lib libspeex.lib strmiids.lib portmixerd.lib"
-				OutputFile="$(OutDir)\..\..\simpleclient\testcall\Debug\$(ProjectName).exe"
+				AdditionalDependencies="libiaxclient.lib ws2_32.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Debug;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj"
+				AdditionalLibraryDirectories="$(SolutionDir)$(ConfigurationName)\libiaxclient"
 				IgnoreDefaultLibraryNames="libcmtd.lib"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -97,10 +96,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -120,13 +119,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\lib\portaudio\pa_common;..\..\lib\speex\libspeex;&quot;.. \..\lib\portaudio\pablio&quot;;..\..\lib;..\..\lib\SDL\include;&quot;$(SDL_DIR)\include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CONSOLE;WITH_THREAD;_USE_MATH_DEFINES;IAXC_IAX2;LIBIAX;SPEEX_PREPROCESS=1;PORTAUDIO_DIRECTX;USE_WIN_AUDIO=1;HIRES_TIME;NEWJB;PA_USE_TIMER_CALLBACK=1"
+				AdditionalIncludeDirectories="..\..\..\lib"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
-				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -140,10 +139,10 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="false"
-				AdditionalDependencies="dsound.lib iaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib videolib.lib libiax2.lib gsm.lib portaudio.lib libspeex.lib strmiids.lib portmixer.lib"
+				AdditionalDependencies="libiaxclient.lib ws2_32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Release;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj"
-				IgnoreDefaultLibraryNames="msvcrtd.lib;msvcrt.lib;libcmtd.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)$(ConfigurationName)\libiaxclient"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -185,7 +184,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\simpleclient\testcall\testcall.c"
+				RelativePath="..\..\..\simpleclient\testcall\testcall.c"
 				>
 			</File>
 		</Filter>
