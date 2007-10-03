@@ -992,9 +992,8 @@ int iax_init(int preferredportno)
 		DEBU(G "Started on port %d\n", portno);
 	}
 
-	//srand((unsigned int)time(0));
-	//callnums = rand() % 32767 + 1;
-	callnums = 1;
+	srand((unsigned int)time(0));
+	callnums = rand() % 32767 + 1;
 	transfer_id = rand() % 32767 + 1;
 
 	return portno;
