@@ -22,7 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
+
 /*!
   \file iaxclient.h
   \brief The IAXClient API
@@ -635,7 +635,7 @@ EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort);
 
 	\return The UDP port bound to; -1 if no port or
 */
-EXPORT short iaxc_get_bind_port();
+EXPORT int iaxc_get_bind_port();
 
 /*!
 	Initializes the IAXClient library

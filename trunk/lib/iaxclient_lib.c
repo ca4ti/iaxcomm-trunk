@@ -99,7 +99,7 @@ static int minimum_outgoing_framesize = 160; /* 20ms */
 static MUTEX iaxc_lock;
 static MUTEX event_queue_lock;
 
-static short iaxci_bound_port = -1;
+static int iaxci_bound_port = -1;
 
 // default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
 static int source_udp_port = IAX_DEFAULT_PORTNO;
@@ -554,7 +554,7 @@ EXPORT int iaxc_video_bypass_jitter(int mode)
 	return iax_video_bypass_jitter(calls[selected_call].session,mode);
 }
 
-EXPORT short iaxc_get_bind_port()
+EXPORT int iaxc_get_bind_port()
 {
 	return iaxci_bound_port;
 }
@@ -590,7 +590,7 @@ EXPORT int iaxc_initialize(int num_calls)
 	}
 
 	if ( iaxc_recvfrom == (iaxc_recvfrom_t)recvfrom )
-		iaxci_bound_port = (short)port;
+		iaxci_bound_port = port;
 	else
 		iaxci_bound_port = -1;
 
