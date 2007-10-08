@@ -764,6 +764,12 @@ EXPORT void iaxc_setup_call_transfer(int sourceCallNo, int targetCallNo);
 EXPORT void iaxc_dump_all_calls(void);
 
 /*!
+	Hangs up and frees call \a callNo
+	\param callNo The call number to reject.
+*/
+EXPORT void iaxc_dump_call_number( int callNo );
+
+/*!
 	Hangs up and frees the currently selected call.
 */
 EXPORT void iaxc_dump_call(void);

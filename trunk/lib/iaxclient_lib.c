@@ -1473,6 +1473,16 @@ EXPORT void iaxc_dump_all_calls(void)
 }
 
 
+EXPORT void iaxc_dump_call_number( int callNo )
+{
+	if ( ( callNo >= 0 ) && ( callNo < max_calls ) )
+	{
+		get_iaxc_lock();
+		iaxc_dump_one_call(callNo);
+		put_iaxc_lock();
+	}
+}
+
 EXPORT void iaxc_dump_call(void)
 {
 	if ( selected_call >= 0 )
@@ -1493,7 +1503,7 @@ EXPORT void iaxc_reject_call(void)
 
 EXPORT void iaxc_reject_call_number( int callNo )
 {
-	if ( callNo >= 0 )
+	if ( ( callNo >= 0 ) && ( callNo < max_calls ) )
 	{
 		get_iaxc_lock();
 		iax_reject(calls[callNo].session, "Call rejected manually.");
