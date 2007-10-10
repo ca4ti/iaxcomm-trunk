@@ -1702,9 +1702,9 @@ static void iaxc_handle_connect(struct iax_event * e)
 		if ( !video_format )
 		{
 			iaxci_usermsg(IAXC_NOTICE,
-										"Notice: could not negotiate common video codec");
+					"Notice: could not negotiate common video codec");
 			iaxci_usermsg(IAXC_NOTICE,
-										"Notice: switching to audio-only call");
+					"Notice: switching to audio-only call");
 		}
 	}
 #endif	/* USE_VIDEO */
