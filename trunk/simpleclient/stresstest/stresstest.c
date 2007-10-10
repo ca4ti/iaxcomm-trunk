@@ -223,6 +223,11 @@ int test_mode_callback(iaxc_event e)
 	return 0;
 }
 
+long msecdiff(struct timeval *t0, struct timeval *t1)
+{
+	return (t1->tv_sec - t0->tv_sec) * 1000L + (t1->tv_usec - t0->tv_usec) / 1000L;
+}
+
 int main(int argc, char **argv)
 {
 	int                       i; 
@@ -329,7 +334,7 @@ int main(int argc, char **argv)
 	while ( !call_established )
 	{
 		gettimeofday(&now, NULL);
-		if ( timeout > 0 && iaxci_msecdiff(&now, &start_time) > timeout )
+		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
 			hangup_and_exit(TEST_NO_CONNECTION);
 		iaxc_millisleep(5);
 	}
