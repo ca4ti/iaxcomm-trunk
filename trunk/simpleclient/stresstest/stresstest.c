@@ -365,7 +365,7 @@ int main(int argc, char **argv)
 		
 		// Exit after a positive timeout
 		gettimeofday(&now, NULL);
-		if ( timeout > 0 && iaxci_msecdiff(&now, &start_time) > timeout )
+		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
 			running = 0;
 	}
 	
