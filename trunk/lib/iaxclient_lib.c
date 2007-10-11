@@ -1201,6 +1201,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		     (calls[callNo].state & IAXC_CALL_STATE_RINGING) )
 		{
 			calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
+			calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;
 			iaxci_do_state_callback(callNo);
 			iaxci_usermsg(IAXC_STATUS,"Call %d progress",
 				     callNo);
