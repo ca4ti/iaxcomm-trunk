@@ -10,7 +10,7 @@ stresstest_LDFLAGS =			\
 		-framework AudioUnit	\
 		-framework Carbon	\
 		-framework CoreAudio	\
-		-framework Quicktime
+		-framework QuickTime
 endif
 
 EXTRA_DIST = stresstest.vcproj
