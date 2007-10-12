@@ -104,10 +104,15 @@
 #      define rb_FullMemoryBarrier()  asm volatile("sync":::"memory")
 #      define rb_ReadMemoryBarrier()  asm volatile("sync":::"memory")
 #      define rb_WriteMemoryBarrier() asm volatile("sync":::"memory")
-#   elif defined( __i386__ ) || defined( __i486__ ) || defined( __i586__ ) || defined( __i686__ )
+#   elif defined( __SSE2__ )
 #      define rb_FullMemoryBarrier()  asm volatile("mfence":::"memory")
 #      define rb_ReadMemoryBarrier()  asm volatile("lfence":::"memory")
 #      define rb_WriteMemoryBarrier() asm volatile("sfence":::"memory")
+#   elif defined( __i386__ ) || defined( __i486__ ) || defined( __i586__ ) || defined( __i686__ )
+#      define DO_X86_RUNTIME_CPU_DETECTION
+#      define rb_FullMemoryBarrier()  if ( have_sse2 ) asm volatile("mfence":::"memory")
+#      define rb_ReadMemoryBarrier()  if ( have_sse2 ) asm volatile("lfence":::"memory")
+#      define rb_WriteMemoryBarrier() if ( have_sse2 ) asm volatile("sfence":::"memory")
 #   else
 #      ifdef ALLOW_SMP_DANGERS
 #         warning Memory barriers not defined on this system or system unknown
@@ -144,12 +149,32 @@
 #   endif
 #endif
 
+#ifdef DO_X86_RUNTIME_CPU_DETECTION
+#define cpuid(func, ax, bx, cx, dx)			\
+	__asm__ __volatile__ ("xchgl\t%%ebx, %1\n\t"	\
+	   "cpuid\n\t"					\
+	   "xchgl\t%%ebx, %1\n\t"			\
+	   : "=a" (ax), "=r" (bx), "=c" (cx), "=d" (dx)	\
+	   : "0" (func))
+
+static int have_sse2 = 0;
+#endif
+
 /***************************************************************************
  * Initialize FIFO.
  * numBytes must be power of 2, returns -1 if not.
  */
 long rb_InitializeRingBuffer( rb_RingBuffer *rbuf, long numBytes, void *dataPtr )
 {
+#ifdef DO_X86_RUNTIME_CPU_DETECTION
+    /* See http://softpixel.com/~cwright/programming/simd/cpuid.php
+     * for a good description of how all this works.
+     */
+    int a, b, c, d;
+    cpuid(1, a, b, c, d);
+    have_sse2 = d & (1 << 26);
+#endif
+
     if( ((numBytes-1) & numBytes) != 0) return -1; /* Not Power of two. */
     rbuf->bufferSize = numBytes;
     rbuf->buffer = (char *)dataPtr;
