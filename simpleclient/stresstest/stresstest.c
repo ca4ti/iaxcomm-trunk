@@ -175,7 +175,7 @@ void usage()
 
 int test_mode_state_callback(struct iaxc_ev_call_state s)
 {
-	printf("Call #%d state %d\n",s.callNo, s.state);
+	printf("Call #%d state %d\n", s.callNo, s.state);
 
 	if ( s.state & IAXC_CALL_STATE_COMPLETE )
 	{
@@ -195,23 +195,23 @@ int test_mode_callback(iaxc_event e)
 {
 	switch ( e.type )
 	{
-		case IAXC_EVENT_LEVELS:
-			return levels_callback(e.ev.levels.input, e.ev.levels.output);
-		case IAXC_EVENT_NETSTAT:
-			return netstat_callback(e.ev.netstats);
-		case IAXC_EVENT_TEXT:
-			process_text_message(e.ev.text.message);
-			break;
-		case IAXC_EVENT_STATE:
-			return test_mode_state_callback(e.ev.call);
-		case IAXC_EVENT_VIDEO:
-			video_frames_count++;
-			break;
-		case IAXC_EVENT_AUDIO:
-			audio_frames_count++;
-			break;
-		default:
-			break;
+	case IAXC_EVENT_LEVELS:
+		return levels_callback(e.ev.levels.input, e.ev.levels.output);
+	case IAXC_EVENT_NETSTAT:
+		return netstat_callback(e.ev.netstats);
+	case IAXC_EVENT_TEXT:
+		process_text_message(e.ev.text.message);
+		break;
+	case IAXC_EVENT_STATE:
+		return test_mode_state_callback(e.ev.call);
+	case IAXC_EVENT_VIDEO:
+		video_frames_count++;
+		break;
+	case IAXC_EVENT_AUDIO:
+		audio_frames_count++;
+		break;
+	default:
+		break;
 	}
 
 	return 0;
@@ -228,6 +228,7 @@ int main(int argc, char **argv)
 	char *dest = NULL;
 	char *ogg_file = NULL;
 	int loop = 0;
+	int callNo;
 
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
@@ -311,7 +312,7 @@ int main(int argc, char **argv)
 	iaxc_start_processing_thread();
 
 	// Dial out
-	int callNo = iaxc_call(dest);
+	callNo = iaxc_call(dest);
 	if (callNo <= 0)
 		iaxc_select_call(callNo);
 	else
