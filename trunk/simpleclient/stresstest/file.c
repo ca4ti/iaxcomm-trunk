@@ -17,7 +17,7 @@ struct op_node * create_node(ogg_packet *op, long serialno, long timestamp)
 	memcpy(node->op, op, sizeof(*op));
 	node->op->packet = malloc(op->bytes);
 	memcpy(node->op->packet, op->packet, op->bytes);
-	
+
 	return node;
 }
 
@@ -46,13 +46,13 @@ void append_node(struct ogg_stream *os, struct op_node *node)
 	}
 }
 
-/* 
+/*
  * We're forced to use a dirty hack here, due to Theora's idiotic API
  * Theora needs three separate pieces of data, called headers to initialize
  * its internal decoder structure.  After all three pieces have been received,
- * we can call theora_decode_init. 
- * We use a counter and a flag to make sure we have decoded our three headers and then 
- * we call theora_decode_init so we can initialize a theora_state structure. 
+ * we can call theora_decode_init.
+ * We use a counter and a flag to make sure we have decoded our three headers and then
+ * we call theora_decode_init so we can initialize a theora_state structure.
  * We use the ts structure to convert a granule position into an actual timestamp.
  * There are many ways in which this can fail, but we rely on having all three headers
  * at the beginning of the ogg video bitstream.
@@ -64,27 +64,27 @@ int read_theora_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 	struct op_node        *node;
 	struct theora_headers *th;
 	long                  timestamp = 0;
-	
+
 	//fprintf(stderr, "Got theora packet, serialno=%d, size=%d, packetno=%lld, granulepos=%lld\n", serialno, op->bytes, op->packetno, op->granulepos);
-	
+
 	th = (struct theora_headers *)video_stream->data;
-	
+
 	if ( theora_packet_isheader(op) )
 	{
 		theora_decode_header(&(th->ti), &(th->tc), op);
 		th->header_count++;
 	}
-	
+
 	if ( th->header_count >= 3 && !th->have_headers )
 	{
 		theora_decode_init(&(th->ts), &(th->ti));
 		th->have_headers = 1;
 	}
-	
+
 	if ( th->have_headers )
 	{
 		double d;
-		
+
 		d = theora_granule_time(&(th->ts), op->granulepos);
 		timestamp = (long)(d * 1000);
 	}
@@ -98,13 +98,13 @@ int read_theora_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 		video_stream->page_ts = timestamp;
 		video_stream->page_count = 0;
 	}
-	
+
 	if ( !theora_packet_isheader(op) )
 	{
 		node = create_node(op, serialno, timestamp);
 		append_node(video_stream, node);
 	}
-	
+
 	return 0;
 }
 
@@ -113,42 +113,42 @@ int read_speex_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 	struct op_node *node;
 	long            timestamp;
 	static int      cnt = 0;
-	
+
 	timestamp = audio_stream->page_ts + audio_stream->page_count * SPEEX_FRAME_DURATION;
 	audio_stream->page_count++;
-	
+
 	cnt++;
 	//fprintf(stderr, "Got speex packet, serialno=%ld, size=%ld, packetno=%lld, granulepos=%lld, timestamp=%ld\n", serialno, op->bytes, op->packetno, op->granulepos, timestamp);
-	
+
 	// Ignore the first two packets, they are headers
 	if ( cnt > 2 )
 	{
 		node = create_node(op, serialno, timestamp);
 		append_node(audio_stream, node);
 	}
-	
+
 	return 0;
 }
 
 int read_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 {
 	struct theora_headers *th;
-	
+
 	const char theoraId[] = "\x80theora";
 	const char speexId[] = "Speex   ";
-	
+
 	if ( memcmp(op->packet, theoraId, strlen(theoraId)) == 0 )
 	{
 		//fprintf(stderr, "Detected a Theora stream with serialno=%d\n", serialno);
 		oggz_set_read_callback(oggz, serialno, read_theora_cb, NULL);
 		video_stream->serialno = serialno;
-		
+
 		// Initialize theora specific data fields
 		th = (struct theora_headers *)calloc(1, sizeof(struct theora_headers));
 		theora_info_init(&(th->ti));
 		theora_comment_init(&(th->tc));
 		video_stream->data = th;
-		
+
 		read_theora_cb(oggz, op, serialno, data);
 	} else if ( memcmp(op->packet, speexId, strlen(speexId)) == 0 )
 	{
@@ -179,7 +179,7 @@ int read_page_cb(OGGZ *oggz, const ogg_page *og, long serialno, void *data)
 void dump_stream(struct ogg_stream *os)
 {
 	struct op_node *node;
-	
+
 	node = os->first;
 	while ( node != NULL )
 	{
@@ -198,21 +198,21 @@ void load_ogg_file(const char *filename)
 		fprintf(stderr, "Error opening ogg file\n");
 	}
 	fprintf(stderr, "Successfully opened ogg file %s\n", filename);
-	
+
 	// Initialize internal streams
 	audio_stream = calloc(1, sizeof(struct ogg_stream));
 	video_stream = calloc(1, sizeof(struct ogg_stream));
-	
+
 	oggz_set_read_callback(oggz, -1, read_cb, NULL);
 	oggz_set_read_page(oggz, -1, read_page_cb, NULL);
-	
+
 	oggz_run(oggz);
-	
+
 	//fprintf(stderr, "Audio stream, serialno=%d\n", audio_stream->serialno);
 	//dump_stream(audio_stream);
 	//fprintf(stderr, "Video stream, serialno=%d\n", video_stream->serialno);
 	//dump_stream(video_stream);
-	
+
 	oggz_close(oggz);
 }
 
@@ -221,27 +221,27 @@ ogg_packet * get_next_op(struct ogg_stream *os)
 	ogg_packet     *op;
 	struct timeval tv;
 	long           time_now;
-	
+
 	if ( os == NULL )
 		return NULL;
-	
+
 	gettimeofday(&tv, NULL);
 	time_now = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-	
+
 	if ( os->current == NULL )
 	{
 		// point to the beginning of the stream and reset the time base
 		os->base_ts = time_now;
 		os->current = os->first;
 	}
-	
-	op = NULL; 
+
+	op = NULL;
 	if ( os->current->timestamp < time_now - os->base_ts )
 	{
 		op = os->current->op;
 		os->current = os->current->next;
 	}
-	
+
 	return op;
 }
 
