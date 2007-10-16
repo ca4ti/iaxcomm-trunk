@@ -83,13 +83,13 @@ void hangup_and_exit(int code)
 
 void signal_handler(int signum)
 {
-	if ( signum == SIGTERM || signum == SIGINT ) 
+	if ( signum == SIGTERM || signum == SIGINT )
 	{
 		running = 0;
 	}
 }
 
-void fatal_error(char *err) 
+void fatal_error(char *err)
 {
 	fprintf(stderr, "FATAL ERROR: %s\n", err);
 	exit(TEST_UNKNOWN_ERROR);
@@ -102,10 +102,10 @@ int levels_callback(float input, float output) {
 
 int netstat_callback(struct iaxc_ev_netstats n) {
 	static int i;
-	
+
 	if ( !print_netstats )
 		return 0;
-	
+
 	if(i++%25 == 0)
 		fprintf(stderr, "RTT\t"
 		"Rjit\tRlos%%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
@@ -140,7 +140,7 @@ int netstat_callback(struct iaxc_ev_netstats n) {
 void process_text_message(char *message)
 {
 	unsigned int prefs;
-	
+
 	if ( strncmp(message, "CONTROL:", strlen("CONTROL:")) == 0 )
 	{
 		message += strlen("CONTROL:");
@@ -162,7 +162,7 @@ void process_text_message(char *message)
 }
 
 void usage()
-{ 
+{
 	printf(
 		"\n"
 		"Usage is: tescall <options>\n\n"
@@ -188,7 +188,7 @@ int test_mode_state_callback(struct iaxc_ev_call_state s)
 		fprintf(stderr, "Call answered\n");
 		call_established = 1;
 	}
-	if (s.state == IAXC_CALL_STATE_FREE) 
+	if (s.state == IAXC_CALL_STATE_FREE)
 	{
 		fprintf(stderr,"Call terminated\n");
 		running = 0;
@@ -199,7 +199,7 @@ int test_mode_state_callback(struct iaxc_ev_call_state s)
 
 int test_mode_callback(iaxc_event e)
 {
-	switch ( e.type ) 
+	switch ( e.type )
 	{
 		case IAXC_EVENT_LEVELS:
 			return levels_callback(e.ev.levels.input, e.ev.levels.output);
@@ -230,7 +230,7 @@ long msecdiff(struct timeval *t0, struct timeval *t1)
 
 int main(int argc, char **argv)
 {
-	int                       i; 
+	int                       i;
 	char                      mydest[80], *dest = NULL;
 	char                      *ogg_file = NULL;
 	int                       loop = 0;
@@ -238,15 +238,15 @@ int main(int argc, char **argv)
 	static struct slice_set_t slice_set;
 	unsigned short            source_id;
 	struct timeval            now;
-	
+
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
-	
+
 	/* Parse command line */
 	for(i=1;i<argc;i++)
 	{
-		if(argv[i][0] == '-') 
+		if(argv[i][0] == '-')
 		{
 			switch(argv[i][1])
 			{
@@ -285,44 +285,44 @@ int main(int argc, char **argv)
 			default:
 				usage();
 			}
-		} else 
+		} else
 			dest=argv[i];
 	}
-	
+
 	if ( dest == NULL )
 	{
 		// We need a destination to call
 		fprintf(stderr, "No destination, quitting\n");
 		return -1;
 	}
-	
+
 	if ( ogg_file == NULL )
 		fprintf(stderr, "No media file, running dry\n");
-	
+
 	if ( ogg_file )
 	{
 		// Load ogg file
 		load_ogg_file(ogg_file);
 	}
-	
+
 	// Get start time for timeouts
 	gettimeofday(&start_time, NULL);
-	
+
 	// Initialize iaxclient
 	iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
 	iaxc_set_test_mode(1);
-	if (iaxc_initialize(MAX_CALLS)) 
+	if (iaxc_initialize(MAX_CALLS))
 		fatal_error("cannot initialize iaxclient!");
-		
+
 	iaxc_set_formats(IAXC_FORMAT_SPEEX, IAXC_FORMAT_SPEEX);
 	iaxc_video_bypass_jitter(0);
 	iaxc_set_audio_prefs(IAXC_AUDIO_PREF_RECV_REMOTE_ENCODED);
 	iaxc_set_video_prefs(IAXC_VIDEO_PREF_RECV_REMOTE_ENCODED);
-	iaxc_set_event_callback(test_mode_callback); 
-	
+	iaxc_set_event_callback(test_mode_callback);
+
 	// Crank the engine
 	iaxc_start_processing_thread();
-	
+
 	// Dial out
 	int callNo = iaxc_call(dest);
 	if (callNo <= 0)
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
 			hangup_and_exit(TEST_NO_CONNECTION);
 		iaxc_millisleep(5);
 	}
-	
+
 	running = 1;
 	while ( running )
 	{
@@ -346,29 +346,29 @@ int main(int argc, char **argv)
 		if ( ogg_file && ( send_audio || send_video ) )
 		{
 			ogg_packet *op;
-			
+
 			op = get_next_audio_op();
 			if ( !loop && audio_is_eos() )
 				break;
 			if ( send_audio && op != NULL && op->bytes > 0 )
 				iaxc_push_audio(op->packet, op->bytes, SPEEX_SAMPLING_RATE / 1000 * SPEEX_FRAME_DURATION);
-			
+
 			op = get_next_video_op();
 			if ( !loop && video_is_eos() )
 				break;
 			if ( send_video && op != NULL && op->bytes > 0 )
 				iaxc_push_video(op->packet, op->bytes, 1);
 		}
-		
+
 		// Tight spinloops are bad, mmmkay?
 		iaxc_millisleep(5);
-		
+
 		// Exit after a positive timeout
 		gettimeofday(&now, NULL);
 		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
 			running = 0;
 	}
-	
+
 	fprintf(stderr, "Received %d audio frames and %d video frames\n", audio_frames_count, video_frames_count);
 	if ( audio_frames_count == 0 && video_frames_count == 0 )
 		hangup_and_exit(TEST_NO_MEDIA);
