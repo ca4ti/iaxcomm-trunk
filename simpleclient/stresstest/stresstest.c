@@ -37,34 +37,30 @@
 #define TEST_NO_MEDIA      -2
 #define TEST_UNKNOWN_ERROR -99
 
-//int format = IAXC_FORMAT_THEORA | IAXC_FORMAT_SPEEX;
-int format = IAXC_FORMAT_H263 | IAXC_FORMAT_H263_PLUS | IAXC_FORMAT_H264 | IAXC_FORMAT_MPEG4 | IAXC_FORMAT_THEORA;
-int formatp = IAXC_FORMAT_H264; //IAXC_FORMAT_THEORA;
-int framerate = 15;
-int bitrate = 200000;
-int width = 320;
-int height = 240;
-int fragsize = 1400;
+static const int format =
+		IAXC_FORMAT_H263 |
+		IAXC_FORMAT_H263_PLUS |
+		IAXC_FORMAT_H264 |
+		IAXC_FORMAT_MPEG4 |
+		IAXC_FORMAT_THEORA;
+static int formatp = IAXC_FORMAT_THEORA;
+static int framerate = 15;
+static int bitrate = 200000;
+static int width = 320;
+static int height = 240;
+static int fragsize = 1400;
 
-int call_established = 0;
-int running = 0;
+static int call_established = 0;
+static int running = 0;
 
-// Forward declaration
-void process_text_message(char *message);
+static int send_video = 1;
+static int send_audio = 1;
+static int print_netstats = 0;
+static int timeout = 0;
+static int video_frames_count = 0;
+static int audio_frames_count = 0;
 
-char caption[80] = "";
-
-int send_video = 1;
-int send_audio = 1;
-int print_netstats = 0;
-int timeout = 0;
-int video_frames_count = 0;
-int audio_frames_count = 0;
-
-struct timeval start_time;
-
-// Audio-cosmetic...
-struct iaxc_sound sound_ringOUT, sound_ringIN;
+static struct timeval start_time;
 
 /* routine used to shutdown and close nicely.*/
 void hangup_and_exit(int code)
@@ -163,17 +159,15 @@ void process_text_message(char *message)
 
 void usage()
 {
-	printf(
-		"\n"
-		"Usage is: tescall <options>\n\n"
+	printf("Usage is: stresstest <options>\n\n"
 		"available options:\n"
-		"-F <codec,framerate,bitrate,width,height,fragsize> set video parameters\n"
-		"-o <filename> media file to run\n"
-		"-v stop sending video\n"
-		"-a stop sending audio\n"
-		"-l run file in a loop\n"
-		"-n dump periodic netstats to stderr\n"
-		"-t <timeout> terminate after timeout seconds and report status via return code\n"
+		"  -F <codec,framerate,bitrate,width,height,fragsize> set video parameters\n"
+		"  -o <filename> media file to run\n"
+		"  -v stop sending video\n"
+		"  -a stop sending audio\n"
+		"  -l run file in a loop\n"
+		"  -n dump periodic netstats to stderr\n"
+		"  -t <timeout> terminate after timeout seconds and report status via return code\n"
 		"\n"
 		);
 	exit(1);
@@ -230,29 +224,25 @@ long msecdiff(struct timeval *t0, struct timeval *t1)
 
 int main(int argc, char **argv)
 {
-	int                       i;
-	char                      mydest[80], *dest = NULL;
-	char                      *ogg_file = NULL;
-	int                       loop = 0;
-	int                       video_frame_index;
-	static struct slice_set_t slice_set;
-	unsigned short            source_id;
-	struct timeval            now;
+	int i;
+	char *dest = NULL;
+	char *ogg_file = NULL;
+	int loop = 0;
 
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 
 	/* Parse command line */
-	for(i=1;i<argc;i++)
+	for ( i = 1; i < argc; i++)
 	{
-		if(argv[i][0] == '-')
+		if ( argv[i][0] == '-' )
 		{
-			switch(argv[i][1])
+			switch ( argv[i][1] )
 			{
 			case 'F': /* set video params */
 				{
-					formatp = 1<<atoi(argv[++i]);
+					formatp = 1 << atoi(argv[++i]);
 					framerate = atoi(argv[++i]);
 					bitrate = atoi(argv[++i]);
 					width = atoi(argv[++i]);
@@ -296,20 +286,17 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	if ( ogg_file == NULL )
-		fprintf(stderr, "No media file, running dry\n");
-
 	if ( ogg_file )
-	{
-		// Load ogg file
 		load_ogg_file(ogg_file);
-	}
+	else
+		fprintf(stderr, "No media file, running dry\n");
 
 	// Get start time for timeouts
 	gettimeofday(&start_time, NULL);
 
 	// Initialize iaxclient
-	iaxc_video_format_set(formatp, format, framerate, bitrate, width, height, fragsize);
+	iaxc_video_format_set(formatp, format, framerate, bitrate,
+			width, height, fragsize);
 	iaxc_set_test_mode(1);
 	if (iaxc_initialize(MAX_CALLS))
 		fatal_error("cannot initialize iaxclient!");
@@ -333,6 +320,7 @@ int main(int argc, char **argv)
 	// Wait for the call to be established;
 	while ( !call_established )
 	{
+		struct timeval now;
 		gettimeofday(&now, NULL);
 		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
 			hangup_and_exit(TEST_NO_CONNECTION);
@@ -342,6 +330,8 @@ int main(int argc, char **argv)
 	running = 1;
 	while ( running )
 	{
+		struct timeval now;
+
 		// We only need this if we actually want to send something
 		if ( ogg_file && ( send_audio || send_video ) )
 		{
@@ -351,7 +341,9 @@ int main(int argc, char **argv)
 			if ( !loop && audio_is_eos() )
 				break;
 			if ( send_audio && op != NULL && op->bytes > 0 )
-				iaxc_push_audio(op->packet, op->bytes, SPEEX_SAMPLING_RATE / 1000 * SPEEX_FRAME_DURATION);
+				iaxc_push_audio(op->packet, op->bytes,
+						SPEEX_SAMPLING_RATE *
+						SPEEX_FRAME_DURATION / 1000);
 
 			op = get_next_video_op();
 			if ( !loop && video_is_eos() )
@@ -369,7 +361,9 @@ int main(int argc, char **argv)
 			running = 0;
 	}
 
-	fprintf(stderr, "Received %d audio frames and %d video frames\n", audio_frames_count, video_frames_count);
+	fprintf(stderr, "Received %d audio frames and %d video frames\n",
+			audio_frames_count, video_frames_count);
+
 	if ( audio_frames_count == 0 && video_frames_count == 0 )
 		hangup_and_exit(TEST_NO_MEDIA);
 	else
