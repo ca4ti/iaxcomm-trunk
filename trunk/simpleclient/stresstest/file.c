@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include "file.h"
 
+#ifdef __GNUC__
+void mylog(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
+#else
+void mylog(const char * fmt, ...);
+#endif
+
 static struct ogg_stream *audio_stream;
 static struct ogg_stream *video_stream;
 
@@ -27,7 +33,7 @@ void append_node(struct ogg_stream *os, struct op_node *node)
 	{
 		if ( os->last != NULL )
 		{
-			fprintf(stderr, "Queue inconsistency, bailing...\n");
+			mylog("Queue inconsistency, bailing...\n");
 			return;
 		}
 		os->first = node;
@@ -37,7 +43,7 @@ void append_node(struct ogg_stream *os, struct op_node *node)
 	{
 		if ( os->last == NULL )
 		{
-			fprintf(stderr, "Queue inconsistency, bailing...\n");
+			mylog("Queue inconsistency, bailing...\n");
 			return;
 		}
 		os->last->next = node;
@@ -65,7 +71,8 @@ int read_theora_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 	struct theora_headers *th;
 	long                  timestamp = 0;
 
-	//fprintf(stderr, "Got theora packet, serialno=%d, size=%d, packetno=%lld, granulepos=%lld\n", serialno, op->bytes, op->packetno, op->granulepos);
+	//mylog("Got theora packet, serialno=%d, size=%d, packetno=%lld, granulepos=%lld\n",
+	//		serialno, op->bytes, op->packetno, op->granulepos);
 
 	th = (struct theora_headers *)video_stream->data;
 
@@ -118,7 +125,8 @@ int read_speex_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 	audio_stream->page_count++;
 
 	cnt++;
-	//fprintf(stderr, "Got speex packet, serialno=%ld, size=%ld, packetno=%lld, granulepos=%lld, timestamp=%ld\n", serialno, op->bytes, op->packetno, op->granulepos, timestamp);
+	//mylog("Got speex packet, serialno=%ld, size=%ld, packetno=%lld, granulepos=%lld, timestamp=%ld\n",
+	//		serialno, op->bytes, op->packetno, op->granulepos, timestamp);
 
 	// Ignore the first two packets, they are headers
 	if ( cnt > 2 )
@@ -139,7 +147,7 @@ int read_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 
 	if ( memcmp(op->packet, theoraId, strlen(theoraId)) == 0 )
 	{
-		//fprintf(stderr, "Detected a Theora stream with serialno=%d\n", serialno);
+		//mylog("Detected a Theora stream with serialno=%d\n", serialno);
 		oggz_set_read_callback(oggz, serialno, read_theora_cb, NULL);
 		video_stream->serialno = serialno;
 
@@ -152,13 +160,14 @@ int read_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 		read_theora_cb(oggz, op, serialno, data);
 	} else if ( memcmp(op->packet, speexId, strlen(speexId)) == 0 )
 	{
-		//fprintf(stderr, "Detected a Speex stream with serialno=%d\n", serialno);
+		//mylog("Detected a Speex stream with serialno=%d\n", serialno);
 		oggz_set_read_callback(oggz, serialno, read_speex_cb, NULL);
 		audio_stream->serialno = serialno;
 		read_speex_cb(oggz, op, serialno, data);
 	} else
 	{
-		fprintf(stderr, "Got unknown ogg packet, serialno=%d, size=%d, packetno=%d, granulepos=%d\n", serialno, op->bytes, op->packetno, op->granulepos);
+		mylog("Got unknown ogg packet, serialno=%d, size=%d, packetno=%d, granulepos=%d\n",
+				serialno, op->bytes, op->packetno, op->granulepos);
 	}
 	return 0;
 }
@@ -171,7 +180,8 @@ int read_page_cb(OGGZ *oggz, const ogg_page *og, long serialno, void *data)
 		audio_stream->page_count = 0;
 	} else if ( serialno == video_stream->serialno )
 	{
-		//fprintf(stderr, "Got theora page serialno=%d, header_len=%d, body_len=%d, granulepos=%lld\n", serialno, og->header_len, og->body_len, ogg_page_granulepos(og));
+		//mylog("Got theora page serialno=%d, header_len=%d, body_len=%d, granulepos=%lld\n",
+		//		serialno, og->header_len, og->body_len, ogg_page_granulepos(og));
 	}
 	return 0;
 }
@@ -183,7 +193,9 @@ void dump_stream(struct ogg_stream *os)
 	node = os->first;
 	while ( node != NULL )
 	{
-		fprintf(stderr, "Size=%ld, Stream=%ld, packetno=%lld, timestamp=%ld\n", node->op->bytes, node->serialno, node->op->packetno, node->timestamp);
+		mylog("Size=%ld, Stream=%ld, packetno=%lld, timestamp=%ld\n",
+				node->op->bytes, node->serialno,
+				node->op->packetno, node->timestamp);
 		node = node->next;
 	}
 }
@@ -195,9 +207,9 @@ void load_ogg_file(const char *filename)
 	oggz = oggz_open(filename, OGGZ_READ | OGGZ_AUTO);
 	if ( oggz == NULL )
 	{
-		fprintf(stderr, "Error opening ogg file\n");
+		mylog("Error opening ogg file\n");
 	}
-	fprintf(stderr, "Successfully opened ogg file %s\n", filename);
+	mylog("Successfully opened ogg file %s\n", filename);
 
 	// Initialize internal streams
 	audio_stream = calloc(1, sizeof(struct ogg_stream));
@@ -208,9 +220,9 @@ void load_ogg_file(const char *filename)
 
 	oggz_run(oggz);
 
-	//fprintf(stderr, "Audio stream, serialno=%d\n", audio_stream->serialno);
+	//mylog("Audio stream, serialno=%d\n", audio_stream->serialno);
 	//dump_stream(audio_stream);
-	//fprintf(stderr, "Video stream, serialno=%d\n", video_stream->serialno);
+	//mylog("Video stream, serialno=%d\n", video_stream->serialno);
 	//dump_stream(video_stream);
 
 	oggz_close(oggz);
