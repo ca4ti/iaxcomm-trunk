@@ -1269,8 +1269,29 @@ EXPORT void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest);
  * iaxc_set_test_mode() should be called before iaxc_initialize()
  */
 EXPORT void iaxc_set_test_mode(int);
+
+/*!
+	\brief Sends compressed audio data to the currently selected call.
+	\param data compressed audio data
+	\param size Size of the compressed audio data in bytes
+	\param samples The number of (uncompressed) samples represented by the compressed audio data. We normally use 20ms packets at a sampling rate of 8000Hz, so this would be 160.
+
+	\note Data must be in the audio format that was negotiated for the current call
+	otherwise bad magic may occur on the recieving side.
+*/
 EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples);
+
+/*!
+	\brief Sends compressed video data to the currently selected call.
+	\param data compressed video data
+	\param size Size of the compressed video data in bytes
+	\param samples The number of (uncompressed) samples represented by the compressed video data. 
+
+	\note Data must be in the video format that was negotiated for the current call
+	otherwise bad magic may occur on the recieving side.
+*/
 EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment);
+
 #ifdef __cplusplus
 }
 #endif
