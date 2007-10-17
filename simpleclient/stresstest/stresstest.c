@@ -13,6 +13,7 @@
 * the GNU Lesser (Library) General Public License
 */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,18 +63,43 @@ static int audio_frames_count = 0;
 
 static struct timeval start_time;
 
+static FILE * log_file = 0;
+
+#ifdef __GNUC__
+void mylog(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
+#endif
+
+void mylog(const char * fmt, ...)
+{
+	va_list ap;
+	time_t t;
+	struct tm * tmp;
+	char str[1024];
+	char time_str[1024];
+
+	t = time(0);
+	tmp = localtime(&t);
+
+	strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tmp);
+	snprintf(str, sizeof(str), "stresstest: %s: %s", time_str, fmt);
+
+	va_start(ap, fmt);
+	vfprintf(log_file ? log_file : stderr, str, ap);
+	va_end(ap);
+}
+
 /* routine used to shutdown and close nicely.*/
 void hangup_and_exit(int code)
 {
-	fprintf(stderr,"Dump call\n");
+	mylog("Dump call\n");
 	iaxc_dump_call();
-	fprintf(stderr,"Sleep for 500 msec\n");
+	mylog("Sleep for 500 msec\n");
 	iaxc_millisleep(500);
-	fprintf(stderr,"Stop processing thread\n");
+	mylog("Stop processing thread\n");
 	iaxc_stop_processing_thread();
-	fprintf(stderr,"Calling iaxc_shutdown...");
+	mylog("Calling iaxc_shutdown...\n");
 	iaxc_shutdown();
-	fprintf(stderr,"Exiting with code %d\n", code);
+	mylog("Exiting with code %d\n", code);
 	exit(code);
 }
 
@@ -87,12 +113,12 @@ void signal_handler(int signum)
 
 void fatal_error(char *err)
 {
-	fprintf(stderr, "FATAL ERROR: %s\n", err);
+	mylog("FATAL ERROR: %s\n", err);
 	exit(TEST_UNKNOWN_ERROR);
 }
 
 int levels_callback(float input, float output) {
-	//fprintf(stderr,"Input level: %f\nOutput level: %f\n",input,output);
+	//mylog("Input level: %f\nOutput level: %f\n", input, output);
 	return 1;
 }
 
@@ -102,12 +128,12 @@ int netstat_callback(struct iaxc_ev_netstats n) {
 	if ( !print_netstats )
 		return 0;
 
-	if(i++%25 == 0)
-		fprintf(stderr, "RTT\t"
+	if ( i++ % 25 == 0 )
+		mylog("RTT\t"
 		"Rjit\tRlos%%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
 		"Ljit\tLlos%%\tLlosC\tLpkts\tLdel\tLdrop\tLooo\n");
 
-	fprintf(stderr, "%d\t"
+	mylog("%d\t"
 		"%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 		"%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 
@@ -154,20 +180,21 @@ void process_text_message(char *message)
 			iaxc_set_video_prefs(prefs);
 		}
 	} else
-		fprintf(stderr, "Text message received: %s\n", message);
+		mylog("Text message received: %s\n", message);
 }
 
 void usage()
 {
-	printf("Usage is: stresstest <options>\n\n"
+	printf("Usage: stresstest <options>\n\n"
 		"available options:\n"
-		"  -F <codec,framerate,bitrate,width,height,fragsize> set video parameters\n"
+		"  -F <codec> <framerate> <bitrate> <width> <height> <fragsize> set video parameters\n"
 		"  -o <filename> media file to run\n"
 		"  -v stop sending video\n"
 		"  -a stop sending audio\n"
 		"  -l run file in a loop\n"
-		"  -n dump periodic netstats to stderr\n"
+		"  -n dump periodic netstats to log file\n"
 		"  -t <timeout> terminate after timeout seconds and report status via return code\n"
+		"  -L <FILE> log to FILE\n"
 		"\n"
 		);
 	exit(1);
@@ -175,16 +202,16 @@ void usage()
 
 int test_mode_state_callback(struct iaxc_ev_call_state s)
 {
-	printf("Call #%d state %d\n", s.callNo, s.state);
+	mylog("Call #%d state %d\n", s.callNo, s.state);
 
 	if ( s.state & IAXC_CALL_STATE_COMPLETE )
 	{
-		fprintf(stderr, "Call answered\n");
+		mylog("Call answered\n");
 		call_established = 1;
 	}
 	if (s.state == IAXC_CALL_STATE_FREE)
 	{
-		fprintf(stderr,"Call terminated\n");
+		mylog("Call terminated\n");
 		running = 0;
 	}
 
@@ -273,6 +300,16 @@ int main(int argc, char **argv)
 					usage();
 				timeout = 1000 * atoi(argv[++i]);
 				break;
+			case 'L':
+				if ( i+1 >= argc )
+					usage();
+				if ( !(log_file = fopen(argv[++i], "w")) )
+				{
+					mylog("failed to open log \"%s\"\n",
+							argv[i]);
+					exit(1);
+				}
+				break;
 			default:
 				usage();
 			}
@@ -282,15 +319,14 @@ int main(int argc, char **argv)
 
 	if ( dest == NULL )
 	{
-		// We need a destination to call
-		fprintf(stderr, "No destination, quitting\n");
+		mylog("No destination, quitting\n");
 		return -1;
 	}
 
 	if ( ogg_file )
 		load_ogg_file(ogg_file);
 	else
-		fprintf(stderr, "No media file, running dry\n");
+		mylog("No media file, running dry\n");
 
 	// Get start time for timeouts
 	gettimeofday(&start_time, NULL);
@@ -316,7 +352,7 @@ int main(int argc, char **argv)
 	if (callNo <= 0)
 		iaxc_select_call(callNo);
 	else
-		fprintf(stderr, "Failed to make call to '%s'", dest);
+		mylog("Failed to make call to '%s'", dest);
 
 	// Wait for the call to be established;
 	while ( !call_established )
@@ -362,7 +398,7 @@ int main(int argc, char **argv)
 			running = 0;
 	}
 
-	fprintf(stderr, "Received %d audio frames and %d video frames\n",
+	mylog("Received %d audio frames and %d video frames\n",
 			audio_frames_count, video_frames_count);
 
 	if ( audio_frames_count == 0 && video_frames_count == 0 )
