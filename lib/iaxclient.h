@@ -1285,7 +1285,7 @@ EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples);
 	\brief Sends compressed video data to the currently selected call.
 	\param data compressed video data
 	\param size Size of the compressed video data in bytes
-	\param samples The number of (uncompressed) samples represented by the compressed video data. 
+	\param fragment If true, split video frames larger than the current fragsize into multiple fragments, otherwise send the data as jumbo frames.
 
 	\note Data must be in the video format that was negotiated for the current call
 	otherwise bad magic may occur on the recieving side.
