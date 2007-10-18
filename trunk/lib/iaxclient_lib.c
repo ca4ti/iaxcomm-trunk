@@ -1770,7 +1770,12 @@ static void service_network()
 #endif
 		// first, see if this is an event for one of our calls.
 		callNo = iaxc_find_call_by_session(e->session);
-		if ( callNo >= 0 )
+		if ( e->etype == IAX_EVENT_NULL )
+		{
+			// Should we do something here?
+			// Right now we do nothing, just go with the flow
+			// and let the event be deallocated.
+		} else if ( callNo >= 0 )
 		{
 			iaxc_handle_network_event(e, callNo);
 		} else if ( (reg = iaxc_find_registration_by_session(e->session)) != NULL )
@@ -1791,11 +1796,6 @@ static void service_network()
 			iaxci_usermsg(IAXC_STATUS,
 					"Timeout for a non-existant session. Dropping",
 					e->etype);
-		} else if ( e->etype == IAX_EVENT_NULL )
-		{
-			// Should we do something here?
-			// Right now we do nothing, just go with the flow
-			// and let the event be deallocated.
 		} else
 		{
 			iaxci_usermsg(IAXC_STATUS,
