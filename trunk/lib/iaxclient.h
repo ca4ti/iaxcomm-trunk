@@ -1253,8 +1253,7 @@ EXPORT int iaxc_is_camera_working();
 	Converts the image based on the forumulas found at
 	http://en.wikipedia.org/wiki/YUV
 */
-EXPORT void iaxc_YUV420_to_RGB32(int width, int height, char *src, char *dest);
-
+EXPORT void iaxc_YUV420_to_RGB32(int width, int height, const char *src, char *dest);
 
 /*
  * Test mode functionality

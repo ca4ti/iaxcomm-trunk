@@ -191,9 +191,11 @@ struct iaxc_video_codec {
 	void *encstate;
 	void *decstate;
 	struct iaxc_video_stats video_stats;
-	int (*encode) ( struct iaxc_video_codec *codec, int inlen, char *in, struct slice_set_t *out );
-	int (*decode) ( struct iaxc_video_codec *codec, int inlen, char *in, int *outlen, char *out );
-	void (*destroy) ( struct iaxc_video_codec *codec);
+	int (*encode)(struct iaxc_video_codec * codec, int inlen,
+			const char * in, struct slice_set_t * out);
+	int (*decode)(struct iaxc_video_codec * codec, int inlen,
+			const char * in, int * outlen, char * out);
+	void (*destroy)(struct iaxc_video_codec * codec);
 };
 
 

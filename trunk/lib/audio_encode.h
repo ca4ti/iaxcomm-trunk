@@ -15,6 +15,11 @@
 #ifndef _AUDIO_ENCODE_H
 #define _AUDIO_ENCODE_H
 
+/* Minimum dB possible in the iaxclient world. This level
+ * is intended to represent silence.
+ */
+#define AUDIO_ENCODE_SILENCE_DB -99.0f
+
 struct iaxc_call;
 struct iax_event;
 

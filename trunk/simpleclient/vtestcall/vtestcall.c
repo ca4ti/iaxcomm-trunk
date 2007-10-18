@@ -431,8 +431,9 @@ int main(int argc, char **argv)
 	char	c;
 	int	i; //,OutLoop=0;
 	char	mydest[80], *dest = NULL;
-	double	silence_threshold = -99;;
+	double	silence_threshold = -99;
 	int	jbypass = 0;
+	int callNo = 0;
 	
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
@@ -542,7 +543,7 @@ int main(int argc, char **argv)
 		sprintf(caption, "Calling to %s", dest);
 		fprintf(stderr, "Calling to %s\n", dest);
 		my_safe_caption(caption);
-		int callNo = iaxc_call(dest);
+		callNo = iaxc_call(dest);
 		if (callNo <= 0)
 			iaxc_select_call(callNo);
 		else

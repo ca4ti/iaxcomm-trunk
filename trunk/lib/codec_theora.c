@@ -227,8 +227,8 @@ static void pad_channel(const char *src, int w, int h, unsigned char *dst,
 		memset(dst + pw * h, value, (ph - h) * pw);
 }
 
-static int encode(struct iaxc_video_codec *c, int inlen, char *in,
-		struct slice_set_t *slice_set)
+static int encode(struct iaxc_video_codec * c, int inlen, const char * in,
+		struct slice_set_t * slice_set)
 {
 	struct theora_encoder	*e;
 	ogg_packet		op;
