@@ -14,6 +14,7 @@
  * the GNU Lesser (Library) General Public License.
  */
 
+#include "audio_encode.h"
 #include "iaxclient_lib.h"
 #include "iax-client.h"
 #ifdef CODEC_GSM
@@ -25,10 +26,10 @@
 #include <speex/speex_preprocess.h>
 
 #ifdef CODEC_ILBC
-	#include "codec_ilbc.h"
+#include "codec_ilbc.h"
 #endif
 
-float iaxci_silence_threshold = -99.0f;
+float iaxci_silence_threshold = AUDIO_ENCODE_SILENCE_DB;
 
 static float input_level = 0.0f;
 static float output_level = 0.0f;
@@ -58,9 +59,9 @@ static float vol_to_db(float vol)
 	/* avoid calling log10() on zero which yields inf or
 	 * negative numbers which yield nan */
 	if ( vol <= 0.0f )
-		return -99.9f;
+		return AUDIO_ENCODE_SILENCE_DB;
 	else
-		return log10f(vol) * 20;
+		return log10f(vol) * 20.0f;
 }
 
 static int do_level_callback()
@@ -79,11 +80,11 @@ static int do_level_callback()
 
 	/* if input has not been processed in the last second, set to silent */
 	input_db = iaxci_usecdiff(&now, &timeLastInput) < 1000000 ?
-			vol_to_db(input_level) : -99.9f;
+			vol_to_db(input_level) : AUDIO_ENCODE_SILENCE_DB;
 
 	/* if output has not been processed in the last second, set to silent */
 	output_db = iaxci_usecdiff(&now, &timeLastOutput) < 1000000 ?
-		vol_to_db(output_level) : -99.9f;
+		vol_to_db(output_level) : AUDIO_ENCODE_SILENCE_DB;
 
 	iaxci_do_levels_callback(input_db, output_db);
 
@@ -95,7 +96,7 @@ static void set_speex_filters()
 	int i;
 	float f;
 
-	if(!st)
+	if ( !st )
 		return;
 
 	i = 1; /* always make VAD decision */

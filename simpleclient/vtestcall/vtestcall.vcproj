@@ -51,7 +51,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
-				CompileAs="2"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -66,11 +66,11 @@
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="false"
 				AdditionalOptions="/NODEFAULTLIB:LIBCMTD.lib /NODEFAULTLIB:LIBCD.lib "
-				AdditionalDependencies="dsound.lib iaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib videolib.lib libiax2.lib gsm.lib portaudio.lib libspeex.lib strmiids.lib portmixerd.lib"
+				AdditionalDependencies="dsound.lib libiaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib libvidcap.lib libiax2.lib libgsm.lib libportaudio.lib libspeex.lib strmiids.lib libportmixer.lib"
 				ShowProgress="0"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Debug;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj"
+				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Debug;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj;..\..\contrib\win\vs2005\Debug\libiaxclient;..\..\contrib\win\vs2005\Debug\libtheora;..\..\contrib\win\vs2005\Debug\libogg;..\..\contrib\win\vs2005\Debug\libvidcap;..\..\contrib\win\vs2005\Debug\libiax2;..\..\contrib\win\vs2005\Debug\libgsm;..\..\contrib\win\vs2005\Debug\libportaudio;..\..\contrib\win\vs2005\Debug\libspeex;..\..\contrib\win\vs2005\Debug\libportmixer"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
 				AssemblyDebug="0"
@@ -138,6 +138,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -150,10 +151,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="dsound.lib iaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib videolib.lib libiax2.lib gsm.lib portaudio.lib libspeex.lib strmiids.lib portmixer.lib"
+				AdditionalDependencies="dsound.lib libiaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib libvidcap.lib libiax2.lib libgsm.lib libportaudio.lib libspeex.lib strmiids.lib libportmixer.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Release;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj"
-				IgnoreDefaultLibraryNames="msvcrtd.lib;msvcrt.lib;libcmtd.lib"
+				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\lib\Release;&quot;$(SDL_DIR)\lib&quot;;&quot;$(PSDK_DIR)\lib&quot;;..\..\lib\portmixer\winproj;..\..\contrib\win\vs2005\Release\libiaxclient;..\..\contrib\win\vs2005\Release\libtheora;..\..\contrib\win\vs2005\Release\libogg;..\..\contrib\win\vs2005\Release\libgsm;..\..\contrib\win\vs2005\Release\libvidcap;..\..\contrib\win\vs2005\Release\libiax2;..\..\contrib\win\vs2005\Release\libportaudio;..\..\contrib\win\vs2005\Release\libportmixer;..\..\contrib\win\vs2005\Release\libspeex"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -211,6 +212,14 @@
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

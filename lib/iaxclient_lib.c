@@ -119,21 +119,12 @@ static iaxc_recvfrom_t iaxc_recvfrom = (iaxc_recvfrom_t)recvfrom;
 
 
 static THREAD main_proc_thread;
-#ifdef USE_VIDEO
-static THREAD video_proc_thread;
-#endif
 #if defined(WIN32) || defined(_WIN32_WCE)
 static THREADID main_proc_thread_id;
-#ifdef USE_VIDEO
-static THREADID video_proc_thread_id;
-#endif
 #endif
 
 /* 0 running, 1 should quit, -1 not running */
 static int main_proc_thread_flag = -1;
-#ifdef USE_VIDEO
-static int video_proc_thread_flag = -1;
-#endif
 
 static iaxc_event_callback_t iaxc_event_callback = NULL;
 
@@ -640,10 +631,8 @@ EXPORT int iaxc_initialize(int num_calls)
 	}
 #ifdef USE_VIDEO
 	if ( video_initialize() )
-	{
 		iaxci_usermsg(IAXC_ERROR,
 				"iaxc_initialize: cannot initialize video!\n");
-	}
 #endif
 
 	/* Default audio format capabilities */
@@ -781,32 +770,6 @@ static THREADFUNCDECL(main_proc_thread_func)
 	return ret;
 }
 
-#ifdef USE_VIDEO
-static THREADFUNCDECL(video_proc_thread_func)
-{
-	struct iaxc_call *call;
-
-	while ( !video_proc_thread_flag )
-	{
-		if ( selected_call >= 0 )
-			call = &calls[selected_call];
-		else
-			call = NULL;
-
-		if ( !test_mode )
-			video_send_video(call, selected_call);
-		video_send_stats(call);
-
-		// Tight spinloops are bad, mmmkay?
-		iaxc_millisleep(LOOP_SLEEP);
-	}
-
-	video_proc_thread_flag = -1;
-
-	return 0;
-}
-#endif
-
 EXPORT int iaxc_start_processing_thread()
 {
 	main_proc_thread_flag = 0;
@@ -814,14 +777,6 @@ EXPORT int iaxc_start_processing_thread()
 	if ( THREADCREATE(main_proc_thread_func, NULL, main_proc_thread,
 				main_proc_thread_id) == THREADCREATE_ERROR)
 		return -1;
-
-#ifdef USE_VIDEO
-	video_proc_thread_flag = 0;
-
-	if ( THREADCREATE(video_proc_thread_func, NULL, video_proc_thread,
-				video_proc_thread_id) == THREADCREATE_ERROR)
-		return -1;
-#endif
 
 	return 0;
 }
@@ -833,14 +788,6 @@ EXPORT int iaxc_stop_processing_thread()
 		main_proc_thread_flag = 1;
 		THREADJOIN(main_proc_thread);
 	}
-
-#ifdef USE_VIDEO
-	if ( video_proc_thread_flag >= 0 )
-	{
-		video_proc_thread_flag = 1;
-		THREADJOIN(video_proc_thread);
-	}
-#endif
 
 	return 0;
 }
@@ -930,7 +877,8 @@ static int service_audio()
 		   be changed.
 		 */
 		if ( i++ % 50 == 0 )
-			iaxci_do_levels_callback(-99,-99);
+			iaxci_do_levels_callback(AUDIO_ENCODE_SILENCE_DB,
+					AUDIO_ENCODE_SILENCE_DB);
 	}
 
 	return 0;
@@ -1209,11 +1157,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		break;
 #ifdef USE_VIDEO
 	case IAX_EVENT_VIDEO:
-		// Mihai: why do we need to lower priority here?
-		// TODO: investigate
-		//iaxci_prioboostend();
 		handle_video_event(e, callNo);
-		//iaxci_prioboostbegin();
 		break;
 #endif
 	case IAX_EVENT_TEXT:
