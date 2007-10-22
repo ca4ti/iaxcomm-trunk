@@ -40,31 +40,23 @@ NODIST_SRCS =
 if WIN32
 SRCS += $(SRCS_WIN32)
 libiaxclient_la_LIBADD += -lwinmm -lwsock32
-
-if VIDEO
-SRCS += $(SRCS_WIN32_VIDEO)
-AM_CPPFLAGS += -I$(srcdir)/videoLib
-endif VIDEO
-endif WIN32
+endif
 
 if LINUX
 SRCS += $(SRCS_LINUX)
-
-if VIDEO
-SRCS += $(SRCS_LINUX_VIDEO)
 endif
-endif LINUX
 
 if MACOSX
 SRCS += $(SRCS_MACOSX)
 AM_LDFLAGS += -framework QuickTime
-if VIDEO
-SRCS += $(SRCS_MACOSX_VIDEO)
 endif
-endif MACOSX
 
 if VIDEO
 SRCS += $(SRCS_VIDEO)
+if VIDCAP
+libiaxclient_la_LIBADD += $(VIDCAP_LIBS)
+AM_CFLAGS += $(VIDCAP_CFLAGS)
+endif
 endif
 
 if USE_LOCAL_GSM
@@ -153,9 +145,7 @@ SRCS +=						\
 
 SRCS_VIDEO=					\
 	video.c					\
-	video.h					\
-	videoLib/video_grab.c			\
-	videoLib/video_grab.h
+	video.h
 
 SRCS_ILBC=					\
 	iLBC/anaFilter.c			\
@@ -186,29 +176,13 @@ SRCS_WIN32=					\
 	winfuncs.c				\
 	portmixer/px_win_wmme/px_win_wmme.c
 
-SRCS_WIN32_VIDEO=				\
-	videoLib/win32/wingrab.cpp
-
 SRCS_LINUX=					\
 	portmixer/px_unix_oss/px_unix_oss.c	\
 	unixfuncs.c
 
-SRCS_LINUX_VIDEO=				\
-	videoLib/linux/libfg/capture.c		\
-	videoLib/linux/libfg/capture.h		\
-	videoLib/linux/libfg/frame.c		\
-	videoLib/linux/libfg/frame.h		\
-	videoLib/linux/libfg/libfg.h		\
-	videoLib/linux/linuxgrab.c
-
 SRCS_MACOSX=					\
 	portmixer/px_mac_core/px_mac_core.c	\
 	unixfuncs.c
-
-SRCS_MACOSX_VIDEO=				\
-	videoLib/macosx/macgrab.c		\
-	videoLib/macosx/vdigGrab.c		\
-	videoLib/macosx/vdigGrab.h
 
 SRCS_IAX2=					\
 	libiax2/src/md5.c			\

@@ -135,12 +135,16 @@ AC_ARG_WITH(theora,
          [Theora support])],,
       with_theora="auto")
 
+AC_ARG_WITH(vidcap,
+      [AS_HELP_STRING([--without-vidcap],
+         [libvidcap support])],,
+      with_vidcap="auto")
+
 AC_ARG_WITH(ffmpeg,
       [AS_HELP_STRING([--with-ffmpeg],
          [FFmpeg support])],
       FFMPEG="${with_ffmpeg}",
       with_ffmpeg="no")
-
 
 if test ! "x$enable_clients" = "xauto"; then
    for client in ${enable_clients}; do
@@ -238,6 +242,22 @@ elif test ! x$with_theora = xauto ; then
 fi
 fi
 AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
+
+has_vidcap=no
+if test ! x$with_vidcap = xno; then
+   PKG_CHECK_MODULES(VIDCAP, [vidcap >= 0.1],has_vidcap=yes)
+   if test x$has_vidcap = xyes; then
+      AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
+      PKG_REQUIRES="$PKG_REQUIRES vidcap"
+   elif test ! x$with_vidcap = xauto ; then
+      AC_MSG_ERROR([
+         libvidcap is required to build this package!
+         please see http://libvidcap.sourceforge.net/ for how to
+         obtain a copy.
+      ])
+   fi
+fi
+AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes)
 
 has_ffmpeg=no
 if test ! x$with_ffmpeg = xno; then
