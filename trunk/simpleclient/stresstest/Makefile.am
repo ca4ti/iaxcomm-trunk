@@ -10,6 +10,7 @@ stresstest_LDFLAGS =			\
 		-framework AudioUnit	\
 		-framework Carbon	\
 		-framework CoreAudio	\
+		-framework QuartzCore	\
 		-framework QuickTime
 endif
 
