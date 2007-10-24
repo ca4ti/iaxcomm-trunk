@@ -321,7 +321,7 @@ Iaxclient_Init(
     // Set Preferred UDP Port: 
     // 0: Use the default port (4569)    
     iaxc_set_preferred_source_udp_port(0);
-    if (iaxc_initialize(AUDIO_INTERNAL_PA, MAX_LINES)) {
+    if (iaxc_initialize(MAX_LINES)) {
 		Tcl_SetObjResult( interp,  
 			    Tcl_NewStringObj( "cannot initialize iaxclient!", -1 ));
 		return TCL_ERROR;
