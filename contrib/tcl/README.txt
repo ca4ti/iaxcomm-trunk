@@ -105,6 +105,22 @@ Usage:
 
     iaxclient::unregister sessionID
 
+    There are some utilities to play ring tones. First you must initialize
+    and set a ring tone using:
+
+    iaxclient::toneinit F1 F2 Duration Length Repeat
+        where F1 and F2 are the two tone frequencies in Hertz, Duration
+	in milliseconds of the tone, Length in milliseconds of tone plus
+	silence, Repeat the number of times to play the tone.
+	A typical call can be:
+	  iaxclient::toneinit 880 960 16000 48000 10 
+
+    iaxclient::ringstart 0 
+        start ringing on ring device 0
+
+    iaxclient::ringstop 
+        stop ringing
+
 
 A tone is any single character from the set 123A456B789C*0#D
 
