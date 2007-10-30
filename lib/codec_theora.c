@@ -111,7 +111,8 @@ static void destroy( struct iaxc_video_codec *c)
 	free(c);
 }
 
-static int decode(struct iaxc_video_codec *c, int inlen, char *in, int *outlen, char *out)
+static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
+		int *outlen, char *out)
 {
 	struct theora_decoder *d;
 	ogg_packet            op;

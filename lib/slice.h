@@ -77,7 +77,7 @@ int free_slicer_context(struct slicer_context *sc);
  * sc        - holds stream information such as source id and frame index
  * Returns 0 if completed successfully or a negative value if failure.
  */
-int slice(char *data, 
+int slice(const char *data, 
           unsigned int size,
           struct slice_set_t *slice_set,
           struct slicer_context *sc
@@ -103,6 +103,7 @@ int free_deslicer_context(struct deslicer_context *dsc);
  * Returns a pointer to a buffer containing the completed frame and updates
  * outlen with the frame size if successful
  */
-char * deslice(char *in, int inlen, int *outlen, struct deslicer_context *dsc);
+char *
+deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc);
 
-#endif // __SLICE_H__
+#endif
