@@ -84,7 +84,9 @@ static void initialize() {
 }
 
 static void destroy ( struct iaxc_audio_codec *c) {
-    free(c);
+	if ( c->decstate )
+		free(c->decstate);
+	free(c);
 }
 
 
