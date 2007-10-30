@@ -958,6 +958,24 @@ static int pa_selected_devices(struct iaxc_audio_driver *d, int *input,
 
 static int pa_destroy(struct iaxc_audio_driver *d)
 {
+	if( iMixer )
+	{
+		Px_CloseMixer(iMixer);
+		iMixer = NULL;
+	}
+	if ( oMixer )
+	{
+		Px_CloseMixer(oMixer);
+		oMixer = NULL;
+	}
+	if ( d )
+	{
+		if ( d->devices )
+		{
+			free(d->devices);
+			d->devices= NULL;
+		}
+	}
 	return Pa_Terminate();
 }
 
