@@ -671,7 +671,11 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	) ;
 	
 	if ( mmr != MMSYSERR_NOERROR )
+	{
+		free(mixerControl);
+
 		return mmr ;
+	}
 
 	//
 	// find boost control
@@ -701,7 +705,11 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	}
 
 	if ( boost_id == -1 )
+	{
+		free(mixerControl);
+
 		return MMSYSERR_ERROR ;
+	}
 
 	//
 	// get control details
@@ -724,7 +732,11 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	) ;
 
 	if ( mmr != MMSYSERR_NOERROR )
+	{
+		free(mixerControl);
+
 		return mmr ;
+	}
 
 	//
 	// update value
@@ -741,6 +753,8 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 		&mixerControlDetails,
 		MIXER_SETCONTROLDETAILSF_VALUE
 	) ;
+
+	free(mixerControl);
 
 	if ( mmr != MMSYSERR_NOERROR )
 		return mmr ;
@@ -795,7 +809,11 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	) ;
 	
 	if ( mmr != MMSYSERR_NOERROR )
+	{
+		free(mixerControl);
+
 		return -1 ;
+	}
 
 	//
 	// find boost control
@@ -825,7 +843,11 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	}
 
 	if ( boost_id == -1 )
+	{
+		free(mixerControl);
+
 		return -1 ;
+	}
 
 	//
 	// get control details
@@ -846,6 +868,8 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 		&mixerControlDetails,
 		MIXER_GETCONTROLDETAILSF_VALUE
 	) ;
+
+	free(mixerControl);
 
 	if ( mmr != MMSYSERR_NOERROR )
 		return -1 ;
