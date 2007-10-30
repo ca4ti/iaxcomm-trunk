@@ -369,6 +369,15 @@ void iaxci_do_audio_callback(int callNo, unsigned int ts, int source,
 	iaxci_post_event(e);
 }
 
+void iaxci_do_dtmf_callback(int callNo, char digit)
+{
+	iaxc_event e;
+	e.type = IAXC_EVENT_DTMF;
+	e.ev.dtmf.callNo = callNo;
+	e.ev.dtmf.digit  = digit;
+	iaxci_post_event(e);
+}
+
 static int iaxc_remove_registration_by_id(int id)
 {
 	struct iaxc_registration *curr, *prev;
@@ -1187,6 +1196,10 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		iaxci_do_state_callback(callNo);
 		iaxci_usermsg(IAXC_STATUS,"Call %d transfer released", callNo);
 		break;
+	case IAX_EVENT_DTMF:
+		iaxci_do_dtmf_callback(callNo,e->subclass);
+		iaxci_usermsg(IAXC_STATUS, "DTMF digit %c received", e->subclass);
+        	break;
 	default:
 		iaxci_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
 		break;

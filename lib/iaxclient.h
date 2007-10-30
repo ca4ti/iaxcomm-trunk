@@ -533,6 +533,21 @@ struct iaxc_ev_registration {
 };
 
 /*!
+	A structure containing information about a DTMF event
+ */
+struct iaxc_ev_dtmf {
+	/*!
+		The call this DTMF event is for.
+	 */
+	int  callNo;
+
+	/*!
+		The digit represented by this DTMF tone
+	 */
+	char digit;
+};
+
+/*!
 	A structure describing a single IAXClient event.
 */
 typedef struct iaxc_event_struct {
@@ -568,8 +583,10 @@ typedef struct iaxc_event_struct {
 		struct iaxc_ev_video            video;      
 		/*! Contains audio data if type = IAXC_EVENT_AUDIO */
 		struct iaxc_ev_audio            audio;      
-		/*! Contains registration data if type = AXC_EVENT_REGISTRATION */
-		struct iaxc_ev_registration     reg;        
+		/*! Contains registration data if type = IAXC_EVENT_REGISTRATION */
+		struct iaxc_ev_registration     reg;
+		/*! Contains DTMF data if type = IAXC_EVENT_DTMF */
+		struct iaxc_ev_dtmf             dtmf;
 	} ev;
 } iaxc_event;
 
