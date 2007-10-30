@@ -23,7 +23,6 @@
 #include <signal.h>
 
 #include "iaxclient.h"
-#include "slice.h"
 #include "file.h"
 
 #ifdef WIN32
@@ -57,7 +56,8 @@ static int running = 0;
 static int send_video = 1;
 static int send_audio = 1;
 static int print_netstats = 0;
-static int timeout = 0;
+static int call_timeout_ms = 0;
+static int connect_timeout_ms = 5000;
 static int video_frames_count = 0;
 static int audio_frames_count = 0;
 
@@ -193,7 +193,8 @@ void usage()
 		"  -a stop sending audio\n"
 		"  -l run file in a loop\n"
 		"  -n dump periodic netstats to log file\n"
-		"  -t <timeout> terminate after timeout seconds and report status via return code\n"
+		"  -t <TIMEOUT> terminate call after TIMEOUT seconds\n"
+		"  -c <TIMEOUT> try connecting for TIMEOUT seconds (default 5)\n"
 		"  -L <FILE> log to FILE\n"
 		"\n"
 		);
@@ -269,14 +270,14 @@ int main(int argc, char **argv)
 			switch ( argv[i][1] )
 			{
 			case 'F': /* set video params */
-				{
-					formatp = 1 << atoi(argv[++i]);
-					framerate = atoi(argv[++i]);
-					bitrate = atoi(argv[++i]);
-					width = atoi(argv[++i]);
-					height = atoi(argv[++i]);
-					fragsize = atoi(argv[++i]);
-				}
+				if ( i+6 >= argc )
+					usage();
+				formatp = 1 << atoi(argv[++i]);
+				framerate = atoi(argv[++i]);
+				bitrate = atoi(argv[++i]);
+				width = atoi(argv[++i]);
+				height = atoi(argv[++i]);
+				fragsize = atoi(argv[++i]);
 				break;
 			case 'o':
 				if ( i+1 >= argc )
@@ -298,7 +299,12 @@ int main(int argc, char **argv)
 			case 't':
 				if ( i+1 >= argc )
 					usage();
-				timeout = 1000 * atoi(argv[++i]);
+				call_timeout_ms = 1000 * atoi(argv[++i]);
+				break;
+			case 'c':
+				if ( i+1 >= argc )
+					usage();
+				connect_timeout_ms = 1000 * atoi(argv[++i]);
 				break;
 			case 'L':
 				if ( i+1 >= argc )
@@ -314,7 +320,7 @@ int main(int argc, char **argv)
 				usage();
 			}
 		} else
-			dest=argv[i];
+			dest = argv[i];
 	}
 
 	if ( dest == NULL )
@@ -355,11 +361,12 @@ int main(int argc, char **argv)
 		mylog("Failed to make call to '%s'", dest);
 
 	// Wait for the call to be established;
-	while ( !call_established )
+	while ( !call_established && running )
 	{
 		struct timeval now;
 		gettimeofday(&now, NULL);
-		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
+		if ( connect_timeout_ms > 0 &&
+				msecdiff(&start_time, &now) > connect_timeout_ms )
 			hangup_and_exit(TEST_NO_CONNECTION);
 		iaxc_millisleep(5);
 	}
@@ -394,7 +401,8 @@ int main(int argc, char **argv)
 
 		// Exit after a positive timeout
 		gettimeofday(&now, NULL);
-		if ( timeout > 0 && msecdiff(&start_time, &now) > timeout )
+		if ( call_timeout_ms > 0 &&
+				msecdiff(&start_time, &now) > call_timeout_ms )
 			running = 0;
 	}
 
