@@ -32,7 +32,7 @@ int free_slicer_context(struct slicer_context *sc)
 	return 0;
 }
 
-int slice(char *data, 
+int slice(const char *data, 
           unsigned int size,
           struct slice_set_t *slice_set,
 	  struct slicer_context *sc
@@ -93,7 +93,8 @@ static void reset_deslicer_context(struct deslicer_context *dsc)
 	dsc->frame_complete = 0;
 }
 
-char * deslice(char *in, int inlen, int *outlen, struct deslicer_context *dsc)
+char *
+deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc)
 {
 	unsigned char		frame_index, slice_index, num_slices, version;
 	unsigned short		source_id;
