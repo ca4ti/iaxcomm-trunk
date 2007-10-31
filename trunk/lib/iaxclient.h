@@ -132,6 +132,8 @@ typedef int socklen_t;
 #define IAXC_EVENT_DTMF          9   /*!< Indicates a DTMF event */
 #define IAXC_EVENT_AUDIO         10  /*!< Indicates an audio event */
 #define IAXC_EVENT_VIDEOSTATS    11  /*!< Indicates a video statistics update event */
+#define IAXC_EVENT_VIDCAP_ERROR  12  /*!< Indicates a video capture error occurred */
+#define IAXC_EVENT_VIDCAP_DEVICE 13  /*!< Indicates a possible video capture device insertion/removal */
 
 #define IAXC_CALL_STATE_FREE     0       /*!< Indicates a call slot is free */
 #define IAXC_CALL_STATE_ACTIVE   (1<<1)  /*!< Indicates a call is active */
@@ -920,6 +922,26 @@ EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
 */
 EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, struct iaxc_netstat *remote);
 
+/*!
+	A structure containing information about a video capture device.
+*/
+struct iaxc_video_device {
+	/*!
+		The "human readable" name of the device
+	*/
+	const char *name;
+
+	/*!
+		unique id of the device
+	*/
+	const char *id_string;
+
+	/*!
+		iaxclient id of the device
+	*/
+	int id;
+};
+
 #define IAXC_AD_INPUT           (1<<0) /*!< Device is usable for input*/
 #define IAXC_AD_OUTPUT          (1<<1) /*!< Device is usable for output */
 #define IAXC_AD_RING            (1<<2) /*!< Device is usable for ring */
@@ -1110,6 +1132,23 @@ EXPORT unsigned int iaxc_get_audio_prefs(void);
 	 IAXC_AUDIO_PREF_SEND_DISABLE
  */
 EXPORT int iaxc_set_audio_prefs(unsigned int prefs);
+
+/*!
+	Get video capture device information:
+	 \param devs Returns an array of iaxc_video_device structures.
+	        The array will will be valid as long as iaxc is initialized.
+	 \param nDevs Returns the number of devices in the devs array
+	 \param devId Returns the id of the currently selected video capture device
+
+	 \return -1 on error, 0 if no change to the device list, 1 if it's been updated
+ */
+EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs, int *nDevs, int *devId);
+
+/*!
+	Sets the current video capture device
+	\param devId The id of the device to use for video capture
+ */
+EXPORT int iaxc_video_device_set(int devId);
 
 /*
  * Acceptable range for video rezolution

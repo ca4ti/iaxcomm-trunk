@@ -31,13 +31,16 @@
 #include "codec_theora.h"
 #endif
 
+#if defined(WIN32)
+#define strdup _strdup
+#endif
+
 struct video_info
 {
 	vidcap_state * vc;
 	vidcap_sapi * sapi;
 	vidcap_src * src;
 	struct vidcap_sapi_info sapi_info;
-	struct vidcap_src_info src_info;
 	struct vidcap_fmt_info fmt_info;
 
 	/* these are the requested (post-scaling) dimensions */
@@ -63,6 +66,15 @@ struct video_info
 	int prefs;
 
 	struct slicer_context * sc;
+
+	/* these two struct arrays are correlated by index */
+	struct vidcap_src_info * vc_src_info;
+	struct iaxc_video_device * devices;
+	MUTEX dev_list_lock;
+
+	int device_count;
+	int selected_device_id;
+	int next_id;
 };
 
 struct video_format_info
@@ -492,6 +504,24 @@ static void resize_yuy2(const unsigned char *src, int src_w, int src_h,
 */
 }
 
+static int video_device_notification_callback(vidcap_sapi *sapi,
+			void * user_context)
+{
+	iaxc_event evt;
+
+	if ( sapi != vinfo.sapi )
+	{
+		fprintf(stderr, "ERROR: wrong sapi in device notification\n");
+		return -1;
+	}
+
+	/* notify application that device list has been updated */
+	evt.type = IAXC_EVENT_VIDCAP_DEVICE;
+	iaxci_post_event(evt);
+
+	return 0;
+}
+
 static int capture_callback(vidcap_src * src, void * user_data,
 		struct vidcap_capture_info * cap_info)
 {
@@ -517,6 +547,8 @@ static int capture_callback(vidcap_src * src, void * user_data,
 	const char * source_buf = 0;
 	int source_buf_size = 0;
 
+	iaxc_event evt;
+
 	int i;
 
 	if ( cap_info->error_status )
@@ -524,6 +556,9 @@ static int capture_callback(vidcap_src * src, void * user_data,
 		fprintf(stderr, "vidcap capture error %d\n",
 				cap_info->error_status);
 		vinfo.capturing = 0;
+
+		evt.type = IAXC_EVENT_VIDCAP_ERROR;
+		iaxci_post_event(evt);
 		return -1;
 	}
 
@@ -732,29 +767,9 @@ static int prepare_for_capture()
 	};
 
 	static const int fourcc_list_len = sizeof(fourcc_list) / sizeof(int);
-	int i;
 	static const int max_factor = 2;
 	int scale_factor;
-
-	if ( !vinfo.src )
-	{
-		/* Acquire the default source */
-		if ( !(vinfo.src = vidcap_src_acquire(vinfo.sapi, 0)) )
-		{
-			fprintf(stderr, "failed to acquire video source\n");
-			return -1;
-		}
-
-		if ( vidcap_src_info_get(vinfo.src, &vinfo.src_info) )
-		{
-			fprintf(stderr, "failed to get video source info\n");
-			return -1;
-		}
-
-		fprintf(stderr, "acquired vidcap source %s (%s)\n",
-				vinfo.src_info.description,
-				vinfo.src_info.identifier);
-	}
+	int i;
 
 	vinfo.width = vfinfo.width;
 	vinfo.height = vfinfo.height;
@@ -878,6 +893,46 @@ static int prepare_for_capture()
 	return 0;
 }
 
+static int ensure_acquired(int dev_id)
+{
+	int dev_num;
+
+	if ( !vinfo.src )
+	{
+		MUTEXLOCK(&vinfo.dev_list_lock);
+
+		for ( dev_num = 0; dev_num < vinfo.device_count; dev_num++ )
+		{
+			if ( vinfo.devices[dev_num].id == dev_id )
+				break;
+		}
+
+		if ( dev_num == vinfo.device_count )
+		{
+			MUTEXUNLOCK(&vinfo.dev_list_lock);
+			fprintf(stderr, "invalid vidcap dev id: %d\n", dev_id);
+			return -1;
+		}
+
+		if ( !(vinfo.src = vidcap_src_acquire(vinfo.sapi,
+					&vinfo.vc_src_info[dev_num])) )
+		{
+			vinfo.src = 0;
+			MUTEXUNLOCK(&vinfo.dev_list_lock);
+			fprintf(stderr, "failed to acquire video source\n");
+			return -1;
+		}
+
+		fprintf(stderr, "acquired vidcap source %s (%s)\n",
+				vinfo.vc_src_info[dev_num].description,
+				vinfo.vc_src_info[dev_num].identifier);
+
+		MUTEXUNLOCK(&vinfo.dev_list_lock);
+	}
+
+	return 0;
+}
+
 EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 {
 	const unsigned int prefs_mask =
@@ -888,9 +943,14 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 		IAXC_VIDEO_PREF_SEND_DISABLE        |
 		IAXC_VIDEO_PREF_RECV_RGB32          |
 		IAXC_VIDEO_PREF_CAPTURE_DISABLE;
+	int ret;
 
 	if ( prefs & ~prefs_mask )
+	{
+		fprintf(stderr, "ERROR: unexpected video preference: 0x%0x\n",
+				prefs);
 		return -1;
+	}
 
 	vinfo.prefs = prefs;
 
@@ -911,7 +971,15 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 		{
 			if ( vidcap_src_capture_stop(vinfo.src) )
 				fprintf(stderr, "failed vidcap_src_capture_stop\n");
+
 			vinfo.capturing = 0;
+
+			if ( vinfo.src && vidcap_src_release(vinfo.src) )
+			{
+				fprintf(stderr, "failed to release a video source\n");
+			}
+
+			vinfo.src = 0;
 		}
 		MUTEXUNLOCK(&vinfo.camera_lock);
 	}
@@ -920,17 +988,30 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 		MUTEXLOCK(&vinfo.camera_lock);
 		if ( !vinfo.capturing )
 		{
+			if ( vinfo.selected_device_id < 0 )
+			{
+				MUTEXUNLOCK(&vinfo.camera_lock);
+				return -1;
+			}
+
+			if ( ensure_acquired(vinfo.selected_device_id) )
+			{
+				MUTEXUNLOCK(&vinfo.camera_lock);
+				return -1;
+			}
+
 			if ( prepare_for_capture() )
 			{
 				MUTEXUNLOCK(&vinfo.camera_lock);
 				return -1;
 			}
 
-			if ( vidcap_src_capture_start(vinfo.src,
-						capture_callback, 0) )
+			if ( (ret = vidcap_src_capture_start(vinfo.src,
+						capture_callback, 0)) )
 			{
 				MUTEXUNLOCK(&vinfo.camera_lock);
-				fprintf(stderr, "failed to start video capture\n");
+				fprintf(stderr, "failed to start video capture: %d\n", 
+						ret);
 				return -1;
 			}
 
@@ -1231,9 +1312,229 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 	return 0;
 }
 
+EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
+			int *num_devs, int *id_selected) 
+{ 
+	int new_device_count;
+	int old_device_count;
+	struct vidcap_src_info *new_src_list;
+	struct vidcap_src_info *old_src_list;
+	struct iaxc_video_device  *new_iaxc_dev_list;
+	struct iaxc_video_device  *old_iaxc_dev_list;
+	int found_selected_device = 0;
+	int list_changed = 0;
+	int i, n;
+
+	/* update libvidcap's device list */
+	new_device_count = vidcap_src_list_update(vinfo.sapi);
+	if ( new_device_count != vinfo.device_count )
+		list_changed = 1;
+
+	if ( new_device_count < 0 )
+	{
+		fprintf(stderr, "ERROR: failed getting updated vidcap device list: %d\n",
+				new_device_count);
+		return -1;
+	}
+
+	new_src_list = (struct vidcap_src_info *)malloc(new_device_count *
+			sizeof(struct vidcap_src_info));
+	if ( !new_src_list )
+	{
+		fprintf(stderr, "ERROR: failed updated source allocation\n");
+		return -1;
+	}
+
+	new_iaxc_dev_list = (struct iaxc_video_device  *)malloc(
+			new_device_count * sizeof(struct iaxc_video_device));
+	if ( !new_iaxc_dev_list )
+	{
+		free(new_src_list);
+		fprintf(stderr, "ERROR: failed source allocation update\n");
+		return -1;
+	}
+
+	/* get an updated libvidcap device list */
+	if ( vidcap_src_list_get(vinfo.sapi, new_device_count, new_src_list) )
+	{
+		fprintf(stderr, "ERROR: failed vidcap_srcList_get()\n");
+
+		free(new_src_list);
+		free(new_iaxc_dev_list);
+		return -1;
+	}
+
+	/* build a new iaxclient video source list */
+	found_selected_device = 0;
+	for ( n = 0; n < new_device_count; n++ )
+	{
+		new_iaxc_dev_list[n].name = strdup(new_src_list[n].description);
+		new_iaxc_dev_list[n].id_string = strdup(new_src_list[n].identifier);
+
+		/* this device may have been here all along
+		 * Check if it has, and re-assign that device id
+		 * else assign a new id
+		 */
+		for ( i = 0; i < vinfo.device_count; i++ )
+		{
+			if ( !strcmp(new_iaxc_dev_list[n].name, vinfo.devices[i].name) )
+			{
+				/*fprintf(stderr, "EXISTING DEVICE: %s - (id=%d) '%s'\n",
+						new_iaxc_dev_list[n].name,
+						vinfo.devices[i].id,
+						new_iaxc_dev_list[n].id_string);
+				 */
+				new_iaxc_dev_list[n].id = vinfo.devices[i].id;
+
+				if ( vinfo.selected_device_id == new_iaxc_dev_list[n].id )
+					found_selected_device = 1;
+				break;
+			}
+		}
+		if ( i == vinfo.device_count )
+		{
+			new_iaxc_dev_list[n].id = vinfo.next_id++;
+			fprintf(stderr, "NEW DEVICE: %s - (id=%d) '%s'\n",
+						new_iaxc_dev_list[n].name,
+						new_iaxc_dev_list[n].id,
+						new_iaxc_dev_list[n].id_string);
+
+			list_changed = 1;
+		}
+	}
+
+	if ( !list_changed )
+	{
+		/* Free new lists. Nothing's really changed */
+		free(new_src_list);
+		for ( i = 0; i < new_device_count; i++ )
+		{
+			free((void *)new_iaxc_dev_list[i].name);
+			free((void *)new_iaxc_dev_list[i].id_string);
+		}
+		free(new_iaxc_dev_list);
+	}
+	else
+	{
+		old_device_count = vinfo.device_count;
+		old_src_list = vinfo.vc_src_info;
+		old_iaxc_dev_list = vinfo.devices;
+
+		/* Update iaxclient's device list info               */
+		/* Lock since other iaxclient funcs use these fields */
+		MUTEXLOCK(&vinfo.dev_list_lock);
+
+		vinfo.device_count = new_device_count;
+		vinfo.vc_src_info = new_src_list;
+		vinfo.devices = new_iaxc_dev_list;
+
+		MUTEXUNLOCK(&vinfo.dev_list_lock);
+
+		/* free old lists */
+		free(old_src_list);
+		for ( i = 0; i < old_device_count; i++ )
+		{
+			free((void *)old_iaxc_dev_list[i].name);
+			free((void *)old_iaxc_dev_list[i].id_string);
+		}
+		free(old_iaxc_dev_list);
+	}
+
+	*devs = vinfo.devices;
+	*num_devs = vinfo.device_count;
+	*id_selected = found_selected_device ? vinfo.selected_device_id : -1;
+
+	return list_changed; 
+} 
+
+EXPORT int iaxc_video_device_set(int capture_dev_id) 
+{ 
+	int ret = 0;
+	int dev_num = 0;
+
+	MUTEXLOCK(&vinfo.camera_lock);
+
+	if ( capture_dev_id == vinfo.selected_device_id )
+	{
+		MUTEXUNLOCK(&vinfo.camera_lock);
+		return 0;
+	}
+
+	if ( capture_dev_id < 0 )
+	{
+		MUTEXUNLOCK(&vinfo.camera_lock);
+		fprintf(stderr, "invalid video device id ( < 0 )\n");
+		return -1;
+	}
+
+	MUTEXLOCK(&vinfo.dev_list_lock);
+
+	for ( dev_num = 0; dev_num < vinfo.device_count; dev_num++ )
+	{
+		if ( vinfo.devices[dev_num].id == capture_dev_id )
+			break;
+	}
+
+	if ( dev_num == vinfo.device_count )
+	{
+		MUTEXUNLOCK(&vinfo.dev_list_lock);
+		MUTEXUNLOCK(&vinfo.camera_lock);
+		fprintf(stderr, "invalid video device id: %d\n",
+				capture_dev_id);
+		return -1;
+	}
+
+	vinfo.selected_device_id = capture_dev_id;
+
+	if ( vinfo.src && vidcap_src_release(vinfo.src) )
+	{
+		fprintf(stderr, "failed to release video source\n");
+	}
+
+	vinfo.src = 0;
+
+	MUTEXUNLOCK(&vinfo.dev_list_lock);
+
+	if ( vinfo.capturing )
+	{
+		if ( ensure_acquired(capture_dev_id) )
+		{
+			MUTEXUNLOCK(&vinfo.camera_lock);
+			return -1;
+		}
+
+		if ( prepare_for_capture() )
+		{
+			MUTEXUNLOCK(&vinfo.camera_lock);
+			return -1;
+		}
+
+		if ( (ret = vidcap_src_capture_start(vinfo.src,
+						capture_callback, 0)) )
+		{
+			MUTEXUNLOCK(&vinfo.camera_lock);
+			fprintf(stderr, "failed to restart video capture: %d\n", ret);
+			return -1;
+		}
+	}
+
+	MUTEXUNLOCK(&vinfo.camera_lock);
+
+	return 0;
+}
+
 int video_initialize(void)
 {
+	int i;
+	const int starting_id = 50;
+
 	memset(&vinfo, 0, sizeof(vinfo));
+
+	MUTEXINIT(&vinfo.camera_lock);
+	MUTEXINIT(&vinfo.dev_list_lock);
+
+	vinfo.width = vfinfo.width;
+	vinfo.height = vfinfo.height;
 
 	if ( !(vinfo.vc = vidcap_initialize()) )
 	{
@@ -1257,22 +1558,88 @@ int video_initialize(void)
 			vinfo.sapi_info.description,
 			vinfo.sapi_info.identifier);
 
-	/* TODO: Maybe we should reevaluate these defaults. Once could
-	 * make an argument that reasonable users of iaxclient might
-	 * not want video to be delivered as soon as they iaxc_initialize().
+	vinfo.selected_device_id = -1;
+
+	vinfo.device_count = vidcap_src_list_update(vinfo.sapi);
+	if ( vinfo.device_count < 0 )
+	{
+		fprintf(stderr,
+				"ERROR: failed updating video capture devices list\n");
+		goto bail;
+	}
+
+	vinfo.vc_src_info = (struct vidcap_src_info *)malloc(vinfo.device_count *
+			sizeof(struct vidcap_src_info));
+	if ( !vinfo.vc_src_info )
+	{
+		fprintf(stderr, "ERROR: failed vinfo field allocations\n");
+		goto bail;
+	}
+
+	vinfo.devices = (struct iaxc_video_device *)malloc(vinfo.device_count *
+			sizeof(struct iaxc_video_device));
+	if ( !vinfo.devices )
+	{
+		fprintf(stderr, "ERROR: failed vinfo field allocation\n");
+		free(vinfo.vc_src_info);
+		goto bail;
+	}
+
+	if ( vidcap_src_list_get(vinfo.sapi, vinfo.device_count,
+				vinfo.vc_src_info) )
+	{
+		fprintf(stderr, "ERROR: failed vidcap_src_list_get()\n");
+		free(vinfo.vc_src_info);
+		free(vinfo.devices);
+		goto bail;
+	}
+
+	/* build initial iaxclient video source list */
+	for ( i = 0; i < vinfo.device_count; i++ )
+	{
+		vinfo.devices[i].name = strdup(vinfo.vc_src_info[i].description);
+		vinfo.devices[i].id_string = strdup(vinfo.vc_src_info[i].identifier);
+		/* Let's be clear that the device id is not some
+		 * base-zero index. Once plug-n-play is implemented,
+		 * these ids may diverge as devices are added
+		 * and removed.
+		 */
+		vinfo.devices[i].id = i + starting_id;
+	}
+	vinfo.next_id = vinfo.devices[vinfo.device_count - 1].id + 1;
+
+	/* set default source - the first device */
+	if ( vinfo.device_count )
+	{
+		iaxc_video_device_set(vinfo.devices[0].id);
+	}
+
+	/* setup device notification callback
+	 * for device insertion and removal
 	 */
+	if ( vidcap_srcs_notify(vinfo.sapi, &video_device_notification_callback, 0) )
+	{
+		fprintf(stderr, "ERROR: failed vidcap_srcs_notify()\n");
+		goto late_bail;
+	}
+	
 	vinfo.prefs =
 		IAXC_VIDEO_PREF_RECV_LOCAL_RAW |
-		IAXC_VIDEO_PREF_RECV_REMOTE_RAW;
-
-	MUTEXINIT(&vinfo.camera_lock);
-
-	/* We reset the existing video preferences to yield the side-effect
-	 * of potentially starting or stopping the video capture.
-	 */
-	iaxc_set_video_prefs(vinfo.prefs);
+		IAXC_VIDEO_PREF_RECV_REMOTE_RAW |
+		IAXC_VIDEO_PREF_CAPTURE_DISABLE;
 
 	return 0;
+
+late_bail:
+	free(vinfo.vc_src_info);
+
+	for ( i = 0; i < vinfo.device_count; i++ )
+	{
+		free((void *)vinfo.devices[i].name);
+		free((void *)vinfo.devices[i].id_string);
+	}
+
+	free(vinfo.devices);
 
 bail:
 	vidcap_destroy(vinfo.vc);
@@ -1289,6 +1656,7 @@ int video_destroy(void)
 	vinfo.vc = 0;
 
 	MUTEXDESTROY(&vinfo.camera_lock);
+	MUTEXDESTROY(&vinfo.dev_list_lock);
 
 	if ( vinfo.converted_i420_buf )
 	{
@@ -1324,7 +1692,7 @@ int iaxc_is_camera_working()
 	 * we are saying that the "camera is working" if there exists
 	 * more than zero cameras.
 	 */
-	return vidcap_src_list_update(vinfo.sapi);
+	return vidcap_src_list_update(vinfo.sapi) > 0;
 }
 
 int video_send_stats(struct iaxc_call * call)
