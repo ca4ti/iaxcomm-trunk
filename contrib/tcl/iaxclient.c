@@ -600,7 +600,9 @@ static int DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_O
     }
 	
     if (objc == 2) {
-			line = iaxc_selected_call();
+	// Problems reported coming from this line.
+	// If including it again you must be very sure of exactly what you do!
+			//line = iaxc_selected_call();
 	}
 
     if (objc == 3) {
@@ -614,7 +616,9 @@ static int DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_O
 
 	if (result == TCL_OK) {
 		iaxc_call(num);
-		iaxc_select_call(line);
+		// Problems reported coming from this line.
+		// If including it again you must be very sure of exactly what you do!
+		//iaxc_select_call(line);
 	}
     return result;	
 }
