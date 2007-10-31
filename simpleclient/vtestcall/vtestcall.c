@@ -238,6 +238,9 @@ int iaxc_callback(iaxc_event e)
 				e.ev.audio.source == IAXC_SOURCE_REMOTE ? "remote" : "local",
 				e.ev.audio.encoded ? "encoded" : "raw");
 		break;
+	case IAXC_EVENT_VIDCAP_ERROR:
+		fprintf(stderr, "\nVIDEO CAPTURE DEVICE ERROR\n");
+		break;
 	default:
 		break;
 	}
@@ -275,12 +278,28 @@ void list_devices()
 	int nDevs, input, output,ring;
 	int i;
 
+	int vinput;
+	int nVdevs;
+	struct iaxc_video_device *vDevs;
+
 	iaxc_audio_devices_get(&devs,&nDevs, &input, &output, &ring);
+	printf("\nThere are %d audio devices:\n", nDevs);
 	for(i=0;i<nDevs;i++) 
 	{
-		fprintf(stderr, "DEVICE ID=%d NAME=%s CAPS=%lx\n", devs[i].devID, devs[i].name, devs[i].capabilities);
+		fprintf(stderr, "AUDIO DEVICE ID = %d   NAME = %s   CAPS=%lx\n",
+				devs[i].devID, devs[i].name, devs[i].capabilities);
 		iaxc_audio_devices_set(input,output,ring);
 	}
+
+	iaxc_video_devices_get(&vDevs, &nVdevs, &vinput);
+	printf("\nThere are %d video capture devices:\n", nVdevs);
+	for ( i = 0; i < nVdevs; i++ )
+	{
+		printf("VIDEO DEVICE ID = %d   NAME = %s\n",
+				vDevs[i].id, vDevs[i].name);
+	}
+	printf("Currently selected VIDEO device id: %d\n", vinput);
+
 }
 
 void usage()
@@ -363,7 +382,11 @@ int display_video(struct iaxc_ev_video v, int remote)
 		exit(-1);
 	}
 	
-	if ( v.size <= 0 ) fprintf(stderr, "WARNING: size %d in callback\n", v.size);
+	if ( v.size <= 0 )
+	{
+		fprintf(stderr, "WARNING: size %d in callback\n", v.size);
+		return 0;
+	}
 	
 	if ( !remote ) 
 	{
@@ -528,12 +551,18 @@ int main(int argc, char **argv)
 	//iaxc_set_audio_prefs(IAXC_AUDIO_PREF_RECV_LOCAL_RAW | IAXC_AUDIO_PREF_RECV_REMOTE_RAW);
 
 	fprintf(f, "\n\
-			   TestCall accept some keyboard input while it's running.\n\
+			   vtestcall accepts keyboard input while it's running.\n\
 			   You must hit 'enter' for your keypresses to be recognized,\n\
-			   although you can type more than one key on a line\n\
+			   although you can type more than one key on a line:\n\
 			   \n\
-			   q: drop the call and hangup.\n\
-			   0-9 * or #: dial those DTMF digits.\n");
+			   s: switch video capture devices \n\
+			   b: bypass video jitter stuff\n\
+			   r: reject incoming call\n\
+			   d: dial\n\
+			   c: set caller id info\n\
+			   w: video window toggle\n\
+			   0-9 * or #: dial those DTMF digits\n\
+			   q: drop the call and hangup\n");
 	
 	printf("Starting processing thread...\n");
 	iaxc_start_processing_thread();
@@ -613,6 +642,39 @@ int main(int argc, char **argv)
 						printf("Insert caller ID number: ");
 						fscanf(stdin,"%s",myCIDnumber);
 						iaxc_set_callerid(myCIDname,myCIDnumber);
+					}
+					break;
+				case SDLK_s:
+					{
+						int input;
+						int ndevs;
+						struct iaxc_video_device *vDevs;
+						int newVideoDevId;
+
+						iaxc_video_devices_get(&vDevs, &ndevs, &input);
+
+						printf("There are %d video capture devices:\n", ndevs);
+						for ( i = 0; i < ndevs; i++ )
+						{
+							printf("VIDEO DEVICE ID = %d   NAME = %s\n", vDevs[i].id, vDevs[i].name);
+						}
+						printf("Currently selected device id: %d\n", input);
+
+						printf("Select video capture device: ");
+						fflush(stdin);
+						fscanf(stdin,"%d", &newVideoDevId);
+
+						if ( iaxc_video_device_set(newVideoDevId) )
+						{
+							printf("Error selecting device id %d\n",
+									newVideoDevId);
+							break;
+						}
+
+						/* explicitly set the prefs again in case
+						 * previous capture device has failed
+						 */
+						iaxc_set_video_prefs( iaxc_get_video_prefs() );
 					}
 					break;
 				case SDLK_t: /* transmit-only */
