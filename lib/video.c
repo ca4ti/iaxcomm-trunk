@@ -1371,19 +1371,14 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 		new_iaxc_dev_list[n].name = strdup(new_src_list[n].description);
 		new_iaxc_dev_list[n].id_string = strdup(new_src_list[n].identifier);
 
-		/* this device may have been here all along
-		 * Check if it has, and re-assign that device id
+		/* This device may have been here all along.
+		 * If it has, re-assign that device id
 		 * else assign a new id
 		 */
 		for ( i = 0; i < vinfo.device_count; i++ )
 		{
 			if ( !strcmp(new_iaxc_dev_list[n].name, vinfo.devices[i].name) )
 			{
-				/*fprintf(stderr, "EXISTING DEVICE: %s - (id=%d) '%s'\n",
-						new_iaxc_dev_list[n].name,
-						vinfo.devices[i].id,
-						new_iaxc_dev_list[n].id_string);
-				 */
 				new_iaxc_dev_list[n].id = vinfo.devices[i].id;
 
 				if ( vinfo.selected_device_id == new_iaxc_dev_list[n].id )
@@ -1394,10 +1389,6 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 		if ( i == vinfo.device_count )
 		{
 			new_iaxc_dev_list[n].id = vinfo.next_id++;
-			fprintf(stderr, "NEW DEVICE: %s - (id=%d) '%s'\n",
-						new_iaxc_dev_list[n].name,
-						new_iaxc_dev_list[n].id,
-						new_iaxc_dev_list[n].id_string);
 
 			list_changed = 1;
 		}
@@ -1530,11 +1521,13 @@ int video_initialize(void)
 
 	memset(&vinfo, 0, sizeof(vinfo));
 
-	MUTEXINIT(&vinfo.camera_lock);
-	MUTEXINIT(&vinfo.dev_list_lock);
-
 	vinfo.width = vfinfo.width;
 	vinfo.height = vfinfo.height;
+	vinfo.selected_device_id = -1;
+	vinfo.next_id = starting_id;
+
+	MUTEXINIT(&vinfo.camera_lock);
+	MUTEXINIT(&vinfo.dev_list_lock);
 
 	if ( !(vinfo.vc = vidcap_initialize()) )
 	{
@@ -1557,8 +1550,6 @@ int video_initialize(void)
 	fprintf(stderr, "using vidcap sapi %s (%s)\n",
 			vinfo.sapi_info.description,
 			vinfo.sapi_info.identifier);
-
-	vinfo.selected_device_id = -1;
 
 	vinfo.device_count = vidcap_src_list_update(vinfo.sapi);
 	if ( vinfo.device_count < 0 )
@@ -1604,13 +1595,12 @@ int video_initialize(void)
 		 * these ids may diverge as devices are added
 		 * and removed.
 		 */
-		vinfo.devices[i].id = i + starting_id;
+		vinfo.devices[i].id = vinfo.next_id++;
 	}
-	vinfo.next_id = vinfo.devices[vinfo.device_count - 1].id + 1;
 
-	/* set default source - the first device */
 	if ( vinfo.device_count )
 	{
+		/* set default source - the first device */
 		iaxc_video_device_set(vinfo.devices[0].id);
 	}
 
