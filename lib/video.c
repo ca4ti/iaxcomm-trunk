@@ -1377,7 +1377,10 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 		 */
 		for ( i = 0; i < vinfo.device_count; i++ )
 		{
-			if ( !strcmp(new_iaxc_dev_list[n].name, vinfo.devices[i].name) )
+			/* check both the device name and its unique identifier */
+			if ( !strcmp(new_iaxc_dev_list[n].name, vinfo.devices[i].name) &&
+					!strcmp(new_iaxc_dev_list[n].id_string,
+							vinfo.devices[i].id_string) )
 			{
 				new_iaxc_dev_list[n].id = vinfo.devices[i].id;
 
