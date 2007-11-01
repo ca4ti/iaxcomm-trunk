@@ -1639,8 +1639,18 @@ bail:
 
 int video_destroy(void)
 {
+	int i;
+
 	if ( !vinfo.vc )
 		return -1;
+
+	free(vinfo.vc_src_info);
+	for ( i = 0; i < vinfo.device_count; i++ )
+	{
+		free((void *)vinfo.devices[i].name);
+		free((void *)vinfo.devices[i].id_string);
+	}
+	free(vinfo.devices);
 
 	vidcap_destroy(vinfo.vc);
 	vinfo.vc = 0;

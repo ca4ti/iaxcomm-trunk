@@ -1134,9 +1134,14 @@ EXPORT unsigned int iaxc_get_audio_prefs(void);
 EXPORT int iaxc_set_audio_prefs(unsigned int prefs);
 
 /*!
-	Get video capture device information:
+	Get video capture device information.
+	WARNING: the array pointed to by parameter 'devs' below is owned
+	         by iaxclient, and may be freed on subsequent calls to
+	         this function.
 	 \param devs Returns an array of iaxc_video_device structures.
-	        The array will will be valid as long as iaxc is initialized.
+	        The array will only be valid until this function is
+	        called again (if the device list changes), or until
+	        iaxc is shutdown.
 	 \param nDevs Returns the number of devices in the devs array
 	 \param devId Returns the id of the currently selected video capture device
 
