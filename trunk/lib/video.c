@@ -557,6 +557,15 @@ static int capture_callback(vidcap_src * src, void * user_data,
 				cap_info->error_status);
 		vinfo.capturing = 0;
 
+		/* NOTE:
+		 * We want to release now, but we're in the capture callback thread.
+		 * vidcap_src_release() fails during capture.
+		 *
+		 * We'll defer the release until the end-application's main thread
+		 * requires the release - if either iaxc_set_video_prefs(), 
+		 * iaxc_video_device_set() or video_destroy() are called.
+		 */
+
 		evt.type = IAXC_EVENT_VIDCAP_ERROR;
 		iaxci_post_event(evt);
 		return -1;
@@ -967,20 +976,19 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 			 !(prefs & IAXC_VIDEO_PREF_RECV_LOCAL_ENCODED)) )
 	{
 		MUTEXLOCK(&vinfo.camera_lock);
-		if ( vinfo.capturing )
+		if ( vinfo.capturing && vinfo.src &&
+				vidcap_src_capture_stop(vinfo.src) )
 		{
-			if ( vidcap_src_capture_stop(vinfo.src) )
-				fprintf(stderr, "failed vidcap_src_capture_stop\n");
-
-			vinfo.capturing = 0;
-
-			if ( vinfo.src && vidcap_src_release(vinfo.src) )
-			{
-				fprintf(stderr, "failed to release a video source\n");
-			}
-
-			vinfo.src = 0;
+			fprintf(stderr, "failed vidcap_src_capture_stop\n");
 		}
+
+		if ( vinfo.src && vidcap_src_release(vinfo.src) )
+		{
+			fprintf(stderr, "failed to release a video source\n");
+		}
+
+		vinfo.src = 0;
+		vinfo.capturing = 0;
 		MUTEXUNLOCK(&vinfo.camera_lock);
 	}
 	else
@@ -1434,9 +1442,16 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 		free(old_iaxc_dev_list);
 	}
 
+	/* If we can't find the selected device, defer releasing it.
+	 * It'll happen when we set a new device, or shutdown
+	 */
+
+	if ( !found_selected_device )
+		vinfo.selected_device_id = -1;
+
 	*devs = vinfo.devices;
 	*num_devs = vinfo.device_count;
-	*id_selected = found_selected_device ? vinfo.selected_device_id : -1;
+	*id_selected = vinfo.selected_device_id;
 
 	return list_changed; 
 } 
@@ -1479,6 +1494,12 @@ EXPORT int iaxc_video_device_set(int capture_dev_id)
 	}
 
 	vinfo.selected_device_id = capture_dev_id;
+
+	if ( vinfo.capturing && vinfo.src &&
+			vidcap_src_capture_stop(vinfo.src) )
+	{
+		fprintf(stderr, "failed to stop video capture\n");
+	}
 
 	if ( vinfo.src && vidcap_src_release(vinfo.src) )
 	{
@@ -1655,6 +1676,12 @@ int video_destroy(void)
 	}
 	free(vinfo.devices);
 
+	if ( vinfo.capturing && vinfo.src )
+		vidcap_src_capture_stop(vinfo.src);
+
+	if ( vinfo.src )
+		vidcap_src_release(vinfo.src);
+	
 	vidcap_destroy(vinfo.vc);
 	vinfo.vc = 0;
 
