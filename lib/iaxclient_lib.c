@@ -670,7 +670,25 @@ EXPORT void iaxc_shutdown()
 		video_destroy();
 #endif
 	}
-
+	
+	/* destroy enocders and decoders for all existing calls */
+	if ( calls ) 
+	{
+                int i;
+		for ( i=0 ; i<max_calls ; i++ ) 
+		{
+			if ( calls[i].encoder )
+				calls[i].encoder->destroy(calls[i].encoder);
+			if ( calls[i].decoder )
+				calls[i].decoder->destroy(calls[i].decoder);
+			if ( calls[i].vencoder )
+				calls[i].vdecoder->destroy(calls[i].vencoder);
+			if ( calls[i].vdecoder )
+				calls[i].vencoder->destroy(calls[i].vdecoder);
+                }
+		free(calls);
+		calls = NULL;
+	}
 	put_iaxc_lock();
 #ifdef WIN32
 	closesocket(iax_get_fd()); //fd:
