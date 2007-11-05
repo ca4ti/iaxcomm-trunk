@@ -1510,6 +1510,17 @@ EXPORT void iaxc_send_text(const char * text)
 	}
 }
 
+EXPORT void iaxc_send_text_call(int callNo, const char * text)
+{
+	if ( callNo < 0 || !(calls[callNo].state & IAXC_CALL_STATE_ACTIVE) )
+		return;
+
+	get_iaxc_lock();
+	if ( calls[callNo].state & IAXC_CALL_STATE_ACTIVE )
+		iax_send_text(calls[callNo].session, text);
+	put_iaxc_lock();
+}
+
 EXPORT void iaxc_send_url(const char * url, int link)
 {
 	if ( selected_call >= 0 )
