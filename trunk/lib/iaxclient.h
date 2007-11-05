@@ -819,6 +819,11 @@ EXPORT void iaxc_send_dtmf(char digit);
 EXPORT void iaxc_send_text(const char * text);
 
 /*!
+	Sends \a text to call \a callNo
+*/
+EXPORT void iaxc_send_text_call(int callNo, const char * text);
+
+/*!
 	Sends a URL across the currently selected call
 	\param url The URL to send across.
 	\param link If non-zero the URL is a link
