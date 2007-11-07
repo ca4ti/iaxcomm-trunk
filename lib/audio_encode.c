@@ -94,7 +94,6 @@ static int do_level_callback()
 static void set_speex_filters()
 {
 	int i;
-	float f;
 
 	if ( !st )
 		return;
@@ -107,10 +106,10 @@ static void set_speex_filters()
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DENOISE, &i);
 
 	/* make vad more sensitive */
-	f = 0.30f;
-	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_START, &f);
-	f = 0.07f;
-	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &f);
+	i = 30;
+	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_START, &i);
+	i = 7;
+	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &i);
 }
 
 static void calculate_level(short *audio, int len, float *level)
