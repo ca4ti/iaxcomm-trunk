@@ -100,7 +100,7 @@
 #elif defined(__GNUC__)
     /* GCC understands volatile asm and "memory" to mean it
      * should not reorder memory read/writes */
-#   if defined( __ppc__ )
+#   if defined( __ppc__ ) || defined( __powerpc__ )
 #      define rb_FullMemoryBarrier()  asm volatile("sync":::"memory")
 #      define rb_ReadMemoryBarrier()  asm volatile("sync":::"memory")
 #      define rb_WriteMemoryBarrier() asm volatile("sync":::"memory")
