@@ -385,7 +385,11 @@ AM_CONDITIONAL(MACOSX, test x$OSTYPE = xMACOSX)
 
 # Autodetect clients
 if test "x$enable_clients" = "xauto"; then
-   clients="$clients testcall stresstest"
+   clients="$clients testcall"
+
+   if test x$has_oggz = xyes && test x$has_theora = xyes; then
+      clients="$clients stresstest"
+   fi
 
    if test ! x$has_wx = xno; then
       clients="$clients iaxphone"
