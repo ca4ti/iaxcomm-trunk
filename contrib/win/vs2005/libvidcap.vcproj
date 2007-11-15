@@ -187,6 +187,26 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\..\..\libvidcap\src\directshow\DirectShowObject.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\..\..\libvidcap\src\directshow\DirectShowSource.cpp"
 				>
 				<FileConfiguration
@@ -283,6 +303,26 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\libvidcap\src\directshow\SourceStateMachine.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\..\..\libvidcap\src\vidcap.c"
 				>
 			</File>
@@ -305,6 +345,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\libvidcap\src\directshow\DirectShowObject.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\libvidcap\src\directshow\DirectShowSource.h"
 				>
 			</File>
@@ -321,14 +365,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libvidcap\src\directshow\LocklessQueue.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\..\libvidcap\src\logging.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\..\libvidcap\src\logging.h"
 				>
 			</File>
@@ -342,6 +378,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\libvidcap\src\sliding_window.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libvidcap\src\directshow\SourceStateMachine.h"
 				>
 			</File>
 			<File
