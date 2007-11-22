@@ -941,8 +941,15 @@ static int pa_select_devices(struct iaxc_audio_driver *d, int input,
 	selectedRing = ring;
 	if ( running )
 	{
+		/* stop/start audio, in order to switch devices */
 		pa_stop(d);
 		pa_start(d);
+	}
+	else
+	{
+		/* start/stop audio, in order to initialize mixers and levels */
+		pa_start(d);
+		pa_stop(d);
 	}
 	return 0;
 }
