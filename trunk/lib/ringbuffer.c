@@ -125,22 +125,29 @@
 #      endif
 #   endif
 #elif defined(_MSC_VER)
-#   include <intrin.h>
-#   pragma intrinsic(_ReadWriteBarrier)
-#   pragma intrinsic(_ReadBarrier)
-#   pragma intrinsic(_WriteBarrier)
-#   define rb_FullMemoryBarrier()  _ReadWriteBarrier()
-#   define rb_ReadMemoryBarrier()  _ReadBarrier()
-#   define rb_WriteMemoryBarrier() _WriteBarrier()
-#else
-#   ifdef ALLOW_SMP_DANGERS
-#      ifdef _MSC_VER
+#   if ( _MSC_VER > 1200 )
+#      include <intrin.h>
+#      pragma intrinsic(_ReadWriteBarrier)
+#      pragma intrinsic(_ReadBarrier)
+#      pragma intrinsic(_WriteBarrier)
+#      define rb_FullMemoryBarrier()  _ReadWriteBarrier()
+#      define rb_ReadMemoryBarrier()  _ReadBarrier()
+#      define rb_WriteMemoryBarrier() _WriteBarrier()
+#   else
+#      ifdef ALLOW_SMP_DANGERS
 #         pragma message("Memory barriers not defined on this system or system unknown")
 #         pragma message("For SMP safety, you should fix this.")
+#         define rb_FullMemoryBarrier()
+#         define rb_ReadMemoryBarrier()
+#         define rb_WriteMemoryBarrier()
 #      else
-#         warning Memory barriers not defined on this system or system unknown
-#         warning For SMP safety, you should fix this.
+#         error Memory barriers are not defined on this system. You can still compile by defining ALLOW_SMP_DANGERS, but SMP safety will not be guaranteed.
 #      endif
+#   endif
+#else
+#   ifdef ALLOW_SMP_DANGERS
+#      warning Memory barriers not defined on this system or system unknown
+#      warning For SMP safety, you should fix this.
 #      define rb_FullMemoryBarrier()
 #      define rb_ReadMemoryBarrier()
 #      define rb_WriteMemoryBarrier()

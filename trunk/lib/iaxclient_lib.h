@@ -71,6 +71,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #define THREADJOIN(t)
 /* causes deadlock with wx GUI on MSW */
 /* #define THREADJOIN(t) WaitForSingleObject(t, INFINITE) */
+#ifndef _WIN32_WINNT
+extern WINBASEAPI BOOL WINAPI TryEnterCriticalSection( LPCRITICAL_SECTION lpCriticalSection );
+#endif
 #define MUTEX CRITICAL_SECTION
 #define MUTEXINIT(m) InitializeCriticalSection(m)
 #define MUTEXLOCK(m) EnterCriticalSection(m)
