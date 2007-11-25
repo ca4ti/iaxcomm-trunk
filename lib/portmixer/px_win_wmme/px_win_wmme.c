@@ -626,7 +626,14 @@ void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
 
 int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 {
+	MIXERLINE mixerLine ;
+	LPMIXERCONTROL mixerControl ;
+	MIXERLINECONTROLS mixerLineControls ;
+	MIXERCONTROLDETAILS mixerControlDetails ;
+	MIXERCONTROLDETAILS_BOOLEAN value ;
 	MMRESULT mmr = MMSYSERR_ERROR ;
+	DWORD boost_id = -1 ;
+	DWORD x ;
 	
 	// cast void pointer
 	PxInfo* info = ( PxInfo* )( mixer ) ;
@@ -638,7 +645,6 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// get line info
 	//
 	
-	MIXERLINE mixerLine ;
     mixerLine.cbStruct = sizeof( MIXERLINE ) ;
     mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
 	
@@ -655,9 +661,8 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
-	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
 	mixerLineControls.dwLineID = mixerLine.dwLineID ;
 	mixerLineControls.cControls = mixerLine.cControls ;
@@ -681,10 +686,7 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// find boost control
 	//
 
-	DWORD boost_id = -1 ;
-	DWORD x = 0 ;
-	
-	for ( ; x < mixerLineControls.cControls ; ++x )
+	for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
 	{
 		// check control type
 		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
@@ -715,9 +717,6 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// get control details
 	//
 	
-	MIXERCONTROLDETAILS_BOOLEAN value ;
-
-	MIXERCONTROLDETAILS mixerControlDetails ;
 	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
 	mixerControlDetails.dwControlID = boost_id ;
 	mixerControlDetails.cChannels = 1 ;
@@ -764,7 +763,14 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 
 int Px_GetMicrophoneBoost( PxMixer* mixer )
 {
+	MIXERLINE mixerLine ;
+	LPMIXERCONTROL mixerControl ;
+	MIXERLINECONTROLS mixerLineControls ;
+	MIXERCONTROLDETAILS mixerControlDetails ;
+	MIXERCONTROLDETAILS_BOOLEAN value ;
 	MMRESULT mmr = MMSYSERR_ERROR ;
+	DWORD boost_id = -1 ;
+	DWORD x ;
 	
 	// cast void pointer
 	PxInfo* info = ( PxInfo* )( mixer ) ;
@@ -776,7 +782,6 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// get line info
 	//
 	
-	MIXERLINE mixerLine ;
     mixerLine.cbStruct = sizeof( MIXERLINE ) ;
     mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
 	
@@ -793,9 +798,8 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
-	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
 	mixerLineControls.dwLineID = mixerLine.dwLineID ;
 	mixerLineControls.cControls = mixerLine.cControls ;
@@ -819,10 +823,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// find boost control
 	//
 
-	DWORD boost_id = -1 ;
-	DWORD x = 0 ;
-	
-	for ( ; x < mixerLineControls.cControls ; ++x )
+	for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
 	{
 		// check control type
 		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
@@ -853,9 +854,6 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// get control details
 	//
 	
-	MIXERCONTROLDETAILS_BOOLEAN value ;
-
-	MIXERCONTROLDETAILS mixerControlDetails ;
 	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
 	mixerControlDetails.dwControlID = boost_id ;
 	mixerControlDetails.cChannels = 1 ;
@@ -879,6 +877,8 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 
 int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name ) 
 {
+	int x ;
+
 	// cast void pointer
 	PxInfo* info = ( PxInfo* )( mixer ) ;
 
@@ -894,8 +894,7 @@ int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name )
 	// set input source
 	//
 
-	int x = 0 ;
-	for ( ; x < info->numInputs ; ++x )
+	for ( x = 0 ; x < info->numInputs ; ++x )
 	{
 		// compare passed name with control name
 		if ( strncasecmp( info->src[x].name, name, strlen( name ) ) == 0 )
