@@ -682,9 +682,9 @@ EXPORT void iaxc_shutdown()
 			if ( calls[i].decoder )
 				calls[i].decoder->destroy(calls[i].decoder);
 			if ( calls[i].vencoder )
-				calls[i].vdecoder->destroy(calls[i].vencoder);
+				calls[i].vencoder->destroy(calls[i].vencoder);
 			if ( calls[i].vdecoder )
-				calls[i].vencoder->destroy(calls[i].vdecoder);
+				calls[i].vdecoder->destroy(calls[i].vdecoder);
                 }
 		free(calls);
 		calls = NULL;
