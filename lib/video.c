@@ -562,13 +562,19 @@ static int capture_callback(vidcap_src * src, void * user_data,
 		 * vidcap_src_release() fails during capture.
 		 *
 		 * We'll defer the release until the end-application's main thread
-		 * requires the release - if either iaxc_set_video_prefs(), 
+		 * requires the release - if either iaxc_set_video_prefs(),
 		 * iaxc_video_device_set() or video_destroy() are called.
 		 */
 
 		evt.type = IAXC_EVENT_VIDCAP_ERROR;
 		iaxci_post_event(evt);
 		return -1;
+	}
+
+	if ( cap_info->video_data_size < 1 )
+	{
+		fprintf(stderr, "FYI: callback with no data\n");
+		return 0;
 	}
 
 	if ( vinfo.prefs & IAXC_VIDEO_PREF_CAPTURE_DISABLE )
@@ -1018,7 +1024,7 @@ EXPORT int iaxc_set_video_prefs(unsigned int prefs)
 						capture_callback, 0)) )
 			{
 				MUTEXUNLOCK(&vinfo.camera_lock);
-				fprintf(stderr, "failed to start video capture: %d\n", 
+				fprintf(stderr, "failed to start video capture: %d\n",
 						ret);
 				return -1;
 			}
@@ -1321,8 +1327,8 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 }
 
 EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
-			int *num_devs, int *id_selected) 
-{ 
+			int *num_devs, int *id_selected)
+{
 	int new_device_count;
 	int old_device_count;
 	struct vidcap_src_info *new_src_list;
@@ -1330,13 +1336,15 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 	struct iaxc_video_device  *new_iaxc_dev_list;
 	struct iaxc_video_device  *old_iaxc_dev_list;
 	int found_selected_device = 0;
-	int list_changed = 0;
+	int list_changed;
 	int i, n;
+
+	if ( !vinfo.sapi )
+		return -1;
 
 	/* update libvidcap's device list */
 	new_device_count = vidcap_src_list_update(vinfo.sapi);
-	if ( new_device_count != vinfo.device_count )
-		list_changed = 1;
+	list_changed = new_device_count != vinfo.device_count;
 
 	if ( new_device_count < 0 )
 	{
@@ -1345,16 +1353,17 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 		return -1;
 	}
 
-	new_src_list = (struct vidcap_src_info *)malloc(new_device_count *
-			sizeof(struct vidcap_src_info));
+	new_src_list = calloc(new_device_count, sizeof(struct vidcap_src_info));
+
 	if ( !new_src_list )
 	{
 		fprintf(stderr, "ERROR: failed updated source allocation\n");
 		return -1;
 	}
 
-	new_iaxc_dev_list = (struct iaxc_video_device  *)malloc(
-			new_device_count * sizeof(struct iaxc_video_device));
+	new_iaxc_dev_list = calloc(new_device_count,
+			sizeof(struct iaxc_video_device));
+
 	if ( !new_iaxc_dev_list )
 	{
 		free(new_src_list);
@@ -1365,7 +1374,7 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 	/* get an updated libvidcap device list */
 	if ( vidcap_src_list_get(vinfo.sapi, new_device_count, new_src_list) )
 	{
-		fprintf(stderr, "ERROR: failed vidcap_srcList_get()\n");
+		fprintf(stderr, "ERROR: failed vidcap_srcList_get().\n");
 
 		free(new_src_list);
 		free(new_iaxc_dev_list);
@@ -1373,7 +1382,6 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 	}
 
 	/* build a new iaxclient video source list */
-	found_selected_device = 0;
 	for ( n = 0; n < new_device_count; n++ )
 	{
 		new_iaxc_dev_list[n].name = strdup(new_src_list[n].description);
@@ -1453,11 +1461,11 @@ EXPORT int iaxc_video_devices_get(struct iaxc_video_device **devs,
 	*num_devs = vinfo.device_count;
 	*id_selected = vinfo.selected_device_id;
 
-	return list_changed; 
-} 
+	return list_changed;
+}
 
-EXPORT int iaxc_video_device_set(int capture_dev_id) 
-{ 
+EXPORT int iaxc_video_device_set(int capture_dev_id)
+{
 	int ret = 0;
 	int dev_num = 0;
 
@@ -1583,16 +1591,18 @@ int video_initialize(void)
 		goto bail;
 	}
 
-	vinfo.vc_src_info = (struct vidcap_src_info *)malloc(vinfo.device_count *
+	vinfo.vc_src_info = calloc(vinfo.device_count,
 			sizeof(struct vidcap_src_info));
+
 	if ( !vinfo.vc_src_info )
 	{
 		fprintf(stderr, "ERROR: failed vinfo field allocations\n");
 		goto bail;
 	}
 
-	vinfo.devices = (struct iaxc_video_device *)malloc(vinfo.device_count *
+	vinfo.devices = calloc(vinfo.device_count,
 			sizeof(struct iaxc_video_device));
+
 	if ( !vinfo.devices )
 	{
 		fprintf(stderr, "ERROR: failed vinfo field allocation\n");
@@ -1636,7 +1646,7 @@ int video_initialize(void)
 		fprintf(stderr, "ERROR: failed vidcap_srcs_notify()\n");
 		goto late_bail;
 	}
-	
+
 	vinfo.prefs =
 		IAXC_VIDEO_PREF_RECV_LOCAL_RAW |
 		IAXC_VIDEO_PREF_RECV_REMOTE_RAW |
@@ -1656,6 +1666,11 @@ late_bail:
 	free(vinfo.devices);
 
 bail:
+	if ( vinfo.sapi )
+	{
+		vidcap_sapi_release(vinfo.sapi);
+		vinfo.sapi = 0;
+	}
 	vidcap_destroy(vinfo.vc);
 	vinfo.vc = 0;
 	return -1;
@@ -1681,7 +1696,7 @@ int video_destroy(void)
 
 	if ( vinfo.src )
 		vidcap_src_release(vinfo.src);
-	
+
 	vidcap_destroy(vinfo.vc);
 	vinfo.vc = 0;
 
@@ -1722,7 +1737,7 @@ int iaxc_is_camera_working()
 	 * we are saying that the "camera is working" if there exists
 	 * more than zero cameras.
 	 */
-	return vidcap_src_list_update(vinfo.sapi) > 0;
+	return vinfo.sapi && vidcap_src_list_update(vinfo.sapi) > 0;
 }
 
 int video_send_stats(struct iaxc_call * call)
@@ -1756,27 +1771,27 @@ int video_send_stats(struct iaxc_call * call)
 EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
 {
 	struct iaxc_call *call;
-	
+
 	if (selected_call < 0)
 		return -1;
-	
+
 	call = &calls[selected_call];
 
 	if ( vinfo.prefs & IAXC_VIDEO_PREF_SEND_DISABLE )
 		return 0;
-	
+
 	//fprintf(stderr, "iaxc_push_video: sending video size %d\n", size);
-	
+
 	// Fragment if needed
 	if ( fragment )
 	{
 		static struct slice_set_t slice_set;
 		int i;
-		
+
 		if ( !vinfo.sc )
 			vinfo.sc = create_slicer_context((unsigned short)rand(),
 					vfinfo.fragsize);
-		
+
 		slice(data, size, &slice_set, vinfo.sc);
 		for ( i = 0 ; i < slice_set.num_slices ; i++ )
 		{
