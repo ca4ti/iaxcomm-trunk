@@ -481,6 +481,10 @@ struct iax_session *iax_session_new(void)
 		s->sendto = iax_sendto;
 		s->pingid = -1;
 
+#ifdef USE_VOICE_TS_PREDICTION
+		s->nextpred = 0;
+#endif
+
 		s->jb = jb_new();
 		if ( !s->jb )
 		{
@@ -539,13 +543,14 @@ int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *
 static void add_ms(struct timeval *tv, int ms)
 {
 	tv->tv_usec += ms * 1000;
-	if(tv->tv_usec > 1000000) {
-		tv->tv_usec -= 1000000;
-		tv->tv_sec++;
+	if (tv->tv_usec > 999999) {
+		tv->tv_sec += tv->tv_usec / 1000000;
+		tv->tv_usec %= 1000000;
 	}
-	if(tv->tv_usec < 0) {
-		tv->tv_usec += 1000000;
-		tv->tv_sec--;
+
+	if (tv->tv_usec < 0) {
+		tv->tv_sec += (tv->tv_usec / 1000000 - 1);
+		tv->tv_usec = (tv->tv_usec % 1000000) + 1000000;
 	}
 }
 #endif
@@ -646,7 +651,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 #ifdef USE_VOICE_TS_PREDICTION
 	/* set next predicted ts based on 8khz samples */
 	if(voice)
-	    session->nextpred = session->nextpred + f->samples / 8;
+	    session->nextpred += f->samples / 8;
 #endif
 
 	return ms;
