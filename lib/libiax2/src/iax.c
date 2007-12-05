@@ -3102,7 +3102,7 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 
 	if (ntohs(fh->scallno) & IAX_FLAG_FULL) {
 		/* Full size header */
-		if (len < sizeof(struct ast_iax2_full_hdr)) {
+		if ((size_t)len < sizeof(struct ast_iax2_full_hdr)) {
 			DEBU(G "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			IAXERROR "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			return NULL;
@@ -3121,7 +3121,7 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 		DEBU(G "No session?\n");
 		return NULL;
 	} else {
-		if (len < sizeof(struct ast_iax2_mini_hdr)) {
+		if ((size_t)len < sizeof(struct ast_iax2_mini_hdr)) {
 			DEBU(G "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			IAXERROR "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			return NULL;
