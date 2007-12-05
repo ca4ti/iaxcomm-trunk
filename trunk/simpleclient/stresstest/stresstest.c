@@ -1,17 +1,20 @@
 /*
-* vtestcall: make a single video test call with IAXCLIENT
+* stresstest: simple program for applying IAX2 protocol stress to asterisk.
 *
-* IAX Support for talking to Asterisk and other Gnophone clients
+* Copyrights:
+* Copyright (C) 2007, Wimba, Inc.
 *
-* Copyright (C) 1999, Linux Support Services, Inc.
-*
-* Mark Spencer <markster@linux-support.net>
-* Stefano Falsetto <falsetto@gnu.org>
+* Contributors:
 * Mihai Balea <mihai AT hates DOT ms>
+* Peter Grayson <jpgrayson@gmail.com>
 *
 * This program is free software, distributed under the terms of
-* the GNU Lesser (Library) General Public License
+* the GNU Lesser (Library) General Public License.
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -256,7 +259,6 @@ int main(int argc, char **argv)
 	char *dest = NULL;
 	char *ogg_file = NULL;
 	int loop = 0;
-	int callNo;
 
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
@@ -319,8 +321,11 @@ int main(int argc, char **argv)
 			default:
 				usage();
 			}
-		} else
+		}
+		else
+		{
 			dest = argv[i];
+		}
 	}
 
 	if ( dest == NULL )
@@ -341,6 +346,7 @@ int main(int argc, char **argv)
 	iaxc_video_format_set(formatp, format, framerate, bitrate,
 			width, height, fragsize);
 	iaxc_set_test_mode(1);
+
 	if (iaxc_initialize(MAX_CALLS))
 		fatal_error("cannot initialize iaxclient!");
 
@@ -351,14 +357,12 @@ int main(int argc, char **argv)
 	iaxc_set_event_callback(test_mode_callback);
 
 	// Crank the engine
-	iaxc_start_processing_thread();
+	if ( iaxc_start_processing_thread() < 0 )
+		fatal_error("failed iaxc_start_processing_thread()\n");
 
 	// Dial out
-	callNo = iaxc_call(dest);
-	if (callNo <= 0)
-		iaxc_select_call(callNo);
-	else
-		mylog("Failed to make call to '%s'", dest);
+	if ( iaxc_call(dest) < 0 )
+		fatal_error("failed iaxc_call()");
 
 	// Wait for the call to be established;
 	while ( !call_established && running )
