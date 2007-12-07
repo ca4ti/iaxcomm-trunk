@@ -17,6 +17,9 @@
 #if defined(_MSC_VER)
 /* disable zero-sized array in struct/union warning */
 #pragma warning(disable:4200)
+#endif
+
+#ifdef WIN32
 #define socklen_t int
 #endif
 
