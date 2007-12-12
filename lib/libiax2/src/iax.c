@@ -899,7 +899,7 @@ int iax_init(int preferredportno)
 		struct sockaddr_in sin;
 		socklen_t sinlen;
 		int flags;
-		int bufsize = 256 * 1024;
+		int bufsize = 128 * 1024;
 
 		if (netfd > -1)
 		{
@@ -989,8 +989,16 @@ int iax_init(int preferredportno)
 		if (setsockopt(netfd, SOL_SOCKET, SO_RCVBUF, (char *)&bufsize,
 					sizeof(bufsize)) < 0)
 		{
-			DEBU(G "Unable to set buffer size.");
-			IAXERROR "Unable to set buffer size.");
+			DEBU(G "Unable to set receive buffer size.");
+			IAXERROR "Unable to set receive buffer size.");
+		}
+
+		/* set send buffer size too */
+		if (setsockopt(netfd, SOL_SOCKET, SO_SNDBUF, (char *)&bufsize,
+					sizeof(bufsize)) < 0)
+		{
+			DEBU(G "Unable to set send buffer size.");
+			IAXERROR "Unable to set send buffer size.");
 		}
 
 		portno = ntohs(sin.sin_port);
