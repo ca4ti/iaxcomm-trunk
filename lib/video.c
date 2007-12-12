@@ -123,6 +123,10 @@ extern int selected_call;
 extern int test_mode;
 extern struct iaxc_call * calls;
 
+/* to prevent clearing a call while in capture callback */
+extern __inline int try_iaxc_lock();
+extern __inline void put_iaxc_lock();
+
 EXPORT unsigned int iaxc_get_video_prefs(void)
 {
 	return vinfo.prefs;
@@ -643,22 +647,37 @@ static int capture_callback(vidcap_src * src, void * user_data,
 				0); /* timestamp (ms) */
 	}
 
+	/* Don't block waiting for this lock. If the main thread has the lock
+	 * for the purpose of dumping the call, it may request that video
+	 * capture stop - which would block until this callback returned.
+	 */
+	if ( try_iaxc_lock() )
+	{
+		/* give it a second try */
+		iaxc_millisleep(5);
+		if ( try_iaxc_lock() )
+		{
+			fprintf(stderr, "skipping processing of a video frame\n");
+			return 0;
+		}
+	}
+
 	if ( selected_call < 0 )
-		return 0;
+		goto callback_done;
 
 	call = &calls[selected_call];
 
 	if ( !call || !(call->state & (IAXC_CALL_STATE_COMPLETE |
 					IAXC_CALL_STATE_OUTGOING)) )
 	{
-		return 0;
+		goto callback_done;
 	}
 
 	if ( call->vformat == 0 )
 	{
 		fprintf(stderr, "video format not set for call %d\n",
 				selected_call);
-		return -1;
+		goto callback_failed;
 	}
 
 	if ( !need_encode )
@@ -675,7 +694,7 @@ static int capture_callback(vidcap_src * src, void * user_data,
 			call->vencoder = 0;
 		}
 
-		return 0;
+		goto callback_done;
 	}
 	else
 	{
@@ -694,7 +713,8 @@ static int capture_callback(vidcap_src * src, void * user_data,
 				fprintf(stderr, "ERROR: failed to create codec "
 						"for format 0x%08x\n",
 						call->vformat);
-				return -1;
+
+				goto callback_failed;
 			}
 
 			fprintf(stderr, "created encoder codec %s\n",
@@ -706,7 +726,7 @@ static int capture_callback(vidcap_src * src, void * user_data,
 					&slice_set) )
 		{
 			fprintf(stderr, "failed to encode captured video\n");
-			return -1;
+			goto callback_failed;
 		}
 	}
 
@@ -725,7 +745,7 @@ static int capture_callback(vidcap_src * src, void * user_data,
 	if ( !call->session )
 	{
 		fprintf(stderr, "not sending video to sessionless call\n");
-		return -1;
+		goto callback_failed;
 	}
 
 	for ( i = 0; i < slice_set.num_slices; ++i )
@@ -753,7 +773,7 @@ static int capture_callback(vidcap_src * src, void * user_data,
 				fprintf(stderr, "failed sending slice call %d "
 						"size %d\n", selected_call,
 						slice_set.size[i]);
-				return -1;
+				goto callback_failed;
 			}
 
 			/* More statistics */
@@ -769,7 +789,13 @@ static int capture_callback(vidcap_src * src, void * user_data,
 
 	maybe_send_stats(call);
 
+callback_done:
+	put_iaxc_lock();
 	return 0;
+
+callback_failed:
+	put_iaxc_lock();
+	return -1;
 }
 
 static int prepare_for_capture()

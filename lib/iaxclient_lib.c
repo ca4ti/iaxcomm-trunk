@@ -138,8 +138,13 @@ static void get_iaxc_lock()
 	MUTEXLOCK(&iaxc_lock);
 }
 
+int try_iaxc_lock()
+{
+	return MUTEXTRYLOCK(&iaxc_lock);
+}
+
 // Unlock the library and post any events that were queued in the meantime
-static void put_iaxc_lock()
+void put_iaxc_lock()
 {
 	iaxc_event *prev, *event;
 
