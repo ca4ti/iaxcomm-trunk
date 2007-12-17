@@ -128,6 +128,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 /* Video frames bypass jitterbuffer */
 static int video_bypass_jitterbuffer = 0;
 
+/* To use or not to use the jitterbuffer */
+static int iax_use_jitterbuffer = 1;
+
 /* UDP Socket (file descriptor) */
 static int netfd = -1;
 
@@ -247,6 +250,16 @@ void iax_enable_debug(void)
 void iax_disable_debug(void)
 {
 	debug = 0;
+}
+
+void iax_enable_jitterbuffer(void)
+{
+	iax_use_jitterbuffer = 1;
+}
+
+void iax_disable_jitterbuffer(void)
+{
+	iax_use_jitterbuffer = 0;
 }
 
 void iax_set_private(struct iax_session *s, void *ptr)
@@ -2342,7 +2355,9 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 
 	/* insert into jitterbuffer */
 	/* TODO: Perhaps we could act immediately if it's not droppable and late */
-	if ( e->etype == IAX_EVENT_VIDEO && video_bypass_jitterbuffer )
+	if ( !iax_use_jitterbuffer ||
+			(e->etype == IAX_EVENT_VIDEO &&
+			 video_bypass_jitterbuffer) )
 	{
 		iax_sched_add(e, NULL, NULL, NULL, 0);
 		return NULL;
