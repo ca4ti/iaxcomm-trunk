@@ -332,22 +332,6 @@ static int callnums = 1;
 static int transfer_id = 1;		/* for attended transfer */
 
 
-void iax_set_private(struct iax_session *s, void *ptr)
-{
-	s->pvt = ptr;
-}
-
-void *iax_get_private(struct iax_session *s)
-{
-	return s->pvt;
-}
-
-void iax_set_sendto(struct iax_session *s, iax_sendto_t ptr)
-{
-	s->sendto = ptr;
-}
-
-
 unsigned int iax_session_get_capability(struct iax_session *s)
 {
 	return s->capability;
