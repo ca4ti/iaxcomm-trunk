@@ -30,7 +30,6 @@
 #include <winsock.h>
 #include <time.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <limits.h>
@@ -76,9 +75,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <arpa/inet.h>
 #include <time.h>
 
-#ifndef MACOSX
+#if !defined(MACOSX) && !defined(__OpenBSD__)
 #include <malloc.h>
-#ifndef SOLARIS
+#if !defined(SOLARIS)
 #include <error.h>
 #endif
 #endif
@@ -97,7 +96,7 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #ifdef MACOSX
 #define IAX_SOCKOPTS MSG_DONTWAIT
 #else
-#ifdef SOLARIS
+#if defined(SOLARIS) || defined(__OpenBSD__)
 #define IAX_SOCKOPTS MSG_DONTWAIT
 #else  /* Linux and others */
 #define IAX_SOCKOPTS MSG_DONTWAIT | MSG_NOSIGNAL
