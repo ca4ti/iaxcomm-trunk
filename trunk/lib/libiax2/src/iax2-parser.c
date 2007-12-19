@@ -159,7 +159,6 @@ static struct iax2_ie {
 	{ IAX_IE_CAPABILITY, "CAPABILITY", dump_int },
 	{ IAX_IE_FORMAT, "FORMAT", dump_int },
 	{ IAX_IE_LANGUAGE, "LANGUAGE", dump_string },
-	{ IAX_IE_CODEC_PREFS, "CODEC_PREFS", dump_string },
 	{ IAX_IE_VERSION, "VERSION", dump_short },
 	{ IAX_IE_ADSICPE, "ADSICPE", dump_short },
 	{ IAX_IE_DNID, "DNID", dump_string },
