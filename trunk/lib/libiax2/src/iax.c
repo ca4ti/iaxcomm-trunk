@@ -826,17 +826,21 @@ static int iax_xmit_frame(struct iax_frame *f)
 {
 	int res;
 #ifdef DEBUG_SUPPORT
-	struct ast_iax2_full_hdr *h = (struct ast_iax2_full_hdr *)(f->data);
+	if (debug) {
+		struct ast_iax2_full_hdr *h = (struct ast_iax2_full_hdr *)f->data;
 
-	if (ntohs(h->scallno) & IAX_FLAG_FULL)
-		iax_showframe(f, NULL, 0, f->transfer ?
-				&(f->session->transfer) :
-				&(f->session->peeraddr),
-				f->datalen - sizeof(struct ast_iax2_full_hdr));
+		if (ntohs(h->scallno) & IAX_FLAG_FULL)
+			iax_showframe(f, NULL, 0, f->transfer ?
+					&(f->session->transfer) :
+					&(f->session->peeraddr),
+					f->datalen -
+					sizeof(struct ast_iax2_full_hdr));
+	}
 #endif
 	/* Send the frame raw */
-	res = f->session->sendto(netfd, (const char *) f->data, f->datalen, IAX_SOCKOPTS,
-			f->transfer ? (struct sockaddr *)&(f->session->transfer) :
+	res = f->session->sendto(netfd, (const char *) f->data, f->datalen,
+			IAX_SOCKOPTS, f->transfer ?
+			(struct sockaddr *)&(f->session->transfer) :
 			(struct sockaddr *)&(f->session->peeraddr),
 			sizeof(f->session->peeraddr));
 	return res;
@@ -2507,7 +2511,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 	}
 
 #ifdef DEBUG_SUPPORT
-	iax_showframe(NULL, fh, 1, sin, datalen);
+	if (debug)
+		iax_showframe(NULL, fh, 1, sin, datalen);
 #endif
 
 	/* Get things going with it, timestamp wise, if we
