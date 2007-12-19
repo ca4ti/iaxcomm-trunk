@@ -1015,7 +1015,7 @@ static void convert_reply(char *out, unsigned char *in)
 {
 	int x;
 	for (x=0;x<16;x++)
-		out += sprintf(out, "%2.2x", (int)in[x]);
+		sprintf(out + (x << 1), "%2.2x", (int)in[x]);
 }
 
 static unsigned char compress_subclass(int subclass)
