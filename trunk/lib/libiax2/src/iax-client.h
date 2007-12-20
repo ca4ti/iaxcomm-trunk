@@ -184,6 +184,7 @@ extern int iax_send_link_reject(struct iax_session *session);
 extern int iax_ring_announce(struct iax_session *session);
 extern struct sockaddr_in iax_get_peer_addr(struct iax_session *session);
 extern int iax_register(struct iax_session *session, const char *hostname, const char *peer, const char *secret, int refresh);
+extern int iax_unregister(struct iax_session *session, const char *hostname, const char *peer, const char *secret, const char *reason);
 extern int iax_lag_request(struct iax_session *session);
 extern int iax_dial(struct iax_session *session, char *number); /* Dial on a TBD call */
 extern int iax_dialplan_request(struct iax_session *session, char *number); /* Request dialplan status for number */

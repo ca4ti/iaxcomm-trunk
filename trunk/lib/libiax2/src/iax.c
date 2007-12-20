@@ -202,6 +202,8 @@ struct iax_session {
 	struct timeval rxcore;
 	/* Current link state */
 	int state;
+	/* Unregister reason */
+	char unregreason[MAXSTRLEN];
 	/* Expected Username */
 	char username[MAXSTRLEN];
 	/* Expected Secret */
@@ -1756,6 +1758,8 @@ int iax_register(struct iax_session *session, const char *server, const char *pe
 	else
 		strcpy(session->secret, "");
 
+	memset(&session->unregreason, 0, sizeof(session->unregreason));
+
 	/* Connect first */
 	hp = gethostbyname(tmp);
 	if (!hp) {
@@ -1771,6 +1775,49 @@ int iax_register(struct iax_session *session, const char *server, const char *pe
 	iax_ie_append_short(&ied, IAX_IE_REFRESH, refresh);
 	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
 	return res;
+}
+
+int iax_unregister(struct iax_session *session, const char *server, const char *peer, const char *secret, const char *reason)
+{
+	/* Send an unregistration request */
+	char tmp[256];
+	char *p;
+	int portno = IAX_DEFAULT_PORTNO;
+	struct iax_ie_data ied;
+	struct hostent *hp;
+
+	tmp[255] = '\0';
+	strncpy(tmp, server, sizeof(tmp) - 1);
+	p = strchr(tmp, ':');
+	if (p) {
+		*p = '\0';
+		portno = atoi(p+1);
+	}
+
+	memset(&ied, 0, sizeof(ied));
+	if (secret)
+		strncpy(session->secret, secret, sizeof(session->secret) - 1);
+	else
+		strcpy(session->secret, "");
+
+	if (reason && strlen(reason))
+		strncpy(session->unregreason, reason, sizeof(session->unregreason) - 1);
+	else
+		strcpy(session->unregreason, "Unspecified");
+
+	/* Connect first */
+	hp = gethostbyname(tmp);
+	if (!hp) {
+		snprintf(iax_errstr, sizeof(iax_errstr), "Invalid hostname: %s", tmp);
+		return -1;
+	}
+	memcpy(&session->peeraddr.sin_addr, hp->h_addr, sizeof(session->peeraddr.sin_addr));
+	session->peeraddr.sin_port = htons(portno);
+	session->peeraddr.sin_family = AF_INET;
+	strncpy(session->username, peer, sizeof(session->username) - 1);
+	iax_ie_append_str(&ied, IAX_IE_USERNAME, peer);
+	iax_ie_append_str(&ied, IAX_IE_CAUSE, session->unregreason);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos, -1);
 }
 
 int iax_reject(struct iax_session *session, char *reason)
@@ -1970,7 +2017,6 @@ static int iax_regauth_reply(struct iax_session *session, char *password, char *
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_USERNAME, session->username);
-	iax_ie_append_short(&ied, IAX_IE_REFRESH, session->refresh);
 	if ((methods & IAX_AUTHMETHOD_MD5) && challenge) {
 		MD5Init(&md5);
 		MD5Update(&md5, (const unsigned char *) challenge,
@@ -1984,7 +2030,13 @@ static int iax_regauth_reply(struct iax_session *session, char *password, char *
 	} else {
 		iax_ie_append_str(&ied, IAX_IE_PASSWORD, password);
 	}
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
+	if (strlen(session->unregreason)) {		/* Non-zero unregreason length indicates REGREL */
+		iax_ie_append_str(&ied, IAX_IE_CAUSE, session->unregreason);
+		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos, -1);
+	} else {
+		iax_ie_append_short(&ied, IAX_IE_REFRESH, session->refresh);
+		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
+	}
 }
 
 
