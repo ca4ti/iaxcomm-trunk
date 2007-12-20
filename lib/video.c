@@ -9,6 +9,7 @@
  * Steve Kann <stevek@stevek.com>
  * Mihai Balea <mihai AT hates DOT ms>
  * Peter Grayson <jpgrayson@gmail.com>
+ * Erik Bunce <kde@bunce.us>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License.
@@ -675,8 +676,6 @@ static int capture_callback(vidcap_src * src, void * user_data,
 
 	if ( call->vformat == 0 )
 	{
-		fprintf(stderr, "video format not set for call %d\n",
-				selected_call);
 		goto callback_failed;
 	}
 
@@ -1830,8 +1829,8 @@ EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
 			                         ) == -1
 			   )
 			{
-				fprintf(stderr, "Failed to send a slice, call %d, size %d\n",
-					selected_call, slice_set.size[i]);
+				fprintf(stderr, "Failed to send a slice, call %d, size %d: %s\n",
+								selected_call, slice_set.size[i], iax_errstr);
 				return -1;
 			}
 
@@ -1842,8 +1841,8 @@ EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
 					size, 0, 0) == -1 )
 		{
 			fprintf(stderr, "iaxc_push_video: failed to send "
-					"video frame of size %d on call %d\n",
-					size, selected_call);
+					"video frame of size %d on call %d: %s\n",
+					size, selected_call, iax_errstr);
 			return -1;
 		}
 	}

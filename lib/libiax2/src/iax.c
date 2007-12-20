@@ -276,6 +276,29 @@ void iax_set_sendto(struct iax_session *s, iax_sendto_t ptr)
 	s->sendto = ptr;
 }
 
+void iax_seed_random()
+{
+#if defined(HAVE_SRANDOMDEV)
+	srandomdev();
+#elif defined(HAVE_SRANDOM)
+	srandom((unsigned int)time(0));
+#elif define(HAVE_SRAND48)
+	srand48((long int)time(0));
+#else
+	srand((unsigned int)time(0));
+#endif
+}
+
+int iax_random()
+{
+#if defined(HAVE_RANDOM)
+	return (int)random();
+#elif defined(HAVE_LRAND48)
+	return (int)lrand48();
+#else
+	return rand();
+#endif
+}
 
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
@@ -286,7 +309,7 @@ void iax_set_sendto(struct iax_session *s, iax_sendto_t ptr)
 
 #define DEBU __debug
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
-static int __debug(char *file, int lineno, char *fmt, ...)
+static int __debug(const char *file, int lineno, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -298,7 +321,7 @@ static int __debug(char *file, int lineno, char *fmt, ...)
 	return 0;
 }
 #else
-static int __debug(char *file, int lineno, char *func, char *fmt, ...)
+static int __debug(const char *file, int lineno, const char *func, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -341,14 +364,11 @@ struct iax_sched {
 static struct iax_sched *schedq = NULL;
 static struct iax_session *sessions = NULL;
 static int callnums = 1;
-static int transfer_id = 1;		/* for attended transfer */
-
 
 unsigned int iax_session_get_capability(struct iax_session *s)
 {
 	return s->capability;
 }
-
 
 static int inaddrcmp(struct sockaddr_in *sin1, struct sockaddr_in *sin2)
 {
@@ -831,10 +851,9 @@ static int iax_xmit_frame(struct iax_frame *f)
 
 		if (ntohs(h->scallno) & IAX_FLAG_FULL)
 			iax_showframe(f, NULL, 0, f->transfer ?
-					&(f->session->transfer) :
-					&(f->session->peeraddr),
-					f->datalen -
-					sizeof(struct ast_iax2_full_hdr));
+										&(f->session->transfer) :
+										&(f->session->peeraddr),
+										f->datalen - sizeof(struct ast_iax2_full_hdr));
 	}
 #endif
 	/* Send the frame raw */
@@ -1005,9 +1024,8 @@ int iax_init(int preferredportno)
 		DEBU(G "Started on port %d\n", portno);
 	}
 
-	srand((unsigned int)time(0));
-	callnums = rand() % 32767 + 1;
-	transfer_id = rand() % 32767 + 1;
+	iax_seed_random();
+	callnums = 1 + (int)(32767.0 * (iax_random() / (RAND_MAX + 1.0)));
 
 	return portno;
 }
@@ -1400,7 +1418,10 @@ int iax_setup_transfer(struct iax_session *org_session, struct iax_session *new_
 	struct iax_session *s1 = new_session;
 
 	memset(&ied0, 0, sizeof(ied0));
+
 	memset(&ied1, 0, sizeof(ied1));
+
+	int transfer_id = 1 + (int)(32767.0 * (iax_random() / (RAND_MAX + 1.0)));
 
 	/* reversed setup */
 	iax_ie_append_addr(&ied0, IAX_IE_APPARENT_ADDR, &s1->peeraddr);
@@ -1425,11 +1446,13 @@ int iax_setup_transfer(struct iax_session *org_session, struct iax_session *new_
 
 	s0->transferpeer = s1->callno;
 	s1->transferpeer = s0->callno;
-
-	transfer_id++;
-
-	if (transfer_id > 32767)
-		transfer_id = 1;
+#ifdef DEBUG_SUPPORT
+	if (debug) {
+		DEBU(G "iax_setup_transfer(%d, %d) transfer_id=%d\n", s0->callno, s1->callno, transfer_id);
+		DEBU(G "\torg: callno=%d peercallno=%d peeraddr=%s peerport=%d\n", s0->callno, s0->peercallno, inet_ntoa(s0->peeraddr.sin_addr), ntohs(s0->peeraddr.sin_port));
+		DEBU(G "\tnew: callno=%d peercallno=%d peeraddr=%s peerport=%d\n", s1->callno, s1->peercallno, inet_ntoa(s1->peeraddr.sin_addr), ntohs(s1->peeraddr.sin_port));
+	}
+#endif
 
 	res = send_command(s0, AST_FRAME_IAX, IAX_COMMAND_TXREQ, 0, ied0.buf, ied0.pos, -1);
 	if (res < 0) {

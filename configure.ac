@@ -46,6 +46,7 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
 AC_CHECK_FUNCS([vsnprintf _vsnprintf])
+AC_CHECK_FUNCS([srandomdev srandom srand48 random lrand48])
 
 ACX_PTHREAD
 
@@ -74,6 +75,12 @@ AC_ARG_ENABLE(local-iax,
       [AS_HELP_STRING([--disable-local-iax],
          [Don't use local iax library])],,
       [enable_local_iax="yes"])
+
+AC_ARG_ENABLE(debug-iax,
+      [AS_HELP_STRING([--enable-debug-iax],
+         [Enable debug support in local iax library])],
+				 enable_debug_iax2=$enableval,
+ 				 enable_debug_iax2="no")
 
 AC_ARG_ENABLE(speex_preprocess,
       [AS_HELP_STRING([--disable-speex-preprocess],
@@ -378,6 +385,7 @@ fi
 AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test ! x$with_gsm = xno)
 AM_CONDITIONAL(USE_LOCAL_GSM, test x$enable_local_gsm = xyes)
 AM_CONDITIONAL(USE_LOCAL_IAX2, test x$enable_local_iax2 = xyes)
+AM_CONDITIONAL(USE_DEBUG_IAX2, test x$enable_debug_iax2 = xyes)
 AM_CONDITIONAL(USE_LOCAL_ILBC, test x$enable_local_ilbc = xyes)
 AM_CONDITIONAL(LINUX, test x$OSTYPE = xLINUX)
 AM_CONDITIONAL(WIN32, test x$OSTYPE = xWIN32)

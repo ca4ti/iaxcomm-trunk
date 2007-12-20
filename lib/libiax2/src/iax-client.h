@@ -245,6 +245,10 @@ extern int iax_pref_codec_get(struct iax_session *session, unsigned int *array, 
 /* Fine tune jitterbuffer */
 extern void iax_set_jb_target_extra( long value );
 
+/* Portable 'decent' random number generation */
+void iax_seed_random();
+int iax_random();
+
 #if defined(__cplusplus)
 }
 #endif
