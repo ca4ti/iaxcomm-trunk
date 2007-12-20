@@ -284,7 +284,7 @@ void iax_seed_random()
 	srandomdev();
 #elif defined(HAVE_SRANDOM)
 	srandom((unsigned int)time(0));
-#elif define(HAVE_SRAND48)
+#elif defined(HAVE_SRAND48)
 	srand48((long int)time(0));
 #else
 	srand((unsigned int)time(0));
