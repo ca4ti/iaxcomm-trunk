@@ -751,6 +751,17 @@ EXPORT int iaxc_unregister( int id );
 EXPORT int iaxc_register(const char * user, const char * pass, const char * host);
 
 /*!
+	Registers the IAXClient instance with an IAX server
+	\param user The username to register as
+	\param pass The password to register with
+	\param host The address of the host/peer to register with
+	\param refresh The registration refresh period
+
+	\return The registration id number upon success; -1 otherwise.
+*/
+EXPORT int iaxc_register_ex(const char * user, const char * pass, const char * host, int refresh);
+
+/*!
 	Respond to incoming call \a callNo as busy.
 */
 EXPORT void iaxc_send_busy_on_incoming_call(int callNo);
@@ -1356,6 +1367,12 @@ EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples);
 	otherwise bad magic may occur on the recieving side.
 */
 EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment);
+
+/*!
+	Sets the IAX debug set to \a enable.
+	\param enable If non-zero enable iax protocol debugging
+*/
+EXPORT int iaxc_debug_iax_set(int enable);
 
 #ifdef __cplusplus
 }

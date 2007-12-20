@@ -13,6 +13,7 @@
  * Mihai Balea <mihai AT hates DOT ms>
  * Peter Grayson <jpgrayson@gmail.com>
  * Bill Cholewka <bcholew@gmail.com>
+ * Erik Bunce <kde@bunce.us>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License.
@@ -744,9 +745,9 @@ static void iaxc_refresh_registrations()
 
 	for ( cur = registrations; cur != NULL; cur = cur->next )
 	{
-		// If there is less than one second before the registration is about
+		// If there is less than three seconds before the registration is about
 		// to expire, renew it.
-		if ( iaxci_usecdiff(&now, &cur->last) > cur->refresh - 1 * 1000 *1000 )
+		if ( iaxci_usecdiff(&now, &cur->last) > (cur->refresh - 3) * 1000 *1000 )
 		{
 			if ( cur->session != NULL )
 			{
@@ -758,7 +759,7 @@ static void iaxc_refresh_registrations()
 				iaxci_usermsg(IAXC_ERROR, "Can't make new registration session");
 				return;
 			}
-			iax_register(cur->session, cur->host, cur->user, cur->pass, 60);
+			iax_register(cur->session, cur->host, cur->user, cur->pass, cur->refresh);
 			cur->last = now;
 		}
 	}
@@ -1240,6 +1241,11 @@ EXPORT int iaxc_unregister( int id )
 
 EXPORT int iaxc_register(const char * user, const char * pass, const char * host)
 {
+	iaxc_register_ex(user, pass, host, 60);
+}
+
+EXPORT int iaxc_register_ex(const char * user, const char * pass, const char * host, int refresh)
+{
 	struct iaxc_registration *newreg;
 
 	newreg = (struct iaxc_registration *)malloc(sizeof (struct iaxc_registration));
@@ -1259,14 +1265,14 @@ EXPORT int iaxc_register(const char * user, const char * pass, const char * host
 	}
 
 	gettimeofday(&newreg->last,NULL);
-	newreg->refresh = 60*1000*1000;  /* 60 seconds, in usecs */
+	newreg->refresh = refresh;  
 
 	strncpy(newreg->host, host, 256);
 	strncpy(newreg->user, user, 256);
 	strncpy(newreg->pass, pass, 256);
 
-	/* send out the initial registration timeout 300 seconds */
-	iax_register(newreg->session, host, user, pass, 300);
+	/* send out the initial registration with refresh seconds */
+	iax_register(newreg->session, host, user, pass, refresh);
 
 	/* add it to the list; */
 	newreg->id = ++next_registration_id;
@@ -1959,5 +1965,15 @@ EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples)
 	}
 
 	return 0;
+}
+
+int iaxc_debug_iax_set(int enable)
+{
+#ifdef DEBUG_SUPPORT
+	if (enable)
+		iax_enable_debug();
+	else
+		iax_disable_debug();
+#endif 
 }
 

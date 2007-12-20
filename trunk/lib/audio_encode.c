@@ -327,7 +327,7 @@ int audio_send_encoded_audio(struct iaxc_call *call, int callNo, void *data,
 	if(iax_send_voice(call->session,format, outbuf,
 				sizeof(outbuf) - outsize, samples-insize) == -1)
 	{
-		puts("Failed to send voice!");
+		fprintf(stderr, "Failed to send voice! %s\n", iax_errstr);
 		return -1;
 	}
 

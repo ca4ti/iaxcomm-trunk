@@ -9,6 +9,7 @@
  * Steve Kann <stevek@stevek.com>
  * Michael Van Donselaar <mvand@vandonselaar.org>
  * Shawn Lawrence <shawn.lawrence@terracecomm.com>
+ * Erik Bunce <kde@bunce.us>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License.
