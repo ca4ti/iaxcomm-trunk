@@ -1629,7 +1629,6 @@ static struct iax_event *handle_event(struct iax_event *event)
 				 */
 			case IAX_EVENT_REJECT:
 			case IAX_EVENT_HANGUP:
-			case IAX_EVENT_REGACK:
 				/* Destroy this session -- it's no longer valid */
 				destroy_session(event->session);
 				return event;
