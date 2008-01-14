@@ -34,6 +34,9 @@
 #include <stdio.h>
 #include <limits.h>
 
+#if !defined(_WIN32_WCE)
+#include <sys/timeb.h>
+#endif
 
 #define	snprintf _snprintf
 
@@ -47,7 +50,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
+struct timeval iax_now(void);
 #ifdef __cplusplus
 }
 #endif
@@ -278,30 +281,6 @@ void iax_set_sendto(struct iax_session *s, iax_sendto_t ptr)
 	s->sendto = ptr;
 }
 
-void iax_seed_random()
-{
-#if defined(HAVE_SRANDOMDEV)
-	srandomdev();
-#elif defined(HAVE_SRANDOM)
-	srandom((unsigned int)time(0));
-#elif defined(HAVE_SRAND48)
-	srand48((long int)time(0));
-#else
-	srand((unsigned int)time(0));
-#endif
-}
-
-int iax_random()
-{
-#if defined(HAVE_RANDOM)
-	return (int)random();
-#elif defined(HAVE_LRAND48)
-	return (int)lrand48();
-#else
-	return rand();
-#endif
-}
-
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 #define G __FILE__, __LINE__,
@@ -345,6 +324,30 @@ static int __debug(const char *file, int lineno, const char *func, const char *f
 #endif
 #define G
 #endif
+
+void iax_seed_random()
+{
+#if defined(HAVE_SRANDOMDEV)
+	srandomdev();
+#elif defined(HAVE_SRANDOM)
+	srandom((unsigned int)time(0));
+#elif defined(HAVE_SRAND48)
+	srand48((long int)time(0));
+#else
+	srand((unsigned int)time(0));
+#endif
+}
+
+int iax_random()
+{
+#if defined(HAVE_RANDOM)
+	return (int)random();
+#elif defined(HAVE_LRAND48)
+	return (int)lrand48();
+#else
+	return rand();
+#endif
+}
 
 typedef void (*sched_func)(void *);
 
@@ -393,7 +396,7 @@ static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched
 	sched = (struct iax_sched*)malloc(sizeof(struct iax_sched));
 	if (sched) {
 		memset(sched, 0, sizeof(struct iax_sched));
-		gettimeofday(&sched->when, NULL);
+		sched->when = iax_now();
 		sched->when.tv_sec += (ms / 1000);
 		ms = ms % 1000;
 		sched->when.tv_usec += (ms * 1000);
@@ -460,7 +463,7 @@ int iax_time_to_next_event(void)
 	/* If there are no pending events, we don't need to timeout */
 	if (!cur)
 		return -1;
-	gettimeofday(&tv, NULL);
+	tv = iax_now();
 	while(cur) {
 		ms = (cur->when.tv_sec - tv.tv_sec) * 1000 +
 		     (cur->when.tv_usec - tv.tv_usec) / 1000;
@@ -595,7 +598,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	/* If this is the first packet we're sending, get our
 	   offset now. */
 	if (!session->offset.tv_sec && !session->offset.tv_usec)
-		gettimeofday(&session->offset, NULL);
+		session->offset = iax_now();
 
 	/* If the timestamp is specified, just use their specified
 	   timestamp no matter what.  Usually this is done for
@@ -608,7 +611,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	}
 
 	/* Otherwise calculate the timestamp from the current time */
-	gettimeofday(&tv, NULL);
+	tv = iax_now();
 
 	/* Calculate the number of milliseconds since we sent the first packet */
 	ms = (tv.tv_sec - session->offset.tv_sec) * 1000 +
@@ -1419,11 +1422,11 @@ int iax_setup_transfer(struct iax_session *org_session, struct iax_session *new_
 	struct iax_session *s0 = org_session;
 	struct iax_session *s1 = new_session;
 
+	int transfer_id = 1 + (int)(32767.0 * (iax_random() / (RAND_MAX + 1.0)));
+
 	memset(&ied0, 0, sizeof(ied0));
 
 	memset(&ied1, 0, sizeof(ied1));
-
-	int transfer_id = 1 + (int)(32767.0 * (iax_random() / (RAND_MAX + 1.0)));
 
 	/* reversed setup */
 	iax_ie_append_addr(&ied0, IAX_IE_APPARENT_ADDR, &s1->peeraddr);
@@ -2227,9 +2230,9 @@ static int calc_rxstamp(struct iax_session *session)
 	int ms;
 
 	if (!session->rxcore.tv_sec && !session->rxcore.tv_usec) {
-		gettimeofday(&session->rxcore, NULL);
+		session->rxcore = iax_now();
 	}
-	gettimeofday(&tv, NULL);
+	tv = iax_now();
 
 	ms = (tv.tv_sec - session->rxcore.tv_sec) * 1000 +
 		 (tv.tv_usec - session->rxcore.tv_usec) / 1000;
@@ -3260,7 +3263,7 @@ struct iax_event *iax_get_event(int blocking)
 	struct iax_sched *cur;
 	struct iax_session *session;
 
-	gettimeofday(&tv, NULL);
+	tv = iax_now();
 
 	while((cur = iax_get_sched(tv)))
 	{
@@ -3485,4 +3488,22 @@ int iax_quelch_moh(struct iax_session *session, int MOH)
 	}
 
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);
+}
+
+struct timeval iax_now(void)
+{
+	struct timeval tv;
+
+#ifdef HAVE_GETTIMEOFDAY
+	gettimeofday(&tv, 0);
+#elif defined(_MSC_VER)
+	struct _timeb curSysTime;
+
+	_ftime(&curSysTime);
+	tv.tv_sec = (long)curSysTime.time;
+	tv.tv_usec = curSysTime.millitm * 1000;
+#else
+#error no gettimeofday or equivalent available
+#endif
+	return tv;
 }

@@ -32,7 +32,6 @@ extern "C" {
 #include <string.h>
 
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
-void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <winsock.h>
 #if !defined(_WIN32_WCE)
 #include <process.h>
