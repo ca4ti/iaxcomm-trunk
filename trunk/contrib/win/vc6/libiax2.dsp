@@ -159,10 +159,6 @@ SOURCE=..\..\..\lib\libiax2\src\ring10.h
 
 SOURCE=..\..\..\lib\libiax2\src\ringtone.h
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\..\lib\libiax2\src\winpoop.h
-# End Source File
 # End Group
 # End Target
 # End Project

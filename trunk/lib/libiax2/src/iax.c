@@ -47,14 +47,6 @@
 #endif
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-struct timeval iax_now(void);
-#ifdef __cplusplus
-}
-#endif
-
 #else
 
 #include <netdb.h>
@@ -396,7 +388,7 @@ static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched
 	sched = (struct iax_sched*)malloc(sizeof(struct iax_sched));
 	if (sched) {
 		memset(sched, 0, sizeof(struct iax_sched));
-		sched->when = iax_now();
+		sched->when = iax_tvnow();
 		sched->when.tv_sec += (ms / 1000);
 		ms = ms % 1000;
 		sched->when.tv_usec += (ms * 1000);
@@ -463,7 +455,7 @@ int iax_time_to_next_event(void)
 	/* If there are no pending events, we don't need to timeout */
 	if (!cur)
 		return -1;
-	tv = iax_now();
+	tv = iax_tvnow();
 	while(cur) {
 		ms = (cur->when.tv_sec - tv.tv_sec) * 1000 +
 		     (cur->when.tv_usec - tv.tv_usec) / 1000;
@@ -598,7 +590,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	/* If this is the first packet we're sending, get our
 	   offset now. */
 	if (!session->offset.tv_sec && !session->offset.tv_usec)
-		session->offset = iax_now();
+		session->offset = iax_tvnow();
 
 	/* If the timestamp is specified, just use their specified
 	   timestamp no matter what.  Usually this is done for
@@ -611,7 +603,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	}
 
 	/* Otherwise calculate the timestamp from the current time */
-	tv = iax_now();
+	tv = iax_tvnow();
 
 	/* Calculate the number of milliseconds since we sent the first packet */
 	ms = (tv.tv_sec - session->offset.tv_sec) * 1000 +
@@ -2230,9 +2222,9 @@ static int calc_rxstamp(struct iax_session *session)
 	int ms;
 
 	if (!session->rxcore.tv_sec && !session->rxcore.tv_usec) {
-		session->rxcore = iax_now();
+		session->rxcore = iax_tvnow();
 	}
-	tv = iax_now();
+	tv = iax_tvnow();
 
 	ms = (tv.tv_sec - session->rxcore.tv_sec) * 1000 +
 		 (tv.tv_usec - session->rxcore.tv_usec) / 1000;
@@ -3263,7 +3255,7 @@ struct iax_event *iax_get_event(int blocking)
 	struct iax_sched *cur;
 	struct iax_session *session;
 
-	tv = iax_now();
+	tv = iax_tvnow();
 
 	while((cur = iax_get_sched(tv)))
 	{
@@ -3490,7 +3482,7 @@ int iax_quelch_moh(struct iax_session *session, int MOH)
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);
 }
 
-struct timeval iax_now(void)
+struct timeval iax_tvnow(void)
 {
 	struct timeval tv;
 

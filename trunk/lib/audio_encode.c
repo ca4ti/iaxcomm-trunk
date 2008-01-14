@@ -71,7 +71,7 @@ static int do_level_callback()
 	float input_db;
 	float output_db;
 
-	now = iax_now();
+	now = iax_tvnow();
 
 	if ( last.tv_sec != 0 && iaxci_usecdiff(&now, &last) < 100000 )
 		return 0;
@@ -261,7 +261,7 @@ int audio_send_encoded_audio(struct iaxc_call *call, int callNo, void *data,
 	int insize = samples;
 
 	/* update last input timestamp */
-	timeLastInput = iax_now();
+	timeLastInput = iax_tvnow();
 
 	silent = input_postprocess(data, insize, 8000);
 
@@ -342,7 +342,7 @@ int audio_decode_audio(struct iaxc_call * call, void * out, void * data, int len
 	int insize = len;
 	int outsize = *samples;
 
-	timeLastOutput = iax_now();
+	timeLastOutput = iax_tvnow();
 
 	if ( format == 0 )
 	{

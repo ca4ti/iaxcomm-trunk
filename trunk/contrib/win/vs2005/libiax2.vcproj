@@ -222,10 +222,6 @@
 				RelativePath="..\..\..\lib\libiax2\src\ringtone.h"
 				>
 			</File>
-			<File
-				RelativePath="..\..\..\lib\libiax2\src\winpoop.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

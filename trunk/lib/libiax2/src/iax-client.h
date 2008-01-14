@@ -200,7 +200,7 @@ extern void iax_destroy(struct iax_session  * session);
 extern void iax_enable_debug(void);
 extern void iax_disable_debug(void);
 
-extern struct timeval iax_now(void);
+extern struct timeval iax_tvnow(void);
 
 /* For attended transfer, application create a new session,
  * make a call on the new session.
