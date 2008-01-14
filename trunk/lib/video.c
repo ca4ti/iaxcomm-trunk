@@ -139,7 +139,7 @@ static void reset_codec_stats(struct iaxc_video_codec *vcodec)
 		return;
 
 	memset(&vcodec->video_stats, 0, sizeof(struct iaxc_video_stats));
-	gettimeofday(&vcodec->video_stats.start_time, 0);
+	vcodec->video_stats.start_time = iax_now();
 }
 
 static void reset_video_stats(struct iaxc_call * call)
@@ -200,9 +200,9 @@ static int maybe_send_stats(struct iaxc_call * call)
 		return -1;
 
 	if ( video_stats_start.tv_sec == 0 && video_stats_start.tv_usec == 0 )
-		gettimeofday(&video_stats_start, 0);
+		video_stats_start = iax_now();
 
-	gettimeofday(&now, 0);
+	now = iax_now();
 
 	if ( iaxci_msecdiff(&now, &video_stats_start) > video_stats_interval )
 	{
@@ -732,7 +732,7 @@ static int capture_callback(vidcap_src * src, void * user_data,
 	/* Gather statistics */
 	call->vencoder->video_stats.outbound_frames++;
 
-	gettimeofday(&now, 0);
+	now = iax_now();
 	time_delta =
 		iaxci_msecdiff(&now, &call->vencoder->video_stats.start_time);
 
@@ -1296,7 +1296,7 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 	}
 
 	/* Statistics */
-	gettimeofday(&now, 0);
+	now = iax_now();
 	time = iaxci_msecdiff(&now, &call->vdecoder->video_stats.start_time);
 	call->vdecoder->video_stats.received_slices++;
 	call->vdecoder->video_stats.acc_recv_size += encoded_video_len;
@@ -1776,9 +1776,9 @@ int video_send_stats(struct iaxc_call * call)
 		return -1;
 
 	if ( video_stats_start.tv_sec == 0 && video_stats_start.tv_usec == 0 )
-		gettimeofday(&video_stats_start, 0);
+		video_stats_start = iax_now();
 
-	gettimeofday(&now, 0);
+	now = iax_now();
 
 	if ( iaxci_msecdiff(&now, &video_stats_start) > video_stats_interval )
 	{

@@ -47,6 +47,7 @@ AC_TYPE_SIZE_T
 
 AC_CHECK_FUNCS([vsnprintf _vsnprintf])
 AC_CHECK_FUNCS([srandomdev srandom srand48 random lrand48])
+AC_CHECK_FUNCS(gettimeofday)
 
 ACX_PTHREAD
 

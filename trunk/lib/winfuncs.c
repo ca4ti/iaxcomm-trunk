@@ -19,33 +19,6 @@
 
 #include <stdio.h>
 
-#if !defined(_WIN32_WCE)
-#include <sys/timeb.h>
-
-/* Win-doze doesnt have gettimeofday(). This sux. So, what we did is
-provide some gettimeofday-like functionality that works for our purposes. */
-
-/*
-	changed 'struct timezone*' to 'void*' since
-	timezone is defined as a long in MINGW and caused compile-time warnings.
-	this should be okay since we don't use the passed value.
-*/
-
-
-/*
- * functions implementations
- */
-
-void gettimeofday( struct timeval* tv, void* tz )
-{
-	struct _timeb curSysTime;
-
-	_ftime(&curSysTime);
-	tv->tv_sec = (long)curSysTime.time;
-	tv->tv_usec = curSysTime.millitm * 1000;
-}
-#endif
-
 void os_init(void)
 {
 	WSADATA wsd;
