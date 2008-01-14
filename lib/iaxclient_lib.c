@@ -733,7 +733,7 @@ static void iaxc_note_activity(int callNo)
 {
 	if ( callNo < 0 )
 		return;
-	calls[callNo].last_activity = iax_now();
+	calls[callNo].last_activity = iax_tvnow();
 }
 
 static void iaxc_refresh_registrations()
@@ -741,7 +741,7 @@ static void iaxc_refresh_registrations()
 	struct iaxc_registration *cur;
 	struct timeval now;
 
-	now = iax_now();
+	now = iax_tvnow();
 
 	for ( cur = registrations; cur != NULL; cur = cur->next )
 	{
@@ -1264,7 +1264,7 @@ EXPORT int iaxc_register_ex(const char * user, const char * pass, const char * h
 		return -1;
 	}
 
-	newreg->last = iax_now();
+	newreg->last = iax_tvnow();
 	newreg->refresh = refresh;  
 
 	strncpy(newreg->host, host, 256);
