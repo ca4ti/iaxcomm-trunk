@@ -390,33 +390,33 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 	 * it's turned back on. */
 	if ( !(iaxc_get_filters() & IAXC_FILTER_ECHO) )
 	{
+#if defined(SPEEX_EC)
 		if ( ec )
 		{
 #if defined(USE_MEC2) || defined(SPAN_EC)
 			echo_can_free(ec);
 			ec = NULL;
 #endif
-#if defined(SPEEX_EC)
 			speex_echo_state_destroy(ec);
 			ec = NULL;
-#endif
 		}
+#endif
 
 		return;
 	}
 
 	/* we want echo cancellation */
 
+#if defined(SPEEX_EC)
 	if ( !ec )
 	{
 		rb_InitializeRingBuffer(&ecOutRing, EC_RING_SZ, &outRingBuf);
 #if defined(USE_MEC2) || defined(SPAN_EC)
 		ec = echo_can_create(ECHO_TAIL, 0);
 #endif
-#if defined(SPEEX_EC)
 		ec = speex_echo_state_init(SAMPLES_PER_FRAME, ECHO_TAIL);
-#endif
 	}
+#endif
 
 	/* fill ecOutRing */
 	rb_WriteRingBuffer(&ecOutRing, outputBuffer, n * 2);
