@@ -38,16 +38,19 @@
 #include "portmixer.h"
 
 #ifdef USE_MEC2
+#define DO_EC
 #include "mec3.h"
 static echo_can_state_t *ec;
 #endif
 
 #ifdef SPAN_EC
+#define DO_EC
 #include "ec/echo.h"
 static echo_can_state_t *ec;
 #endif
 
-#ifdef SPEEX_EC
+#if defined(SPEEX_EC) && ! defined (WIN32)
+#define DO_EC
 #define restrict __restrict
 #include "speex/speex_echo.h"
 static SpeexEchoState *ec;
@@ -390,15 +393,16 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 	 * it's turned back on. */
 	if ( !(iaxc_get_filters() & IAXC_FILTER_ECHO) )
 	{
-#if defined(SPEEX_EC)
+#if defined(DO_EC)
 		if ( ec )
 		{
 #if defined(USE_MEC2) || defined(SPAN_EC)
 			echo_can_free(ec);
 			ec = NULL;
-#endif
+#elif defined(SPEEX_EC)
 			speex_echo_state_destroy(ec);
 			ec = NULL;
+#endif
 		}
 #endif
 
@@ -407,14 +411,15 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
 	/* we want echo cancellation */
 
-#if defined(SPEEX_EC)
+#if defined(DO_EC)
 	if ( !ec )
 	{
 		rb_InitializeRingBuffer(&ecOutRing, EC_RING_SZ, &outRingBuf);
 #if defined(USE_MEC2) || defined(SPAN_EC)
 		ec = echo_can_create(ECHO_TAIL, 0);
-#endif
+#elif defined(SPEEX_EC)
 		ec = speex_echo_state_init(SAMPLES_PER_FRAME, ECHO_TAIL);
+#endif
 	}
 #endif
 
@@ -428,7 +433,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
 	rb_ReadRingBuffer(&ecOutRing, delayedBuf, n * 2);
 
-#if defined(SPEEX_EC)
+#if defined(DO_EC) && defined(SPEEX_EC)
 	{
 		short cancelledBuffer[1024];
 
