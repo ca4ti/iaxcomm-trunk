@@ -1070,7 +1070,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	struct iax_frame *fr;
 	int res;
 	int sendmini=0;
-	unsigned int nextpred;
+	unsigned int lastsent;
 	unsigned int fts;
 
 	if (!pvt)
@@ -1079,15 +1079,14 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		return -1;
 	}
 
+	/* this must come before the next call to calc_timestamp() since
+	 calc_timestamp() will change lastsent to the returned value */
+	lastsent = pvt->lastsent;
+
 	/* Calculate actual timestamp */
 	fts = calc_timestamp(pvt, ts, f);
 
-	/* If the next predicted VOICE timestamp will overflow the 16-bit
-	   portion of the timestamp then we send a full VOICE frame to
-	   keep the 32-bit portion of the timestamp synchronized. */
-	nextpred = pvt->nextpred;
-
-	if (((fts & 0xFFFF0000L) == (nextpred & 0xFFFF0000L))
+	if (((fts & 0xFFFF0000L) == (lastsent & 0xFFFF0000L))
 		/* High two bits are the same on timestamp, or sending on a trunk */ &&
 		(f->frametype == AST_FRAME_VOICE)
 		/* is a voice frame */ &&
@@ -1103,7 +1102,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	/* Bitmask taken from chan_iax2.c... I must ask Mark Spencer for this? I think not... */
 	if ( f->frametype == AST_FRAME_VIDEO )
 	{
-		if (((fts & 0xFFFF8000L) == (nextpred & 0xFFFF8000L))
+		if (((fts & 0xFFFF8000L) == (lastsent & 0xFFFF8000L))
 			/* High two bits are the same on timestamp, or sending on a trunk */ &&
 		((f->subclass & ~0x01) == pvt->svideoformat)
 			/* is the same type */ )
@@ -2571,7 +2570,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 
 	/* don't run last_ts backwards; i.e. for retransmits and the like */
 	if (ts > session->last_ts &&
-	    ((fh->type == AST_FRAME_IAX || fh->type == AST_FRAME_VOICE) &&
+	    (fh->type == AST_FRAME_IAX &&
 	     subclass != IAX_COMMAND_ACK &&
 	     subclass != IAX_COMMAND_PONG &&
 	     subclass != IAX_COMMAND_LAGRP))
@@ -2696,7 +2695,6 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 		 */
 		e->etype = -1;
 		e->session = session;
-		e->ts = ts;
 		switch(fh->type) {
 		case AST_FRAME_DTMF:
 			e->etype = IAX_EVENT_DTMF;
@@ -2709,6 +2707,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 		case AST_FRAME_VOICE:
 			e->etype = IAX_EVENT_VOICE;
 			e->subclass = subclass;
+			e->ts = ts;
 			session->voiceformat = subclass;
 			if (datalen) {
 				memcpy(e->data, fh->iedata, datalen);
@@ -2789,14 +2788,17 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 			case IAX_COMMAND_LAGRQ:
 				/* Pass this along for later handling */
 				e->etype = IAX_EVENT_LAGRQ;
+				e->ts = ts;
 				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_POKE:
 				e->etype = IAX_EVENT_POKE;
+				e->ts = ts;
 				break;
 			case IAX_COMMAND_PING:
 				/* PINGS and PONGS don't get scheduled; */
 				e->etype = IAX_EVENT_PING;
+				e->ts = ts;
 				break;
 			case IAX_COMMAND_PONG:
 				e->etype = IAX_EVENT_PONG;
@@ -2965,6 +2967,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 		case AST_FRAME_VIDEO:
 			e->etype = IAX_EVENT_VIDEO;
 			e->subclass = subclass;
+			e->ts = ts;
 			session->videoformat = e->subclass;
 			memcpy(e->data, fh->iedata, datalen);
 			e->datalen = datalen;
@@ -3082,8 +3085,7 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 	e->subclass = session->voiceformat;
 	e->datalen = datalen;
 	memcpy(e->data, mh->data, datalen);
-	e->ts = (session->last_ts & 0xFFFF0000L) | (ntohs(mh->ts) & 0xFFFF);
-	e->ts = unwrap_timestamp(e->ts, session->last_ts);
+	e->ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
 
 	return schedule_delivery(e, e->ts, 1);
 }
