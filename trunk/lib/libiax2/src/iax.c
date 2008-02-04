@@ -167,6 +167,8 @@ struct iax_session {
 	unsigned int last_ts;
 	/* Last transmitted timestamp */
 	unsigned int lastsent;
+	/* Timestamp of the last transmitted video frame */
+	unsigned int lastvsent;
 #ifdef USE_VOICE_TS_PREDICTION
 	/* Next predicted voice ts */
 	unsigned int nextpred;
@@ -641,10 +643,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 		if(ms <= session->lastsent)
 			ms = session->lastsent + 3;
 #endif
-	} else if (video) {
-		if ((unsigned int)ms <= session->lastsent)
-			ms = session->lastsent + 3;
-	} else {
+	} else if ( !video ) {
 		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking)
 		   if appropriate unless it's a genuine frame */
 		if (genuine) {
@@ -1102,7 +1101,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	/* Bitmask taken from chan_iax2.c... I must ask Mark Spencer for this? I think not... */
 	if ( f->frametype == AST_FRAME_VIDEO )
 	{
-		if (((fts & 0xFFFF8000L) == (lastsent & 0xFFFF8000L))
+		if (((fts & 0xFFFF8000L) == (pvt->lastvsent & 0xFFFF8000L))
 			/* High two bits are the same on timestamp, or sending on a trunk */ &&
 		((f->subclass & ~0x01) == pvt->svideoformat)
 			/* is the same type */ )
@@ -1117,6 +1116,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 			now = 0;
 			sendmini = 0;
 		}
+		pvt->lastvsent = fts;
 	}
 
 	/* if requested, force a full frame */
