@@ -235,6 +235,12 @@ PKG_CHECK_MODULES(SPEEX, [speex >= 1.2],,AC_MSG_ERROR([
    obtain a copy.
 ]))
 
+PKG_CHECK_MODULES(SPEEXDSP, [speexdsp >= 1.2],,AC_MSG_ERROR([
+   speexdsp is required to build this package!
+   please see http://www.xiph.org/ for how to
+   obtain a copy.
+]))
+
 has_theora=no
 if test ! x$with_theora = xno; then
 PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],has_theora=yes)

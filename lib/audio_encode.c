@@ -105,10 +105,14 @@ static void set_speex_filters()
 	i = (iaxci_filters & IAXC_FILTER_DENOISE) ? 1 : 0;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DENOISE, &i);
 
-	/* make vad more sensitive */
-	i = 30;
+	/*
+	* We can tweak these parameters to play with VAD sensitivity.
+	* For now, we use the default values since it seems they are a good starting point.
+	* However, if need be, this is the code that needs to change
+	*/
+	i = 35;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_START, &i);
-	i = 7;
+	i = 20;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &i);
 }
 
@@ -153,10 +157,10 @@ static int input_postprocess(void *audio, int len, int rate)
 	/* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
 	/* use a higher continuation threshold for AAGC than for VAD itself */
 	if ( !silent &&
-			iaxci_silence_threshold != 0.0f &&
-			(iaxci_filters & IAXC_FILTER_AGC) &&
-			(iaxci_filters & IAXC_FILTER_AAGC) &&
-			st->speech_prob > 0.20f )
+	     iaxci_silence_threshold != 0.0f &&
+	     (iaxci_filters & IAXC_FILTER_AGC) &&
+	     (iaxci_filters & IAXC_FILTER_AAGC)
+	   )
 	{
 		static int i = 0;
 
@@ -164,8 +168,8 @@ static int input_postprocess(void *audio, int len, int rate)
 
 		if ( (i & 0x3f) == 0 )
 		{
-			const float loudness = st->loudness2;
-
+			const float loudness;
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_GET_AGC_LOUDNESS, &loudness);
 			if ( loudness > 8000.0f || loudness < 4000.0f )
 			{
 				const float level = iaxc_input_level_get();
