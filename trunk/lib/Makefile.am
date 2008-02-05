@@ -12,6 +12,7 @@ AM_CPPFLAGS =					\
 AM_CFLAGS =					\
 	$(PTHREAD_CFLAGS)			\
 	$(SPEEX_CFLAGS)				\
+	$(SPEEXDSP_CFLAGS)			\
 	$(IAX2_CFLAGS)				\
 	$(PORTAUDIO_CFLAGS)
 
@@ -25,7 +26,8 @@ libiaxclient_la_LIBADD =			\
 	$(PTHREAD_LIBS)				\
 	$(IAX2_LIBS)				\
 	$(PORTAUDIO_LIBS)			\
-	$(SPEEX_LIBS)
+	$(SPEEX_LIBS)				\
+	$(SPEEXDSP_LIBS)
 
 AM_LDFLAGS =					\
 	-no-undefined				\

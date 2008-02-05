@@ -41,7 +41,7 @@ AC_ARG_ENABLE(speextest,
     SPEEX_LIBS="-L$prefix/lib"
   fi
 
-  SPEEX_LIBS="$SPEEX_LIBS -lspeex"
+  SPEEX_LIBS="$SPEEX_LIBS -lspeex -lspeexdsp"
 
   if test "x$speex_includes" != "x" ; then
     SPEEX_CFLAGS="-I$speex_includes"
@@ -60,7 +60,7 @@ AC_ARG_ENABLE(speextest,
     LIBS="$LIBS $SPEEX_LIBS"
 
 dnl Check for a working version of speex that is of the right version.
-min_speex_version=ifelse([$1], ,1.0.0,$1)
+min_speex_version=ifelse([$1], ,1.2.0,$1)
 AC_MSG_CHECKING(for speex headers version >= $min_speex_version)
 #no_speex=""
     speex_min_major_version=`echo $min_speex_version | \
