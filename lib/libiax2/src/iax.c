@@ -473,11 +473,10 @@ int iax_time_to_next_event(void)
 struct iax_session *iax_session_new(void)
 {
 	struct iax_session *s;
-	s = (struct iax_session *)malloc(sizeof(struct iax_session));
+	s = calloc(1, sizeof(struct iax_session));
 	if (s) {
 		jb_conf jbconf;
 
-		memset(s, 0, sizeof(struct iax_session));
 		/* Initialize important fields */
 		s->voiceformat = -1;
 		s->svoiceformat = -1;
@@ -643,7 +642,18 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 		if(ms <= session->lastsent)
 			ms = session->lastsent + 3;
 #endif
-	} else if ( !video ) {
+	} else if ( video ) {
+		/*
+		 * IAX2 draft 03 says that timestamps MUST be in order.
+		 * It does not say anything about several frames having the same timestamp
+		 * When transporting video, we can have a frame that spans multiple iax packets
+		 * (so called slices), so it would make sense to use the same timestamp for all of
+		 * them
+		 * We do want to make sure that frames don't go backwards though
+		 */
+		if ( (unsigned int)ms < session->lastsent )
+			ms = session->lastsent;
+	} else {
 		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking)
 		   if appropriate unless it's a genuine frame */
 		if (genuine) {
@@ -1101,14 +1111,13 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	/* Bitmask taken from chan_iax2.c... I must ask Mark Spencer for this? I think not... */
 	if ( f->frametype == AST_FRAME_VIDEO )
 	{
-		if (((fts & 0xFFFF8000L) == (pvt->lastvsent & 0xFFFF8000L))
-			/* High two bits are the same on timestamp, or sending on a trunk */ &&
-		((f->subclass & ~0x01) == pvt->svideoformat)
-			/* is the same type */ )
+		/* Check if the timestamp has rolled over or if the video codec has changed */
+		if ( ((fts & 0xFFFF8000L) == (pvt->lastvsent & 0xFFFF8000L)) &&
+		     (f->subclass == pvt->svideoformat)
+		   )
 		{
-			/* Force immediate rather than delayed transmission */
+			/* send a mini video frame immediately */
 			now = 1;
-			/* Mark that mini-style frame is appropriate */
 			sendmini = 1;
 		} else
 		{
