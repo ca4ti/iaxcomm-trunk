@@ -168,7 +168,7 @@ static int input_postprocess(void *audio, int len, int rate)
 
 		if ( (i & 0x3f) == 0 )
 		{
-			const float loudness;
+			float loudness;
 			speex_preprocess_ctl(st, SPEEX_PREPROCESS_GET_AGC_LOUDNESS, &loudness);
 			if ( loudness > 8000.0f || loudness < 4000.0f )
 			{
