@@ -1372,7 +1372,7 @@ EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment);
 	Sets the IAX debug set to \a enable.
 	\param enable If non-zero enable iax protocol debugging
 */
-EXPORT int iaxc_debug_iax_set(int enable);
+EXPORT void iaxc_debug_iax_set(int enable);
 
 #ifdef __cplusplus
 }

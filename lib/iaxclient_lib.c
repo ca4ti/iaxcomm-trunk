@@ -1241,7 +1241,7 @@ EXPORT int iaxc_unregister( int id )
 
 EXPORT int iaxc_register(const char * user, const char * pass, const char * host)
 {
-	iaxc_register_ex(user, pass, host, 60);
+	return iaxc_register_ex(user, pass, host, 60);
 }
 
 EXPORT int iaxc_register_ex(const char * user, const char * pass, const char * host, int refresh)
@@ -1967,13 +1967,13 @@ EXPORT int iaxc_push_audio(void *data, unsigned int size, unsigned int samples)
 	return 0;
 }
 
-int iaxc_debug_iax_set(int enable)
+void iaxc_debug_iax_set(int enable)
 {
 #ifdef DEBUG_SUPPORT
 	if (enable)
 		iax_enable_debug();
 	else
 		iax_disable_debug();
-#endif 
+#endif
 }
 
