@@ -101,8 +101,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..\..\..\..\libtheora\include;..\..\..\..\libogg\include"
-				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
+				AdditionalIncludeDirectories="..\..\..\..\libtheora\lib\enc;..\..\..\..\libtheora\include;..\..\..\..\libogg\include"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;TH_REALLY_NO_ASSEMBLY;_WIN32_WINNT=0x0500;WINVER=0x0500"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -147,11 +147,15 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\blockmap.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\apiwrapper.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\comment.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\blockmap.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\common.c"
 				>
 			</File>
 			<File
@@ -159,79 +163,147 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\dct.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\dct.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\dct_decode.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\dct_decode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\dct_encode.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\dct_encode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\decode.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\decapiwrapper.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\dsp.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\decinfo.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\encode.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\decode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\encoder_toplevel.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\dequant.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\frarray.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\dsp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\frinit.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\x86_32_vs\dsp_mmx.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\huffman.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\encode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\idct.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\encoder_huffman.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\mcomp.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\encoder_idct.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\misc_common.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\encoder_quant.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\pb.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\encoder_toplevel.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\pp.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\x86_32_vs\fdct_mmx.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\quant.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\fragment.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\reconstruct.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\frarray.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\scan.c"
+				RelativePath="..\..\..\..\libtheora\lib\enc\frinit.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\libtheora\lib\toplevel.c"
+				RelativePath="..\..\..\..\libtheora\lib\dec\huffdec.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\idct.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\info.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\internal.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\mcomp.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\misc_common.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\x86\mmxfrag.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\x86\mmxidct.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\x86\mmxstate.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\pb.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\pp.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\quant.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\x86_32_vs\recon_mmx.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\reconstruct.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\scan.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\state.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\x86\x86int.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\dec\x86\x86state.c"
 				>
 			</File>
 		</Filter>
@@ -241,6 +313,10 @@
 			>
 			<File
 				RelativePath="..\..\..\..\libtheora\lib\block_inline.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libtheora\lib\enc\codec_internal.h"
 				>
 			</File>
 			<File

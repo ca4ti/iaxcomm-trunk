@@ -190,6 +190,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\speex\libspeex\filterbank.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\speex\libspeex\filters.c"
 				>
 			</File>
@@ -246,19 +250,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\speex\libspeex\math_approx.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\..\speex\libspeex\mdf.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\speex\libspeex\misc.c"
+				RelativePath="..\..\..\..\speex\libspeex\modes.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\..\speex\libspeex\modes.c"
+				RelativePath="..\..\..\..\speex\libspeex\modes_wb.c"
 				>
 			</File>
 			<File
@@ -361,10 +361,6 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\speex\libspeex\math_approx.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\..\speex\libspeex\misc.h"
 				>
 			</File>
 			<File
