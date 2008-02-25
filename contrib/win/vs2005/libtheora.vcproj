@@ -38,8 +38,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\..\libtheora\include\;..\..\..\..\libogg\include\"
-				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500"
+				AdditionalIncludeDirectories="..\..\..\..\libtheora\include\;..\..\..\..\libogg\include\;..\..\..\..\libtheora\lib\enc"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;_LIB;NTDDI_VERSION=NTDDI_WIN2KSP4;_WIN32_WINNT=0x0500;WINVER=0x0500;TH_REALLY_NO_ASSEMBLY"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				WarningLevel="3"
