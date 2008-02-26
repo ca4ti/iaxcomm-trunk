@@ -3,7 +3,7 @@ dnl Copyright (C) 2004-2005  Mikael Magnusson <mikma@users.sourceforge.net>
 AC_PREREQ(2.59)
 
 dnl Package version
-m4_define(IAXC_VERSION, [2.1-svn])
+m4_define(IAXC_VERSION, [2.x-trunk])
 
 AC_INIT(iaxclient, IAXC_VERSION, [jpgrayson@gmail.com])
 
@@ -15,7 +15,7 @@ AM_MAINTAINER_MODE
 
 dnl Libtool library version
 IAXC_LT_CURRENT=1
-IAXC_LT_REVISION=0
+IAXC_LT_REVISION=2
 IAXC_LT_AGE=0
 
 AC_SUBST(IAXC_LT_CURRENT)
