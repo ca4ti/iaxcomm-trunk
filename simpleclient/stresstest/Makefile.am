@@ -14,4 +14,3 @@ stresstest_LDFLAGS =			\
 		-framework QuickTime
 endif
 
-EXTRA_DIST = stresstest.vcproj
