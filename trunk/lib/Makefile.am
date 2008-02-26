@@ -211,6 +211,5 @@ EXTRA_DIST = \
 	portmixer				\
 	sox					\
 	spandsp					\
-	videoLib				\
 	wince
 
