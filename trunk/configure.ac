@@ -5,7 +5,7 @@ AC_PREREQ(2.59)
 dnl Package version
 m4_define(IAXC_VERSION, [2.x-trunk])
 
-AC_INIT(iaxclient, IAXC_VERSION, [jpgrayson@gmail.com])
+AC_INIT(iaxclient, IAXC_VERSION, [iaxclient-devel@lists.sourceforge.net])
 
 AC_CONFIG_SRCDIR([lib/iaxclient.h])
 AC_CONFIG_HEADERS([config.h])
