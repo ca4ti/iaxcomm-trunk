@@ -7,7 +7,6 @@
 //#define CODEC_ILBC 0
 //#define SPAN_EC 0
 #define SPEEX_EC 1
-//#define MEC2_EC 0
 #define USE_NEWJB 1
 //#define USE_VIDEO 0
 
