@@ -85,7 +85,7 @@ AC_ARG_ENABLE(debug-iax,
 
 AC_ARG_WITH(echo-can,
       [AS_HELP_STRING([--with-echo-can],
-         [use echo can (span, speex or mec2) [default=speex]])],
+         [use echo can (span or speex) [default=speex]])],
       use_echo_can=$withval,
       use_echo_can="speex")
 
@@ -366,10 +366,6 @@ fi
 
 if test x$use_echo_can = xspeex; then
    AC_DEFINE(SPEEX_EC, 1, [Speex echo can])
-fi
-
-if test x$use_echo_can = xmec2; then
-   AC_DEFINE(MEC2_EC, 1, [Mec echo can])
 fi
 
 if test x$enable_local_ilbc = xyes; then
