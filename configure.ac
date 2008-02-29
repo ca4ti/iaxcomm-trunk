@@ -148,23 +148,6 @@ case "$with_ilbc" in
       AC_MSG_ERROR([bad value ${with_ilbc} for --with-ilbc]) ;;
 esac
 
-if test ! "x$enable_clients" = "xauto"; then
-   for client in ${enable_clients}; do
-      case "$client" in
-         iaxcomm | iaxphone | stresstest | testcall | tkphone | vtestcall | WinIAX | wx)
-            clients="$clients $client" ;;
-         all | yes)
-            clients="iaxcomm iaxphone stresstest testcall tkphone vtestcall WinIAX wx"
-            break ;;
-         none | no)
-            clients=""
-            break ;;
-         *)
-            AC_MSG_ERROR(bad value ${client} for --enable-clients) ;;
-      esac
-   done
-fi
-
 case $host_os in
    *mingw32*|*cygwin* )
       OSTYPE=WIN32
@@ -385,10 +368,25 @@ AM_CONDITIONAL(WIN32, test x$OSTYPE = xWIN32)
 AM_CONDITIONAL(MACOSX, test x$OSTYPE = xMACOSX)
 
 # Autodetect clients
-if test "x$enable_clients" = "xauto"; then
+if test "x$enable_clients" != "xauto"; then
+   for client in ${enable_clients}; do
+      case "$client" in
+         iaxcomm | iaxphone | stresstest | testcall | tkphone | vtestcall | WinIAX | wx)
+            clients="$clients $client" ;;
+         all | yes)
+            clients="iaxcomm iaxphone stresstest testcall tkphone vtestcall WinIAX wx"
+            break ;;
+         none | no)
+            clients=""
+            break ;;
+         *)
+            AC_MSG_ERROR(bad value ${client} for --enable-clients) ;;
+      esac
+   done
+else
    clients="$clients testcall"
 
-   if test x$has_oggz = xyes && test x$has_theora = xyes; then
+   if test x$enable_video = xyes && test x$has_oggz = xyes && test x$has_theora = xyes; then
       clients="$clients stresstest"
    fi
 
