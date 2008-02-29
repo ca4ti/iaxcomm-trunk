@@ -83,6 +83,11 @@ AC_ARG_ENABLE(debug-iax,
 				 enable_debug_iax2=$enableval,
  				 enable_debug_iax2="no")
 
+AC_ARG_ENABLE(video,
+      [AS_HELP_STRING([--enable-video],
+         [Enable video support [default=yes]])],,
+      [enable_video="yes"])
+
 AC_ARG_WITH(echo-can,
       [AS_HELP_STRING([--with-echo-can],
          [use echo can (span or speex) [default=speex]])],
@@ -122,11 +127,6 @@ AC_ARG_WITH(wish,
          [Path to Tcl command language interpreter])],
       WISH="${with_wish}",
       with_wish="auto")
-
-AC_ARG_WITH(video,
-      [AS_HELP_STRING([--without-video],
-         [Video support])],,
-      with_video="yes")
 
 AC_ARG_WITH(ogg,
       [AS_HELP_STRING([--without-ogg],
@@ -203,10 +203,10 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
-if test x$with_video = xyes; then
+if test x$enable_video = xyes; then
    AC_DEFINE(USE_VIDEO, 1, [Define to 1 to enable Video support])
 fi
-AM_CONDITIONAL(VIDEO, test x$with_video = xyes)
+AM_CONDITIONAL(VIDEO, test x$enable_video = xyes)
 
 has_ogg=no
 if test ! x$with_ogg = xno; then
@@ -404,7 +404,7 @@ if test "x$enable_clients" = "xauto"; then
       fi
    fi
 
-   if test x$has_sdl = xyes && test x$with_video = xyes; then
+   if test x$has_sdl = xyes && test x$enable_video = xyes; then
       clients="$clients vtestcall"
    fi
 
@@ -427,7 +427,7 @@ do
          CLIENTS="$CLIENTS $client";;
 
       vtestcall)
-         if test ! x$has_sdl = xyes || test ! x$with_video = xyes ; then
+         if test ! x$has_sdl = xyes || test ! x$enable_video = xyes ; then
             AC_MSG_ERROR([vtestcall requires SDL and video])
          fi
          CLIENTS="$CLIENTS $client";;
