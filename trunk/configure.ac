@@ -83,11 +83,6 @@ AC_ARG_ENABLE(debug-iax,
 				 enable_debug_iax2=$enableval,
  				 enable_debug_iax2="no")
 
-AC_ARG_ENABLE(speex_preprocess,
-      [AS_HELP_STRING([--disable-speex-preprocess],
-         [Turn off speex preprocessing])],,
-      [enable_speex_preprocess="yes"])
-
 AC_ARG_WITH(echo-can,
       [AS_HELP_STRING([--with-echo-can],
          [use echo can (span, speex or mec2) [default=speex]])],
@@ -363,10 +358,6 @@ LIBS="$save_LIBS"
 CPPFLAGS="$save_CPPFLAGS"
 CXXFLAGS="$save_CXXFLAGS"
 dnl End wx xrc check
-
-if test x$enable_speex_preprocess = xyes; then
-   AC_DEFINE(SPEEX_PREPROCESS, 1, [Speex preprocess])
-fi
 
 AM_CONDITIONAL(SPAN_EC, test x$use_echo_can = xspan)
 if test x$use_echo_can = xspan; then
