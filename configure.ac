@@ -205,11 +205,11 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
-if test ! x$with_ogg = xno; then
+if test x$with_ogg != xno; then
    if test x$has_ogg = xyes; then
       AC_DEFINE(USE_OGG, 1, [OGG])
       PKG_REQUIRES="$PKG_REQUIRES ogg"
-   elif test ! x$with_ogg = xauto ; then
+   elif test x$with_ogg != xauto ; then
       AC_MSG_ERROR([
          libogg is required to build this package!
          please see http://www.xiph.org/ for how to
@@ -218,11 +218,11 @@ if test ! x$with_ogg = xno; then
    fi
 fi
   
-if test ! x$with_theora = xno; then
+if test x$with_theora != xno; then
    if test x$has_theora = xyes; then
       AC_DEFINE(USE_THEORA, 1, [THEORA])
       PKG_REQUIRES="$PKG_REQUIRES theora"
-   elif test ! x$with_theora = xauto ; then
+   elif test x$with_theora != xauto ; then
       AC_MSG_ERROR([
          libtheora is required to build this package!
          please see http://www.xiph.org/ for how to
@@ -231,11 +231,11 @@ if test ! x$with_theora = xno; then
    fi
 fi
 
-if test ! x$with_vidcap = xno; then
+if test x$with_vidcap != xno; then
    if test x$has_vidcap = xyes; then
       AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
       PKG_REQUIRES="$PKG_REQUIRES vidcap"
-   elif test ! x$with_vidcap = xauto ; then
+   elif test x$with_vidcap != xauto ; then
       AC_MSG_ERROR([
          libvidcap is required to build this package!
          please see http://libvidcap.sourceforge.net/ for how to
@@ -244,11 +244,11 @@ if test ! x$with_vidcap = xno; then
    fi
 fi
 
-if test ! x$with_ffmpeg = xno; then
+if test x$with_ffmpeg != xno; then
    if test x$has_ffmpeg = xyes; then
       AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
       PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
-   elif test ! x$with_ffmpeg = xauto ; then
+   elif test x$with_ffmpeg != xauto ; then
       AC_MSG_ERROR([
          FFmpeg is required to build this package!
          please see http://ffmpeg.mplayerhq.hu/ for how to
@@ -258,11 +258,11 @@ if test ! x$with_ffmpeg = xno; then
 fi
 
 has_iax2=no
-if test ! x$enable_local_iax = xyes; then
+if test x$enable_local_iax != xyes; then
    AM_PATH_IAX2(0.2.3,has_iax2=yes,has_iax2=no)
 fi
 
-if test x$has_iax2 = xno && test ! x$enable_local_iax = xno; then
+if test x$has_iax2 = xno && test x$enable_local_iax != xno; then
    has_iax2=yes
    enable_local_iax2=yes
    IAX2_CFLAGS='-I$(top_srcdir)/lib/libiax2/src -DLIBIAX'
@@ -286,7 +286,7 @@ CPPFLAGS="$WX_CPPFLAGS"
 CXXFLAGS="$WX_CXXFLAGS_ONLY"
 
 AC_LANG_PUSH(C++)
-if test ! x$has_wx = xno; then
+if test x$has_wx != xno; then
    AC_CHECK_HEADER(wx/xrc/xmlres.h,has_wx_xrc=yes,
          [AC_MSG_WARN([Can't find wx/xrc/xml.h])
          has_wx_xrc=no])
@@ -344,7 +344,7 @@ if test x$enable_local_ilbc = xyes; then
    AC_DEFINE(CODEC_ILBC,,[Define to 1 to enable ILBC support])
 fi
 
-if test x$has_gsm = xyes && test ! x$with_gsm = xno; then
+if test x$has_gsm = xyes && test x$with_gsm != xno; then
    AC_DEFINE(CODEC_GSM,,[Define to 1 to enable GSM support])
 fi
 
@@ -354,7 +354,7 @@ AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
 AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes)
 AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes)
 AM_CONDITIONAL(SPAN_EC, test x$use_echo_can = xspan)
-AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test ! x$with_gsm = xno)
+AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test x$with_gsm != xno)
 AM_CONDITIONAL(USE_LOCAL_GSM, test x$enable_local_gsm = xyes)
 AM_CONDITIONAL(USE_LOCAL_IAX2, test x$enable_local_iax2 = xyes)
 AM_CONDITIONAL(USE_DEBUG_IAX2, test x$enable_debug_iax2 = xyes)
@@ -386,7 +386,7 @@ else
       clients="$clients stresstest"
    fi
 
-   if test ! x$has_wx = xno; then
+   if test x$has_wx != xno; then
       clients="$clients iaxphone"
       if test "x$has_gdk2" = xyes; then
          clients="$clients wx"
@@ -405,7 +405,7 @@ else
       clients="$clients WinIAX"
    fi
 
-   if test ! x$WISH = x && test "x$has_gdk2" = "xyes"; then
+   if test x$WISH != x && test "x$has_gdk2" = "xyes"; then
       clients="$clients tkphone"
    fi
 fi
@@ -420,7 +420,7 @@ do
          CLIENTS="$CLIENTS $client";;
 
       vtestcall)
-         if test ! x$has_sdl = xyes || test ! x$enable_video = xyes ; then
+         if test x$has_sdl != xyes || test x$enable_video != xyes ; then
             AC_MSG_ERROR([vtestcall requires SDL and video])
          fi
          CLIENTS="$CLIENTS $client";;
