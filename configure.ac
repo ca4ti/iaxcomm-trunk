@@ -187,6 +187,16 @@ PKG_CHECK_MODULES(SPEEXDSP, [speexdsp >= 1.2],,AC_MSG_ERROR([
    obtain a copy.
 ]))
 
+PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
+PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
+PKG_CHECK_MODULES(GDK2, [gdk-2.0 >= 2.0.0], has_gdk2=yes, has_gdk2=no)
+PKG_CHECK_MODULES(ALSA, [alsa >= 1.0], has_alsa=yes, has_alsa=no)
+PKG_CHECK_MODULES(OGG, [ogg >= 1.1.3], has_ogg=yes, has_ogg=no)
+PKG_CHECK_MODULES(OGGZ, [oggz >= 0.9.5], has_oggz=yes, has_oggz=no)
+PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7], has_theora=yes, has_theora=no)
+PKG_CHECK_MODULES(VIDCAP, [vidcap >= 0.1], has_vidcap=yes, has_vidcap=no)
+PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.40.3], has_ffmpeg=yes, has_ffmpeg=no)
+
 has_gsm=no
 if test x$enable_local_gsm = xyes; then
    has_gsm=yes
@@ -195,39 +205,33 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
-has_ogg=no
 if test ! x$with_ogg = xno; then
-PKG_CHECK_MODULES(OGG, [ogg >= 1.1.3],has_ogg=yes)
-if test x$has_ogg = xyes; then
-   AC_DEFINE(USE_OGG, 1, [OGG])
-   PKG_REQUIRES="$PKG_REQUIRES ogg"
-elif test ! x$with_ogg = xauto ; then
-   AC_MSG_ERROR([
-      libogg is required to build this package!
-      please see http://www.xiph.org/ for how to
-      obtain a copy.
-   ])
-fi
+   if test x$has_ogg = xyes; then
+      AC_DEFINE(USE_OGG, 1, [OGG])
+      PKG_REQUIRES="$PKG_REQUIRES ogg"
+   elif test ! x$with_ogg = xauto ; then
+      AC_MSG_ERROR([
+         libogg is required to build this package!
+         please see http://www.xiph.org/ for how to
+         obtain a copy.
+      ])
+   fi
 fi
   
-has_theora=no
 if test ! x$with_theora = xno; then
-PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],has_theora=yes)
-if test x$has_theora = xyes; then
-   AC_DEFINE(USE_THEORA, 1, [THEORA])
-   PKG_REQUIRES="$PKG_REQUIRES theora"
-elif test ! x$with_theora = xauto ; then
-   AC_MSG_ERROR([
-      libtheora is required to build this package!
-      please see http://www.xiph.org/ for how to
-      obtain a copy.
-   ])
-fi
+   if test x$has_theora = xyes; then
+      AC_DEFINE(USE_THEORA, 1, [THEORA])
+      PKG_REQUIRES="$PKG_REQUIRES theora"
+   elif test ! x$with_theora = xauto ; then
+      AC_MSG_ERROR([
+         libtheora is required to build this package!
+         please see http://www.xiph.org/ for how to
+         obtain a copy.
+      ])
+   fi
 fi
 
-has_vidcap=no
 if test ! x$with_vidcap = xno; then
-   PKG_CHECK_MODULES(VIDCAP, [vidcap >= 0.1],has_vidcap=yes)
    if test x$has_vidcap = xyes; then
       AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
       PKG_REQUIRES="$PKG_REQUIRES vidcap"
@@ -240,26 +244,18 @@ if test ! x$with_vidcap = xno; then
    fi
 fi
 
-has_ffmpeg=no
 if test ! x$with_ffmpeg = xno; then
-PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.40.3],has_ffmpeg=yes)
-if test x$has_ffmpeg = xyes; then
-   AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
-   PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
-elif test ! x$with_ffmpeg = xauto ; then
-   AC_MSG_ERROR([
-      FFmpeg is required to build this package!
-      please see http://ffmpeg.mplayerhq.hu/ for how to
-      obtain a copy.
-   ])
+   if test x$has_ffmpeg = xyes; then
+      AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
+      PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
+   elif test ! x$with_ffmpeg = xauto ; then
+      AC_MSG_ERROR([
+         FFmpeg is required to build this package!
+         please see http://ffmpeg.mplayerhq.hu/ for how to
+         obtain a copy.
+      ])
+   fi
 fi
-fi
-
-PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
-PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
-PKG_CHECK_MODULES(GDK2, [gdk-2.0 >= 2.0.0], has_gdk2=yes, has_gdk2=no)
-PKG_CHECK_MODULES(ALSA, [alsa >= 1.0], has_alsa=yes, has_alsa=no)
-PKG_CHECK_MODULES(OGGZ, [oggz >= 0.9.5], has_oggz=yes, has_oggz=no)
 
 has_iax2=no
 if test ! x$enable_local_iax = xyes; then
