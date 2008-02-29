@@ -66,7 +66,6 @@ dnl Default CFLAGS and CXXFLAGS if unset
 CFLAGS=${CFLAGS-"-O2 -g -Wall --std=gnu99"}
 CXXFLAGS=${CXXFLAGS-"-O2 -g -Wall"}
 
-# AC_ARG_ENABLE saves the option's argument in enable_FEATURE
 AC_ARG_ENABLE(local-gsm,
       [AS_HELP_STRING([--enable-local-gsm],
          [Use local gsm library [default=auto]])],,
@@ -104,24 +103,6 @@ AC_ARG_WITH(ilbc,
          [Enable iLBC support (You need to place the iLBC reference sources in lib/iLBC) [default=auto]])],,
       with_ilbc="auto")
 
-case "$with_ilbc" in
-   yes)
-      enable_local_ilbc=yes ;;
-   no)
-      enable_local_ilbc=no ;;
-   auto)
-      AC_MSG_CHECKING([for iLBC reference sources in lib/iLBC])
-      if test -r lib/iLBC/iLBC_encode.c; then
-         enable_local_ilbc=yes
-      else
-         enable_local_ilbc=no
-      fi
-      AC_MSG_RESULT([$enable_local_ilbc]) ;;
-
-   *)
-      AC_MSG_ERROR([bad value ${with_ilbc} for --with-ilbc]) ;;
-esac
-
 AC_ARG_WITH(wish,
       [AS_HELP_STRING([--with-wish],
          [Path to Tcl command language interpreter])],
@@ -149,6 +130,24 @@ AC_ARG_WITH(ffmpeg,
       FFMPEG="${with_ffmpeg}",
       with_ffmpeg="no")
 
+case "$with_ilbc" in
+   yes)
+      enable_local_ilbc=yes ;;
+   no)
+      enable_local_ilbc=no ;;
+   auto)
+      AC_MSG_CHECKING([for iLBC reference sources in lib/iLBC])
+      if test -r lib/iLBC/iLBC_encode.c; then
+         enable_local_ilbc=yes
+      else
+         enable_local_ilbc=no
+      fi
+      AC_MSG_RESULT([$enable_local_ilbc]) ;;
+
+   *)
+      AC_MSG_ERROR([bad value ${with_ilbc} for --with-ilbc]) ;;
+esac
+
 if test ! "x$enable_clients" = "xauto"; then
    for client in ${enable_clients}; do
       case "$client" in
@@ -165,8 +164,6 @@ if test ! "x$enable_clients" = "xauto"; then
       esac
    done
 fi
-
-AM_OPTIONS_WXCONFIG
 
 case $host_os in
    *mingw32*|*cygwin* )
@@ -195,6 +192,18 @@ PKG_CHECK_MODULES(PORTAUDIO, [portaudio-2.0 >= 19],,AC_MSG_ERROR([
    obtain a copy.
 ]))
 
+PKG_CHECK_MODULES(SPEEX, [speex >= 1.2],,AC_MSG_ERROR([
+   speex is required to build this package!
+   please see http://www.xiph.org/ for how to
+   obtain a copy.
+]))
+
+PKG_CHECK_MODULES(SPEEXDSP, [speexdsp >= 1.2],,AC_MSG_ERROR([
+   speexdsp is required to build this package!
+   please see http://www.xiph.org/ for how to
+   obtain a copy.
+]))
+
 has_gsm=no
 if test x$enable_local_gsm = xyes; then
    has_gsm=yes
@@ -202,11 +211,6 @@ if test x$enable_local_gsm = xyes; then
 else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
-
-if test x$enable_video = xyes; then
-   AC_DEFINE(USE_VIDEO, 1, [Define to 1 to enable Video support])
-fi
-AM_CONDITIONAL(VIDEO, test x$enable_video = xyes)
 
 has_ogg=no
 if test ! x$with_ogg = xno; then
@@ -222,20 +226,7 @@ elif test ! x$with_ogg = xauto ; then
    ])
 fi
 fi
-AM_CONDITIONAL(OGG, test x$has_ogg = xyes)
   
-PKG_CHECK_MODULES(SPEEX, [speex >= 1.2],,AC_MSG_ERROR([
-   speex is required to build this package!
-   please see http://www.xiph.org/ for how to
-   obtain a copy.
-]))
-
-PKG_CHECK_MODULES(SPEEXDSP, [speexdsp >= 1.2],,AC_MSG_ERROR([
-   speexdsp is required to build this package!
-   please see http://www.xiph.org/ for how to
-   obtain a copy.
-]))
-
 has_theora=no
 if test ! x$with_theora = xno; then
 PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7],has_theora=yes)
@@ -250,7 +241,6 @@ elif test ! x$with_theora = xauto ; then
    ])
 fi
 fi
-AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
 
 has_vidcap=no
 if test ! x$with_vidcap = xno; then
@@ -266,7 +256,6 @@ if test ! x$with_vidcap = xno; then
       ])
    fi
 fi
-AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes)
 
 has_ffmpeg=no
 if test ! x$with_ffmpeg = xno; then
@@ -282,7 +271,6 @@ elif test ! x$with_ffmpeg = xauto ; then
    ])
 fi
 fi
-AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes)
 
 PKG_CHECK_MODULES(SDL, [sdl >= 1.2], has_sdl=yes, has_sdl=no)
 PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.0], has_gtk2=yes, has_gtk2=no)
@@ -302,6 +290,8 @@ if test x$has_iax2 = xno && test ! x$enable_local_iax = xno; then
    IAX2_LIBS=""
    IAX2_CONFIG=""
 fi
+
+AM_OPTIONS_WXCONFIG
 
 has_wx="no"
 AM_PATH_WXCONFIG(2.6.0, [has_wx="2.6"],
@@ -359,23 +349,32 @@ CPPFLAGS="$save_CPPFLAGS"
 CXXFLAGS="$save_CXXFLAGS"
 dnl End wx xrc check
 
-AM_CONDITIONAL(SPAN_EC, test x$use_echo_can = xspan)
+if test x$enable_video = xyes; then
+   AC_DEFINE(USE_VIDEO, 1, [Define to 1 to enable video support])
+fi
+
 if test x$use_echo_can = xspan; then
-   AC_DEFINE(SPAN_EC, 1, [Span echo can])
+   AC_DEFINE(SPAN_EC, 1, [Define to 1 to enable span echo cancellation])
 fi
 
 if test x$use_echo_can = xspeex; then
-   AC_DEFINE(SPEEX_EC, 1, [Speex echo can])
+   AC_DEFINE(SPEEX_EC, 1, [Define to 1 to enable speex echo cancellation])
 fi
 
 if test x$enable_local_ilbc = xyes; then
-   AC_DEFINE(CODEC_ILBC,,[Enable ILBC support])
+   AC_DEFINE(CODEC_ILBC,,[Define to 1 to enable ILBC support])
 fi
 
 if test x$has_gsm = xyes && test ! x$with_gsm = xno; then
-   AC_DEFINE(CODEC_GSM,,[Enable GSM support])
+   AC_DEFINE(CODEC_GSM,,[Define to 1 to enable GSM support])
 fi
 
+AM_CONDITIONAL(VIDEO, test x$enable_video = xyes)
+AM_CONDITIONAL(OGG, test x$has_ogg = xyes)
+AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
+AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes)
+AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes)
+AM_CONDITIONAL(SPAN_EC, test x$use_echo_can = xspan)
 AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test ! x$with_gsm = xno)
 AM_CONDITIONAL(USE_LOCAL_GSM, test x$enable_local_gsm = xyes)
 AM_CONDITIONAL(USE_LOCAL_IAX2, test x$enable_local_iax2 = xyes)
