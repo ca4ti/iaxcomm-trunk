@@ -205,55 +205,58 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
-if test x$with_ogg != xno; then
-   if test x$has_ogg = xyes; then
-      AC_DEFINE(USE_OGG, 1, [OGG])
-      PKG_REQUIRES="$PKG_REQUIRES ogg"
-   elif test x$with_ogg != xauto ; then
-      AC_MSG_ERROR([
-         libogg is required to build this package!
-         please see http://www.xiph.org/ for how to
-         obtain a copy.
-      ])
-   fi
-fi
-  
-if test x$with_theora != xno; then
-   if test x$has_theora = xyes; then
-      AC_DEFINE(USE_THEORA, 1, [THEORA])
-      PKG_REQUIRES="$PKG_REQUIRES theora"
-   elif test x$with_theora != xauto ; then
-      AC_MSG_ERROR([
-         libtheora is required to build this package!
-         please see http://www.xiph.org/ for how to
-         obtain a copy.
-      ])
-   fi
-fi
+if test x$enable_video = xyes; then
 
-if test x$with_vidcap != xno; then
-   if test x$has_vidcap = xyes; then
-      AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
-      PKG_REQUIRES="$PKG_REQUIRES vidcap"
-   elif test x$with_vidcap != xauto ; then
-      AC_MSG_ERROR([
-         libvidcap is required to build this package!
-         please see http://libvidcap.sourceforge.net/ for how to
-         obtain a copy.
-      ])
+   if test x$with_ogg != xno; then
+      if test x$has_ogg = xyes; then
+         AC_DEFINE(USE_OGG, 1, [OGG])
+         PKG_REQUIRES="$PKG_REQUIRES ogg"
+      elif test x$with_ogg != xauto ; then
+         AC_MSG_ERROR([
+            libogg is required to build this package!
+            please see http://www.xiph.org/ for how to
+            obtain a copy.
+         ])
+      fi
    fi
-fi
-
-if test x$with_ffmpeg != xno; then
-   if test x$has_ffmpeg = xyes; then
-      AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
-      PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
-   elif test x$with_ffmpeg != xauto ; then
-      AC_MSG_ERROR([
-         FFmpeg is required to build this package!
-         please see http://ffmpeg.mplayerhq.hu/ for how to
-         obtain a copy.
-      ])
+     
+   if test x$with_theora != xno; then
+      if test x$has_theora = xyes; then
+         AC_DEFINE(USE_THEORA, 1, [THEORA])
+         PKG_REQUIRES="$PKG_REQUIRES theora"
+      elif test x$with_theora != xauto ; then
+         AC_MSG_ERROR([
+            libtheora is required to build this package!
+            please see http://www.xiph.org/ for how to
+            obtain a copy.
+         ])
+      fi
+   fi
+   
+   if test x$with_vidcap != xno; then
+      if test x$has_vidcap = xyes; then
+         AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
+         PKG_REQUIRES="$PKG_REQUIRES vidcap"
+      elif test x$with_vidcap != xauto ; then
+         AC_MSG_ERROR([
+            libvidcap is required to build this package!
+            please see http://libvidcap.sourceforge.net/ for how to
+            obtain a copy.
+         ])
+      fi
+   fi
+   
+   if test x$with_ffmpeg != xno; then
+      if test x$has_ffmpeg = xyes; then
+         AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
+         PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
+      elif test x$with_ffmpeg != xauto ; then
+         AC_MSG_ERROR([
+            FFmpeg is required to build this package!
+            please see http://ffmpeg.mplayerhq.hu/ for how to
+            obtain a copy.
+         ])
+      fi
    fi
 fi
 
