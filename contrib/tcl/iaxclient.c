@@ -18,7 +18,7 @@
 
 /* On my 10.2.8 box I need this fix. */
 #if TARGET_API_MAC_CARBON
-    typedef int socklen_t;
+   // typedef int socklen_t;
 #endif
 #include "iaxclient.h"
 
