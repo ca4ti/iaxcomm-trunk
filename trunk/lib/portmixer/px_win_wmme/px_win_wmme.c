@@ -35,6 +35,14 @@
  *
  */
 
+#if defined(WIN32) || defined(_WIN32_WCE)
+#include <stdlib.h>
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#else
+#include <strings.h>
+#endif
+
 #include <windows.h>
 
 #include "portaudio.h"
@@ -161,48 +169,57 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
    }
 
    mixer->numInputs = 0;
-   mixer->muxID = 0;
+   mixer->muxID = -1;
 
    /* ??? win32 default for wave control seems to be 0 ??? */
    mixer->waveID = 0 ;
 
-   /*
-    * Find the input source selector (mux or mixer) and
-    * get the names and IDs of all of the input sources
-    */
-
-   if (mixer->hInputMixer) {
+   if (mixer->hInputMixer)
+   {
       MIXERLINE line;
       line.cbStruct = sizeof(MIXERLINE);
       line.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_WAVEIN;
+
       result = mixerGetLineInfo(mixer->hInputMixer,
                                 &line,
                                 MIXER_GETLINEINFOF_COMPONENTTYPE);
-      if (result == MMSYSERR_NOERROR) {
-         int j;
+      if (result == MMSYSERR_NOERROR)
+      {
+         /* if the WaveInDestination has an InputSelectorControl (Mux or Mixer)
+          * get the names and IDs of all of the input sources
+          * make sure the name of the MicrophoneSource (if there is one)
+          * is "microphone" since pa_start() checks for it
+          */
+
          MIXERLINECONTROLS controls;
          MIXERCONTROL control;
 
          controls.cbStruct = sizeof(MIXERLINECONTROLS);
-         controls.dwLineID = line.dwLineID;
-         controls.dwControlType = MIXERCONTROL_CONTROLTYPE_MUX;
          controls.cbmxctrl = sizeof(MIXERCONTROL);
          controls.pamxctrl = &control;
 
          control.cbStruct = sizeof(MIXERCONTROL);
 
+         controls.dwLineID = line.dwLineID;
+         controls.dwControlType = MIXERCONTROL_CONTROLTYPE_MUX;
          result = mixerGetLineControls(mixer->hInputMixer,
                                        &controls,
                                        MIXER_GETLINECONTROLSF_ONEBYTYPE);
 
-         if (result != MMSYSERR_NOERROR) {
+         if (result != MMSYSERR_NOERROR)
+         {
             controls.dwControlType = MIXERCONTROL_CONTROLTYPE_MIXER;
             result = mixerGetLineControls(mixer->hInputMixer,
                                           &controls,
                                           MIXER_GETLINECONTROLSF_ONEBYTYPE);
          }
 
-         if (result == MMSYSERR_NOERROR) {
+         if (result == MMSYSERR_NOERROR)
+         {
+            int j;
+            int exactMic = -1;
+            int startMic = -1;
+            int firstMic = -1;
             MIXERCONTROLDETAILS details;
             MIXERCONTROLDETAILS_LISTTEXT mixList[32];
 
@@ -216,6 +233,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
             details.paDetails = (LPMIXERCONTROLDETAILS_LISTTEXT)&mixList[0];
             details.cMultipleItems = mixer->numInputs;
 
+            controls.dwControlType = MIXERCONTROL_CONTROLTYPE_VOLUME;
             result = mixerGetControlDetails(mixer->hInputMixer,
                                             (LPMIXERCONTROLDETAILS)&details,
                                             MIXER_GETCONTROLDETAILSF_LISTTEXT);
@@ -223,33 +241,110 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
             if (result != MMSYSERR_NOERROR)
                mixer->numInputs = 0;
 
-            for(j=0; j<mixer->numInputs; j++) {
+            for (j=0; j < mixer->numInputs; j++)
+            {
                mixer->src[j].lineID = mixList[j].dwParam1;
+
+               controls.dwLineID = mixer->src[j].lineID;
+               result = mixerGetLineControls(mixer->hInputMixer,
+                     &controls,
+                     MIXER_GETLINECONTROLSF_ONEBYTYPE);
+               if (result == MMSYSERR_NOERROR)
+               {
+                  /* mark as volume control */
+                  mixer->src[j].controlID = control.dwControlID;
+               }
+               else
+               {
+                  /* mark as NOT volume control */
+                  mixer->src[j].controlID = 0;
+               }
+
+               line.dwLineID = mixer->src[j].lineID;
+
+               result = mixerGetLineInfo(mixer->hInputMixer, &line, MIXER_GETLINEINFOF_LINEID);
+               if (result == MMSYSERR_NOERROR &&
+                     line.dwComponentType == MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE)
+               {
+                  if (exactMic == -1)
+                  {
+                     if (strcasecmp(mixList[j].szName, "microphone") == 0)
+                     {
+                        exactMic = j;
+                     }
+                     else if (startMic == -1)
+                     {
+                        if (strncasecmp(mixList[j].szName, "microphone",
+                                 strlen("microphone")) == 0)
+                        {
+                           startMic = j;
+                        }
+                        else if (firstMic == -1)
+                        {
+                           firstMic = j;
+                        }
+                     }
+                  }
+               }
                strcpy(mixer->src[j].name, mixList[j].szName);
             }
+
+            if (exactMic == -1)
+            {
+               if (startMic != -1)
+               {
+                  strcpy(mixer->src[startMic].name, "microphone");
+               }
+               else if (firstMic != -1)
+               {
+                       strcpy(mixer->src[firstMic].name, "microphone");
+               }
+            }
          }
-
-         /*
-          * We've found the names - now we need to find the volume
-          * controls for each one
-          */
-
-         for(j=0; j<mixer->numInputs; j++) {
-            controls.cbStruct = sizeof(MIXERLINECONTROLS);
-            controls.dwLineID = mixer->src[j].lineID;
+         else
+         {
+            /* if the WaveInDestination does not have an InputSelector
+             * see if the WaveInDestination SourceLine has a VolumeControl
+             */
             controls.dwControlType = MIXERCONTROL_CONTROLTYPE_VOLUME;
-            controls.cbmxctrl = sizeof(MIXERCONTROL);
-            controls.pamxctrl = &control;
-
-            control.cbStruct = sizeof(MIXERCONTROL);
-
             result = mixerGetLineControls(mixer->hInputMixer,
                                           &controls,
                                           MIXER_GETLINECONTROLSF_ONEBYTYPE);
             if (result == MMSYSERR_NOERROR)
-               mixer->src[j].controlID = control.dwControlID;
+            {
+               mixer->src[0].lineID = line.dwLineID;
+               strcpy(mixer->src[0].name, line.szName);
+               mixer->src[0].controlID = control.dwControlID;
+               mixer->numInputs = 1;
+            }
             else
-               mixer->src[j].controlID = 0;
+            {
+               line.dwSource = 0;
+               result = mixerGetLineInfo(mixer->hInputMixer,
+                                         &line,
+                                         MIXER_GETLINEINFOF_SOURCE);
+               if (result == MMSYSERR_NOERROR)
+               {
+                  mixer->src[0].lineID = line.dwLineID;
+                  strcpy(mixer->src[0].name, line.szName);
+
+                  controls.dwLineID = line.dwLineID;
+                  result = mixerGetLineControls(mixer->hInputMixer,
+                                                &controls,
+                                                MIXER_GETLINECONTROLSF_ONEBYTYPE);
+
+                  if (result == MMSYSERR_NOERROR)
+                  {
+                     mixer->src[0].controlID = control.dwControlID;
+                  }
+                  else
+                  {
+                     mixer->src[0].controlID = 0;
+                  }
+
+                  mixer->numInputs = 1;
+               }
+            }
          }
       }
    }
@@ -856,7 +951,7 @@ int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name )
    for ( x = 0 ; x < info->numInputs ; ++x )
    {
       // compare passed name with control name
-      if ( strncasecmp( info->src[x].name, name, strlen( name ) ) == 0 )
+      if ( strcasecmp( info->src[x].name, name ) == 0 )
       {
          // set input source
          Px_SetCurrentInputSource( mixer, x ) ;
