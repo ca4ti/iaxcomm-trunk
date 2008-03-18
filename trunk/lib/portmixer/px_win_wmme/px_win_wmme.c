@@ -119,18 +119,11 @@ const char *Px_GetMixerName( void *pa_stream, int index )
 
 PxMixer *Px_OpenMixer( void *pa_stream, int index )
 {
-   struct PaWinMmeStream       *past;
-
-   HWAVEIN                      hWaveIn;
-   HWAVEOUT                     hWaveOut;
-   PxInfo                      *mixer;
-   MMRESULT                     result;
-   MIXERLINE                    line;
-   MIXERLINECONTROLS            controls;
-   MIXERCONTROL                 control;
-   MIXERCONTROLDETAILS          details;
-   MIXERCONTROLDETAILS_LISTTEXT mixList[32];
-   int                          j;
+   struct PaWinMmeStream *past;
+   HWAVEIN hWaveIn;
+   HWAVEOUT hWaveOut;
+   PxInfo *mixer;
+   MMRESULT result;
 
    if (!pa_stream)
       return NULL;
@@ -179,12 +172,16 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
     */
 
    if (mixer->hInputMixer) {
+      MIXERLINE line;
       line.cbStruct = sizeof(MIXERLINE);
       line.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_WAVEIN;
       result = mixerGetLineInfo(mixer->hInputMixer,
                                 &line,
                                 MIXER_GETLINEINFOF_COMPONENTTYPE);
       if (result == MMSYSERR_NOERROR) {
+         int j;
+         MIXERLINECONTROLS controls;
+         MIXERCONTROL control;
 
          controls.cbStruct = sizeof(MIXERLINECONTROLS);
          controls.dwLineID = line.dwLineID;
@@ -206,6 +203,9 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
          }
 
          if (result == MMSYSERR_NOERROR) {
+            MIXERCONTROLDETAILS details;
+            MIXERCONTROLDETAILS_LISTTEXT mixList[32];
+
             mixer->numInputs = control.cMultipleItems;
             mixer->muxID = control.dwControlID;
 
@@ -261,12 +261,16 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
    mixer->speakerID = 0;
 
    if (mixer->hOutputMixer) {
+      MIXERLINE line;
       line.cbStruct = sizeof(MIXERLINE);
       line.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_SPEAKERS;
       result = mixerGetLineInfo(mixer->hOutputMixer,
                                 &line,
                                 MIXER_GETLINEINFOF_COMPONENTTYPE);
       if (result == MMSYSERR_NOERROR) {
+         MIXERLINECONTROLS controls;
+         MIXERCONTROL control;
+
          controls.cbStruct = sizeof(MIXERLINECONTROLS);
          controls.dwLineID = line.dwLineID;
          controls.dwControlType = MIXERCONTROL_CONTROLTYPE_VOLUME;
