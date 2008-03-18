@@ -211,8 +211,8 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
    mixer->numInputs = 0;
    mixer->muxID = 0;
 
-	/* ??? win32 default for wave control seems to be 0 ??? */
-	mixer->waveID = 0 ; 
+   /* ??? win32 default for wave control seems to be 0 ??? */
+   mixer->waveID = 0 ;
 
    /*
     * Find the input source selector (mux or mixer) and
@@ -300,7 +300,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
     */
 
    mixer->speakerID = 0;
-   
+
    if (mixer->hOutputMixer) {
       line.cbStruct = sizeof(MIXERLINE);
       line.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_SPEAKERS;
@@ -360,7 +360,7 @@ void VolumeFunction(HMIXEROBJ hMixer, DWORD controlID, PxVolume *volume)
 
 /*
  Px_CloseMixer() closes a mixer opened using Px_OpenMixer and frees any
- memory associated with it. 
+ memory associated with it.
 */
 
 void Px_CloseMixer(PxMixer *mixer)
@@ -399,56 +399,56 @@ void Px_SetMasterVolume( PxMixer *mixer, PxVolume volume )
  PCM output volume
 */
 
-int Px_SupportsPCMOutputVolume( PxMixer* mixer ) 
+int Px_SupportsPCMOutputVolume( PxMixer* mixer )
 {
-	PxInfo* info = ( PxInfo* )( mixer ) ;
-	return ( info->waveID == -1 ) ? 0 : 1 ;
+   PxInfo* info = ( PxInfo* )( mixer ) ;
+   return ( info->waveID == -1 ) ? 0 : 1 ;
 }
 
 PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
 {
-  MMRESULT result;
-  DWORD vol = 0;
-  unsigned short mono_vol = 0;
-  PxInfo *info = (PxInfo *)mixer;
+   MMRESULT result;
+   DWORD vol = 0;
+   unsigned short mono_vol = 0;
+   PxInfo *info = (PxInfo *)mixer;
 
-	/* invalid waveID, return zero */
-	if ( info->waveID == -1 )
-		return 0.0 ;
+   /* invalid waveID, return zero */
+   if ( info->waveID == -1 )
+      return 0.0 ;
 
-	/* get the wave output volume */
-	result = waveOutGetVolume( (HWAVEOUT)( info->waveID ), &vol);
+   /* get the wave output volume */
+   result = waveOutGetVolume( (HWAVEOUT)( info->waveID ), &vol);
 
-	/* on failure, mark waveID as invalid and return zero */
-	if ( result != MMSYSERR_NOERROR )
-	{
-		info->waveID = -1 ;
-		return 0.0 ;
-	}
+   /* on failure, mark waveID as invalid and return zero */
+   if ( result != MMSYSERR_NOERROR )
+   {
+      info->waveID = -1 ;
+      return 0.0 ;
+   }
 
-  mono_vol = (unsigned short)vol;
-  return (PxVolume)mono_vol/65535.0F;
+   mono_vol = (unsigned short)vol;
+   return (PxVolume)mono_vol/65535.0F;
 }
 
 void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
 {
-	MMRESULT result;
-	PxInfo *info = (PxInfo *)mixer;
+   MMRESULT result;
+   PxInfo *info = (PxInfo *)mixer;
 
-	/* invalid waveID */
-	if ( info->waveID == -1 )
-		return ;
+   /* invalid waveID */
+   if ( info->waveID == -1 )
+      return ;
 
-	/* set the wave output volume */
-	result = waveOutSetVolume( (HWAVEOUT)( info->waveID ), MAKELONG(volume*0xFFFF, volume*0xFFFF));
+   /* set the wave output volume */
+   result = waveOutSetVolume( (HWAVEOUT)( info->waveID ), MAKELONG(volume*0xFFFF, volume*0xFFFF));
 
-	/* on failure, mark waveID as invalid  */
-	if ( result != MMSYSERR_NOERROR )
-	{
-		info->waveID = -1 ;
-	}
+   /* on failure, mark waveID as invalid  */
+   if ( result != MMSYSERR_NOERROR )
+   {
+      info->waveID = -1 ;
+   }
 
-	return ;
+   return ;
 }
 
 /*
@@ -465,7 +465,7 @@ int Px_GetNumOutputVolumes( PxMixer *mixer )
 const char *Px_GetOutputVolumeName( PxMixer *mixer, int i )
 {
    PxInfo *info = (PxInfo *)mixer;
-   
+
    if (i==1)
       return "Wave Out";
    else
@@ -499,14 +499,14 @@ void Px_SetOutputVolume( PxMixer *mixer, int i, PxVolume volume )
 int Px_GetNumInputSources( PxMixer *mixer )
 {
    PxInfo *info = (PxInfo *)mixer;
-   
+
    return info->numInputs;
 }
 
 const char *Px_GetInputSourceName( PxMixer *mixer, int i)
 {
    PxInfo *info = (PxInfo *)mixer;
-   
+
    return info->src[i].name;
 }
 
@@ -521,7 +521,7 @@ int Px_GetCurrentInputSource( PxMixer *mixer )
    details.cbStruct = sizeof(MIXERCONTROLDETAILS);
    details.dwControlID = info->muxID;
    details.cMultipleItems = info->numInputs;
-   details.cChannels = 1;   
+   details.cChannels = 1;
    details.cbDetails = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
    details.paDetails = (LPMIXERCONTROLDETAILS_BOOLEAN)&flags[0];
 
@@ -549,7 +549,7 @@ void Px_SetCurrentInputSource( PxMixer *mixer, int i )
    details.cbStruct = sizeof(MIXERCONTROLDETAILS);
    details.dwControlID = info->muxID;
    details.cMultipleItems = info->numInputs;
-   details.cChannels = 1;   
+   details.cChannels = 1;
    details.cbDetails = sizeof(MIXERCONTROLDETAILS_BOOLEAN);
    details.paDetails = (LPMIXERCONTROLDETAILS_BOOLEAN)&flags[0];
 
@@ -620,296 +620,292 @@ void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
 {
 }
 
-
-
-
-
 int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 {
-	MIXERLINE mixerLine ;
-	LPMIXERCONTROL mixerControl ;
-	MIXERLINECONTROLS mixerLineControls ;
-	MIXERCONTROLDETAILS mixerControlDetails ;
-	MIXERCONTROLDETAILS_BOOLEAN value ;
-	MMRESULT mmr = MMSYSERR_ERROR ;
-	DWORD boost_id = -1 ;
-	DWORD x ;
-	
-	// cast void pointer
-	PxInfo* info = ( PxInfo* )( mixer ) ;
+   MIXERLINE mixerLine ;
+   LPMIXERCONTROL mixerControl ;
+   MIXERLINECONTROLS mixerLineControls ;
+   MIXERCONTROLDETAILS mixerControlDetails ;
+   MIXERCONTROLDETAILS_BOOLEAN value ;
+   MMRESULT mmr = MMSYSERR_ERROR ;
+   DWORD boost_id = -1 ;
+   DWORD x ;
 
-	if ( info == NULL ) 
-		return MMSYSERR_ERROR ;
-		
-	//
-	// get line info
-	//
-	
-    mixerLine.cbStruct = sizeof( MIXERLINE ) ;
-    mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
-	
-	mmr = mixerGetLineInfo(
-		( HMIXEROBJ )( info->hInputMixer ),
-		&mixerLine,
-		MIXER_GETLINEINFOF_COMPONENTTYPE
-	) ;
+   // cast void pointer
+   PxInfo* info = ( PxInfo* )( mixer ) ;
 
-	if ( mmr != MMSYSERR_NOERROR )
-		return mmr ;
+   if ( info == NULL )
+      return MMSYSERR_ERROR ;
 
-	//
-	// get all controls
-	//
+   //
+   // get line info
+   //
 
-	mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
-	
-	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
-	mixerLineControls.dwLineID = mixerLine.dwLineID ;
-	mixerLineControls.cControls = mixerLine.cControls ;
-	mixerLineControls.cbmxctrl = sizeof( MIXERCONTROL ) ;
-	mixerLineControls.pamxctrl = ( LPMIXERCONTROL )( mixerControl ) ;
-	
-	mmr = mixerGetLineControls(
-		( HMIXEROBJ )( info->hInputMixer ), 
-		&mixerLineControls,
-		MIXER_GETLINECONTROLSF_ALL
-	) ;
-	
-	if ( mmr != MMSYSERR_NOERROR )
-	{
-		free(mixerControl);
+   mixerLine.cbStruct = sizeof( MIXERLINE ) ;
+   mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
 
-		return mmr ;
-	}
+   mmr = mixerGetLineInfo(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerLine,
+         MIXER_GETLINEINFOF_COMPONENTTYPE
+         ) ;
 
-	//
-	// find boost control
-	//
+   if ( mmr != MMSYSERR_NOERROR )
+      return mmr ;
 
-	for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
-	{
-		// check control type
-		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
-		{
-			// normalize control name
-			char* name = _strupr( mixerControl[x].szName ) ;
+   //
+   // get all controls
+   //
 
-			// check for 'mic' and 'boost'
-			if (
-				( strstr( name, "MIC" ) != NULL )
-				&& ( strstr( name, "BOOST" ) != NULL )
-			)
-			{
-				boost_id = mixerControl[x].dwControlID ;
-				break ;
-			}
-		}
-	}
+   mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 
-	if ( boost_id == -1 )
-	{
-		free(mixerControl);
+   mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
+   mixerLineControls.dwLineID = mixerLine.dwLineID ;
+   mixerLineControls.cControls = mixerLine.cControls ;
+   mixerLineControls.cbmxctrl = sizeof( MIXERCONTROL ) ;
+   mixerLineControls.pamxctrl = ( LPMIXERCONTROL )( mixerControl ) ;
 
-		return MMSYSERR_ERROR ;
-	}
+   mmr = mixerGetLineControls(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerLineControls,
+         MIXER_GETLINECONTROLSF_ALL
+         ) ;
 
-	//
-	// get control details
-	//
-	
-	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
-	mixerControlDetails.dwControlID = boost_id ;
-	mixerControlDetails.cChannels = 1 ;
-	mixerControlDetails.cMultipleItems = 0 ;
-	mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
-	mixerControlDetails.paDetails = &value ;
+   if ( mmr != MMSYSERR_NOERROR )
+   {
+      free(mixerControl);
 
-	mmr = mixerGetControlDetails( 
-		( HMIXEROBJ )( info->hInputMixer ),
-		&mixerControlDetails,
-		MIXER_GETCONTROLDETAILSF_VALUE
-	) ;
+      return mmr ;
+   }
 
-	if ( mmr != MMSYSERR_NOERROR )
-	{
-		free(mixerControl);
+   //
+   // find boost control
+   //
 
-		return mmr ;
-	}
+   for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
+   {
+      // check control type
+      if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
+      {
+         // normalize control name
+         char* name = _strupr( mixerControl[x].szName ) ;
 
-	//
-	// update value
-	//
+         // check for 'mic' and 'boost'
+         if (
+               ( strstr( name, "MIC" ) != NULL )
+               && ( strstr( name, "BOOST" ) != NULL )
+            )
+         {
+            boost_id = mixerControl[x].dwControlID ;
+            break ;
+         }
+      }
+   }
 
-	value.fValue = ( enable == 0 ) ? 0L : 1L ;
+   if ( boost_id == -1 )
+   {
+      free(mixerControl);
 
-	//
-	// set control details
-	//
-	
-	mmr = mixerSetControlDetails( 
-		( HMIXEROBJ )( info->hInputMixer ),
-		&mixerControlDetails,
-		MIXER_SETCONTROLDETAILSF_VALUE
-	) ;
+      return MMSYSERR_ERROR ;
+   }
 
-	free(mixerControl);
+   //
+   // get control details
+   //
 
-	if ( mmr != MMSYSERR_NOERROR )
-		return mmr ;
-	
-	return mmr ;
+   mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
+   mixerControlDetails.dwControlID = boost_id ;
+   mixerControlDetails.cChannels = 1 ;
+   mixerControlDetails.cMultipleItems = 0 ;
+   mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
+   mixerControlDetails.paDetails = &value ;
+
+   mmr = mixerGetControlDetails(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerControlDetails,
+         MIXER_GETCONTROLDETAILSF_VALUE
+         ) ;
+
+   if ( mmr != MMSYSERR_NOERROR )
+   {
+      free(mixerControl);
+
+      return mmr ;
+   }
+
+   //
+   // update value
+   //
+
+   value.fValue = ( enable == 0 ) ? 0L : 1L ;
+
+   //
+   // set control details
+   //
+
+   mmr = mixerSetControlDetails(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerControlDetails,
+         MIXER_SETCONTROLDETAILSF_VALUE
+         ) ;
+
+   free(mixerControl);
+
+   if ( mmr != MMSYSERR_NOERROR )
+      return mmr ;
+
+   return mmr ;
 }
 
 int Px_GetMicrophoneBoost( PxMixer* mixer )
 {
-	MIXERLINE mixerLine ;
-	LPMIXERCONTROL mixerControl ;
-	MIXERLINECONTROLS mixerLineControls ;
-	MIXERCONTROLDETAILS mixerControlDetails ;
-	MIXERCONTROLDETAILS_BOOLEAN value ;
-	MMRESULT mmr = MMSYSERR_ERROR ;
-	DWORD boost_id = -1 ;
-	DWORD x ;
-	
-	// cast void pointer
-	PxInfo* info = ( PxInfo* )( mixer ) ;
+   MIXERLINE mixerLine ;
+   LPMIXERCONTROL mixerControl ;
+   MIXERLINECONTROLS mixerLineControls ;
+   MIXERCONTROLDETAILS mixerControlDetails ;
+   MIXERCONTROLDETAILS_BOOLEAN value ;
+   MMRESULT mmr = MMSYSERR_ERROR ;
+   DWORD boost_id = -1 ;
+   DWORD x ;
 
-	if ( info == NULL ) 
-		return -1 ;
-		
-	//
-	// get line info
-	//
-	
-    mixerLine.cbStruct = sizeof( MIXERLINE ) ;
-    mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
-	
-	mmr = mixerGetLineInfo(
-		( HMIXEROBJ )( info->hInputMixer ),
-		&mixerLine,
-		MIXER_GETLINEINFOF_COMPONENTTYPE
-	) ;
+   // cast void pointer
+   PxInfo* info = ( PxInfo* )( mixer ) ;
 
-	if ( mmr != MMSYSERR_NOERROR )
-		return -1 ;
+   if ( info == NULL )
+      return -1 ;
 
-	//
-	// get all controls
-	//
+   //
+   // get line info
+   //
 
-	mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
-	
-	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
-	mixerLineControls.dwLineID = mixerLine.dwLineID ;
-	mixerLineControls.cControls = mixerLine.cControls ;
-	mixerLineControls.cbmxctrl = sizeof( MIXERCONTROL ) ;
-	mixerLineControls.pamxctrl = ( LPMIXERCONTROL )( mixerControl ) ;
-	
-	mmr = mixerGetLineControls(
-		( HMIXEROBJ )( info->hInputMixer ), 
-		&mixerLineControls,
-		MIXER_GETLINECONTROLSF_ALL
-	) ;
-	
-	if ( mmr != MMSYSERR_NOERROR )
-	{
-		free(mixerControl);
+   mixerLine.cbStruct = sizeof( MIXERLINE ) ;
+   mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_MICROPHONE ;
 
-		return -1 ;
-	}
+   mmr = mixerGetLineInfo(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerLine,
+         MIXER_GETLINEINFOF_COMPONENTTYPE
+         ) ;
 
-	//
-	// find boost control
-	//
+   if ( mmr != MMSYSERR_NOERROR )
+      return -1 ;
 
-	for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
-	{
-		// check control type
-		if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
-		{
-			// normalize control name
-			char* name = _strupr( mixerControl[x].szName ) ;
+   //
+   // get all controls
+   //
 
-			// check for 'mic' and 'boost'
-			if (
-				( strstr( name, "MIC" ) != NULL )
-				&& ( strstr( name, "BOOST" ) != NULL )
-			)
-			{
-				boost_id = mixerControl[x].dwControlID ;
-				break ;
-			}
-		}
-	}
+   mixerControl = (MIXERCONTROL *)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 
-	if ( boost_id == -1 )
-	{
-		free(mixerControl);
+   mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
+   mixerLineControls.dwLineID = mixerLine.dwLineID ;
+   mixerLineControls.cControls = mixerLine.cControls ;
+   mixerLineControls.cbmxctrl = sizeof( MIXERCONTROL ) ;
+   mixerLineControls.pamxctrl = ( LPMIXERCONTROL )( mixerControl ) ;
 
-		return -1 ;
-	}
+   mmr = mixerGetLineControls(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerLineControls,
+         MIXER_GETLINECONTROLSF_ALL
+         ) ;
 
-	//
-	// get control details
-	//
-	
-	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
-	mixerControlDetails.dwControlID = boost_id ;
-	mixerControlDetails.cChannels = 1 ;
-	mixerControlDetails.cMultipleItems = 0 ;
-	mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
-	mixerControlDetails.paDetails = &value ;
+   if ( mmr != MMSYSERR_NOERROR )
+   {
+      free(mixerControl);
 
-	mmr = mixerGetControlDetails( 
-		( HMIXEROBJ )( info->hInputMixer ),
-		&mixerControlDetails,
-		MIXER_GETCONTROLDETAILSF_VALUE
-	) ;
+      return -1 ;
+   }
 
-	free(mixerControl);
+   //
+   // find boost control
+   //
 
-	if ( mmr != MMSYSERR_NOERROR )
-		return -1 ;
-	
-	return ( int )( value.fValue ) ;
+   for ( x = 0 ; x < mixerLineControls.cControls ; ++x )
+   {
+      // check control type
+      if ( mixerControl[x].dwControlType & MIXERCONTROL_CONTROLTYPE_BOOLEAN )
+      {
+         // normalize control name
+         char* name = _strupr( mixerControl[x].szName ) ;
+
+         // check for 'mic' and 'boost'
+         if (
+               ( strstr( name, "MIC" ) != NULL )
+               && ( strstr( name, "BOOST" ) != NULL )
+            )
+         {
+            boost_id = mixerControl[x].dwControlID ;
+            break ;
+         }
+      }
+   }
+
+   if ( boost_id == -1 )
+   {
+      free(mixerControl);
+
+      return -1 ;
+   }
+
+   //
+   // get control details
+   //
+
+   mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
+   mixerControlDetails.dwControlID = boost_id ;
+   mixerControlDetails.cChannels = 1 ;
+   mixerControlDetails.cMultipleItems = 0 ;
+   mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
+   mixerControlDetails.paDetails = &value ;
+
+   mmr = mixerGetControlDetails(
+         ( HMIXEROBJ )( info->hInputMixer ),
+         &mixerControlDetails,
+         MIXER_GETCONTROLDETAILSF_VALUE
+         ) ;
+
+   free(mixerControl);
+
+   if ( mmr != MMSYSERR_NOERROR )
+      return -1 ;
+
+   return ( int )( value.fValue ) ;
 }
 
-int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name ) 
+int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name )
 {
-	int x ;
+   int x ;
 
-	// cast void pointer
-	PxInfo* info = ( PxInfo* )( mixer ) ;
+   // cast void pointer
+   PxInfo* info = ( PxInfo* )( mixer ) ;
 
-	// make sure we have a mixer
-	if ( info == NULL ) 
-		return MMSYSERR_ERROR ;
+   // make sure we have a mixer
+   if ( info == NULL )
+      return MMSYSERR_ERROR ;
 
-	// make sure we have a search name
-	if ( name == NULL )
-		return MMSYSERR_ERROR ;
+   // make sure we have a search name
+   if ( name == NULL )
+      return MMSYSERR_ERROR ;
 
-	//
-	// set input source
-	//
+   //
+   // set input source
+   //
 
-	for ( x = 0 ; x < info->numInputs ; ++x )
-	{
-		// compare passed name with control name
-		if ( strncasecmp( info->src[x].name, name, strlen( name ) ) == 0 )
-		{
-			// set input source
-			Px_SetCurrentInputSource( mixer, x ) ;
-			
-			// make sure set'ing worked
-			if ( Px_GetCurrentInputSource( mixer ) == x )
-				return MMSYSERR_NOERROR ;
-			else
-				return MMSYSERR_ERROR ;
-		}
-	}
+   for ( x = 0 ; x < info->numInputs ; ++x )
+   {
+      // compare passed name with control name
+      if ( strncasecmp( info->src[x].name, name, strlen( name ) ) == 0 )
+      {
+         // set input source
+         Px_SetCurrentInputSource( mixer, x ) ;
 
-	return MMSYSERR_ERROR ;
+         // make sure set'ing worked
+         if ( Px_GetCurrentInputSource( mixer ) == x )
+            return MMSYSERR_NOERROR ;
+         else
+            return MMSYSERR_ERROR ;
+      }
+   }
+
+   return MMSYSERR_ERROR ;
 }
 
