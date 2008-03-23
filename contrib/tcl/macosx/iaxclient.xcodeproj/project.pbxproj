@@ -15,7 +15,7 @@
 		4918F5470D87C39A0075503C /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A665C310AE8F711002F6F7B /* AudioUnit.framework */; };
 		4918F5480D87C39A0075503C /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A665C340AE8F73C002F6F7B /* CoreServices.framework */; };
 		4918F5500D87C4250075503C /* libtclstub8.5.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4918F54F0D87C4250075503C /* libtclstub8.5.a */; };
-		49DA5DF80D8922E700865CDD /* libiaxclient.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 49DA5DF70D8922E700865CDD /* libiaxclient.a */; };
+		4932DB150D8A616B006222BE /* libiaxclient.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4932DB140D8A616B006222BE /* libiaxclient.a */; };
 		49DA5E5A0D89616E00865CDD /* libportaudio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 49DA5E590D89616E00865CDD /* libportaudio.a */; };
 		49DA5E5D0D89619D00865CDD /* libspeex.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 49DA5E5C0D89619D00865CDD /* libspeex.a */; };
 		49DA5E600D8961BD00865CDD /* libspeexdsp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 49DA5E5F0D8961BD00865CDD /* libspeexdsp.a */; };
@@ -24,7 +24,7 @@
 /* Begin PBXFileReference section */
 		4918F54E0D87C39A0075503C /* tcliaxclient0.2.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = tcliaxclient0.2.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		4918F54F0D87C4250075503C /* libtclstub8.5.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtclstub8.5.a; path = /Library/Frameworks/Tcl.framework/libtclstub8.5.a; sourceTree = "<absolute>"; };
-		49DA5DF70D8922E700865CDD /* libiaxclient.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libiaxclient.a; path = ../../../lib/.libs/libiaxclient.a; sourceTree = SOURCE_ROOT; };
+		4932DB140D8A616B006222BE /* libiaxclient.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libiaxclient.a; path = /usr/local/lib/libiaxclient.a; sourceTree = "<absolute>"; };
 		49DA5E590D89616E00865CDD /* libportaudio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libportaudio.a; path = /usr/local/lib/libportaudio.a; sourceTree = "<absolute>"; };
 		49DA5E5C0D89619D00865CDD /* libspeex.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libspeex.a; path = /usr/local/lib/libspeex.a; sourceTree = "<absolute>"; };
 		49DA5E5F0D8961BD00865CDD /* libspeexdsp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libspeexdsp.a; path = /usr/local/lib/libspeexdsp.a; sourceTree = "<absolute>"; };
@@ -49,10 +49,10 @@
 				4918F5470D87C39A0075503C /* AudioUnit.framework in Frameworks */,
 				4918F5480D87C39A0075503C /* CoreServices.framework in Frameworks */,
 				4918F5500D87C4250075503C /* libtclstub8.5.a in Frameworks */,
-				49DA5DF80D8922E700865CDD /* libiaxclient.a in Frameworks */,
 				49DA5E5A0D89616E00865CDD /* libportaudio.a in Frameworks */,
 				49DA5E5D0D89619D00865CDD /* libspeex.a in Frameworks */,
 				49DA5E600D8961BD00865CDD /* libspeexdsp.a in Frameworks */,
+				4932DB150D8A616B006222BE /* libiaxclient.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,10 +80,10 @@
 		0867D69AFE84028FC02AAC07 /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				4932DB140D8A616B006222BE /* libiaxclient.a */,
 				49DA5E5F0D8961BD00865CDD /* libspeexdsp.a */,
 				49DA5E5C0D89619D00865CDD /* libspeex.a */,
 				49DA5E590D89616E00865CDD /* libportaudio.a */,
-				49DA5DF70D8922E700865CDD /* libiaxclient.a */,
 				F94429230420B8C2006F146B /* Tcl.framework */,
 				4918F54F0D87C4250075503C /* libtclstub8.5.a */,
 				9A665C310AE8F711002F6F7B /* AudioUnit.framework */,
@@ -190,21 +190,18 @@
 		4918F52F0D87C3700075503C /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Development;
 		};
 		4918F5300D87C3700075503C /* Deployment */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Deployment;
 		};
 		4918F5310D87C3700075503C /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Default;
 		};
@@ -233,11 +230,7 @@
 					../../../lib/gsm/inc,
 				);
 				INSTALL_PATH = "/Library/Tcl/iaxclient${DYLIB_COMPATIBILITY_VERSION}";
-				LIBRARY_SEARCH_PATHS = (
-					/Library/Frameworks/Tcl.framework,
-					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
-				);
-				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../../lib/.libs\"";
+				LIBRARY_SEARCH_PATHS = /Library/Frameworks/Tcl.framework;
 				LIBRARY_STYLE = DYNAMIC;
 				MACH_O_TYPE = mh_dylib;
 				OTHER_CFLAGS = "--std=c99";

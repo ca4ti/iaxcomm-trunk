@@ -12,9 +12,9 @@
  *
  * By Mats Bengtsson and Zoran Vasiljevic 2006
  *
- * Ê 1. XThread_RegisterThread 
- * Ê 2. XThread_UnregisterThread 
- * Ê 3. XThread_EvalInThread 
+ * Â  1. XThread_RegisterThread 
+ * Â  2. XThread_UnregisterThread 
+ * Â  3. XThread_EvalInThread 
  *
  *   The 1. needs to be called from your master thread, i.e. the 
  *   one you would like to execute the callbacks within.
@@ -30,9 +30,9 @@
 #include <string.h>
 
 #if TARGET_API_MAC_CARBON
-#	include <Tcl/tcl.h>
+#   include <Tcl/tcl.h>
 #else
-#	include "tcl.h"
+#   include "tcl.h"
 #endif
 
 #ifndef TCL_TSD_INIT
@@ -46,7 +46,7 @@
  */
 
 typedef struct ThreadSpecificData {
-    Tcl_Interp *interp;                   /* Interp to evaluate scripts */
+    Tcl_Interp *interp;		/* Interp to evaluate scripts */
 } ThreadSpecificData;
 
 static Tcl_ThreadDataKey dataKey;
@@ -76,14 +76,9 @@ typedef struct ThreadSendData {
 } ThreadSendData;
 
 
-static void		
-ThreadSend		_ANSI_ARGS_((Tcl_ThreadId targetId, ThreadSendData *send));
-
-static int  	
-ThreadEventProc	_ANSI_ARGS_((Tcl_Event *evPtr, int mask));
-
-static void 	
-ThreadFreeProc	_ANSI_ARGS_((ClientData clientData));
+static void	ThreadSend	_ANSI_ARGS_((Tcl_ThreadId targetId, ThreadSendData *send));
+static int  	ThreadEventProc	_ANSI_ARGS_((Tcl_Event *evPtr, int mask));
+static void 	ThreadFreeProc	_ANSI_ARGS_((ClientData clientData));
 
 /*
  *----------------------------------------------------------------------
@@ -102,7 +97,8 @@ ThreadFreeProc	_ANSI_ARGS_((ClientData clientData));
  *----------------------------------------------------------------------
  */
 
-void XThread_RegisterThread(Tcl_Interp *interp)
+void 
+XThread_RegisterThread(Tcl_Interp *interp)
 {
     ThreadSpecificData* tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -126,7 +122,8 @@ void XThread_RegisterThread(Tcl_Interp *interp)
  *----------------------------------------------------------------------
  */
 
-void XThread_UnregisterThread()
+void 
+XThread_UnregisterThread()
 {
     ThreadSpecificData* tsdPtr = TCL_TSD_INIT(&dataKey);
 
@@ -158,7 +155,8 @@ void XThread_UnregisterThread()
  *----------------------------------------------------------------------
  */
 
-void XThread_EvalInThread(Tcl_ThreadId threadId, const char *script, int flags)
+void 
+XThread_EvalInThread(Tcl_ThreadId threadId, const char *script, int flags)
 {
     ThreadSendData *sendPtr;
     int len = strlen(script);

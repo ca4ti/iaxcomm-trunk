@@ -1,2 +1,4 @@
-_Iaxclient_Init
-_Iaxclient_SafeInit
+_Tcliaxclient_Init
+_Tcliaxclient_SafeInit
+_Tcliaxclient_Unload
+_Tcliaxclient_SafeUnload

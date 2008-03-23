@@ -26,13 +26,13 @@
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 // empty
 #else
-#	include <pthread.h>
+#   include <pthread.h>
 #endif
 
 #if TARGET_API_MAC_CARBON
-#	include <Tcl/tcl.h>
+#   include <Tcl/tcl.h>
 #else
-#	include "tcl.h"
+#   include "tcl.h"
 #endif
 
 #define PACKAGE_VERSION "0.2"
@@ -62,33 +62,33 @@ struct Mapper {
 };
 
 struct Mapper mapEvent[] = {
-    {IAXC_EVENT_TEXT,			"text"			},
-    {IAXC_EVENT_LEVELS,      	"levels"		},
-    {IAXC_EVENT_STATE,			"state"			},
-    {IAXC_EVENT_NETSTAT,		"netstat" 		},
-    {IAXC_EVENT_URL,			"url"			},
-    {IAXC_EVENT_VIDEO,			"video"			},
+    {IAXC_EVENT_TEXT,		"text"		},
+    {IAXC_EVENT_LEVELS,      	"levels"	},
+    {IAXC_EVENT_STATE,		"state"		},
+    {IAXC_EVENT_NETSTAT,	"netstat" 	},
+    {IAXC_EVENT_URL,		"url"		},
+    {IAXC_EVENT_VIDEO,		"video"		},
     {IAXC_EVENT_REGISTRATION,	"registration"	},
-    {0,							NULL			}
+    {0,				NULL		}
 };
 
 struct Mapper mapRegistration[] = {
-    {IAXC_REGISTRATION_REPLY_ACK,		"ack"		},
-    {IAXC_REGISTRATION_REPLY_REJ,		"rej"		},
+    {IAXC_REGISTRATION_REPLY_ACK,	"ack"		},
+    {IAXC_REGISTRATION_REPLY_REJ,	"rej"		},
     {IAXC_REGISTRATION_REPLY_TIMEOUT,	"timeout"	},
-    {0,									NULL		}
+    {0,					NULL		}
 };
 
 struct Mapper mapCallState[] = {
-    {IAXC_CALL_STATE_FREE,		"free"		},		/* = 0 beware! */
+    {IAXC_CALL_STATE_FREE,	"free"		},		/* = 0 beware! */
     {IAXC_CALL_STATE_ACTIVE,	"active"	},
     {IAXC_CALL_STATE_OUTGOING,	"outgoing"	},
     {IAXC_CALL_STATE_RINGING,	"ringing"	},
     {IAXC_CALL_STATE_COMPLETE,	"complete"	},
     {IAXC_CALL_STATE_SELECTED,	"selected"	},
-    {IAXC_CALL_STATE_BUSY,		"busy"		},
+    {IAXC_CALL_STATE_BUSY,	"busy"		},
     {IAXC_CALL_STATE_TRANSFER,	"transfer"	},
-    {0,							NULL		}
+    {0,				NULL		}
 };
 
 struct Mapper mapFormat[] = {
@@ -103,46 +103,46 @@ struct Mapper mapFormat[] = {
     {IAXC_FORMAT_G729A,		"G729A"		},
     {IAXC_FORMAT_SPEEX,		"SPEEX"		},
     {IAXC_FORMAT_ILBC,		"ILBC"		},
-    {IAXC_FORMAT_JPEG,      "JPEG"      },
-    {IAXC_FORMAT_PNG,       "PNG"       },
-    {IAXC_FORMAT_H261,      "H.261"     },
-    {IAXC_FORMAT_H263,      "H.263"     },
-    {IAXC_FORMAT_H263_PLUS, "H.263+"    },
-    {IAXC_FORMAT_MPEG4,     "H264"      },
-    {IAXC_FORMAT_THEORA,    "Theora"    },
-    {0,						NULL		}
+    {IAXC_FORMAT_JPEG,		"JPEG"		},
+    {IAXC_FORMAT_PNG,		"PNG"		},
+    {IAXC_FORMAT_H261,		"H.261"		},
+    {IAXC_FORMAT_H263,		"H.263"		},
+    {IAXC_FORMAT_H263_PLUS,	"H.263+"	},
+    {IAXC_FORMAT_MPEG4,		"H264"		},
+    {IAXC_FORMAT_THEORA,	"Theora"	},
+    {0,				NULL		}
 };
 
-static int		AnswerObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
-static int 		CallerIDObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		ApplyFiltersObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		SetDevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		ChangelineObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		GetPortObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		HangUpObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int	AnswerObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int 	CallerIDObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	ApplyFiltersObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	SetDevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	ChangelineObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	GetPortObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	HangUpObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
 static int      HoldObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		InfoObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
-static int		LevelObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
-static int		NotifyObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
-static int		PlayToneObjCmd( ClientData clientData,	Tcl_Interp *interp,	int objc, Tcl_Obj *CONST objv[] );
-static int 		RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		RejectObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
-static int		RingStopObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int		RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		SendTextObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		SendToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
-static int 		StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	InfoObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int	LevelObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int	NotifyObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int	PlayToneObjCmd( ClientData clientData,	Tcl_Interp *interp,	int objc, Tcl_Obj *CONST objv[] );
+static int 	RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	RejectObjCmd( ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[] );
+static int	RingStopObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int	RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	SendTextObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	SendToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
+static int 	StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 static int      TransferObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 static int      UnholdObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 static int      UnregisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 static int      ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static void		PollEvents(ClientData clientData);
-static void		ExitHandler(ClientData clientData);
-static int 		IAXCCallback(iaxc_event e);
+static void	PollEvents(ClientData clientData);
+static void	ExitHandler(ClientData clientData);
+static int 	IAXCCallback(iaxc_event e);
 
 static void 	EventText(struct iaxc_ev_text text);
 static void 	EventLevels(struct iaxc_ev_levels levels);
@@ -153,7 +153,7 @@ static void 	EventUrl(struct iaxc_ev_url eurl);
 static void 	EventVideo(struct iaxc_ev_video video);
 static void 	EventUnknown(int type);
 
-static int 		GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr);
+static int 	GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr);
 static Tcl_Obj* NewMapFlagStateObj(struct Mapper mapper[], int flag);
 static Tcl_Obj* NewMapStateObj(int flag);
 static char*	GetMapIntString(struct Mapper mapper[], int state);
@@ -177,13 +177,13 @@ extern void XThread_EvalInThread(Tcl_ThreadId threadId, const char *script, int 
  * These arrays MUST be kept in sync!
  */
 static Tcl_Obj *sNotifyRecord[] = {
-    NULL,		/* Text 		*/
-    NULL,		/* Levels 		*/
-    NULL,		/* State 		*/
-    NULL,		/* NetStats 	*/
-    NULL,		/* Url 			*/
-    NULL,		/* Video 		*/
-    NULL		/* Registration */
+    NULL,	/* Text 	*/
+    NULL,	/* Levels 	*/
+    NULL,	/* State 	*/
+    NULL,	/* NetStats 	*/
+    NULL,	/* Url 		*/
+    NULL,	/* Video 	*/
+    NULL	/* Registration */
 };
 
 enum {
@@ -264,13 +264,12 @@ static MUTEX asyncCallbackMutex;
  *	A standard Tcl result.
  *
  * Side Effects:
- *   Tcl commands created
+ *	Tcl commands created
  *----------------------------------------------------------------------
  */
 
-
 DLLEXPORT int 
-Iaxclient_Init(
+Tcliaxclient_Init(
     Tcl_Interp *interp)		/* Tcl interpreter. */
 {
     int			i;
@@ -279,40 +278,49 @@ Iaxclient_Init(
         Tcl_ObjCmdProc      *proc;
         Tcl_CmdDeleteProc   *delproc;
     } CmdProcStruct;
-	CmdProcStruct cmdList[] = {
-		{"iaxclient::answer", AnswerObjCmd, NULL},
-		{"iaxclient::applyfilters", ApplyFiltersObjCmd, NULL},
-		{"iaxclient::callerid", CallerIDObjCmd, NULL},
-		{"iaxclient::changeline", ChangelineObjCmd, NULL},
-		{"iaxclient::devices", DevicesObjCmd, NULL},
-		{"iaxclient::dial", DialObjCmd, NULL},
-		{"iaxclient::formats", FormatsObjCmd, NULL},
-		{"iaxclient::getport", GetPortObjCmd, NULL},
-		{"iaxclient::hangup", HangUpObjCmd, NULL},
+    CmdProcStruct cmdList[] = {
+	{"iaxclient::answer", AnswerObjCmd, NULL},
+	{"iaxclient::applyfilters", ApplyFiltersObjCmd, NULL},
+	{"iaxclient::callerid", CallerIDObjCmd, NULL},
+	{"iaxclient::changeline", ChangelineObjCmd, NULL},
+	{"iaxclient::devices", DevicesObjCmd, NULL},
+	{"iaxclient::dial", DialObjCmd, NULL},
+	{"iaxclient::formats", FormatsObjCmd, NULL},
+	{"iaxclient::getport", GetPortObjCmd, NULL},
+	{"iaxclient::hangup", HangUpObjCmd, NULL},
         {"iaxclient::hold", HoldObjCmd, NULL},
-		{"iaxclient::info", InfoObjCmd, NULL},
-		{"iaxclient::level", LevelObjCmd, NULL},
-		{"iaxclient::notify", NotifyObjCmd, NULL},
-		{"iaxclient::playtone", PlayToneObjCmd, NULL},
-		{"iaxclient::register", RegisterObjCmd, NULL},
-		{"iaxclient::reject", RejectObjCmd, NULL},
-		{"iaxclient::ringstart", RingStartObjCmd, NULL},
-		{"iaxclient::ringstop", RingStopObjCmd, NULL},
-		{"iaxclient::sendtext", SendTextObjCmd, NULL},
-		{"iaxclient::sendtone", SendToneObjCmd, NULL},
-		{"iaxclient::setdevices", SetDevicesObjCmd, NULL},
-		{"iaxclient::state", StateObjCmd, NULL},
-		{"iaxclient::toneinit", ToneInitObjCmd, NULL},
+	{"iaxclient::info", InfoObjCmd, NULL},
+	{"iaxclient::level", LevelObjCmd, NULL},
+	{"iaxclient::notify", NotifyObjCmd, NULL},
+	{"iaxclient::playtone", PlayToneObjCmd, NULL},
+	{"iaxclient::register", RegisterObjCmd, NULL},
+	{"iaxclient::reject", RejectObjCmd, NULL},
+	{"iaxclient::ringstart", RingStartObjCmd, NULL},
+	{"iaxclient::ringstop", RingStopObjCmd, NULL},
+	{"iaxclient::sendtext", SendTextObjCmd, NULL},
+	{"iaxclient::sendtone", SendToneObjCmd, NULL},
+	{"iaxclient::setdevices", SetDevicesObjCmd, NULL},
+	{"iaxclient::state", StateObjCmd, NULL},
+	{"iaxclient::toneinit", ToneInitObjCmd, NULL},
         {"iaxclient::transfer", TransferObjCmd, NULL},
         {"iaxclient::unhold", UnholdObjCmd, NULL},
-		{"iaxclient::unregister", UnregisterObjCmd, NULL},
-		{NULL, NULL, NULL}
-	};
-
+	{"iaxclient::unregister", UnregisterObjCmd, NULL},
+	{NULL, NULL, NULL}
+    };
+#ifdef MAC_OSX_TCL
+    {
+	long version = 0;
+	if ((noErr == Gestalt(gestaltSystemVersion, &version)) && (version < 0x01040)) {
+	    Tcl_SetObjResult( interp,  
+		    Tcl_NewStringObj( "iaxclient requires MacOSX 10.4 or later", -1 ));
+	    return TCL_ERROR;
+	}
+    }
+#endif
     if (sInterp) {
-		Tcl_SetObjResult( interp,  
-			    Tcl_NewStringObj( "only one interpreter allowed :-(", -1 ));
-		return TCL_ERROR;
+	Tcl_SetObjResult( interp,  
+		Tcl_NewStringObj( "only one interpreter allowed :-(", -1 ));
+	return TCL_ERROR;
     }
     sInterp = interp;
     if (Tcl_InitStubs( interp, "8.1", 0 ) == NULL) {
@@ -322,30 +330,30 @@ Iaxclient_Init(
     // 0: Use the default port (4569)    
     iaxc_set_preferred_source_udp_port(0);
     if (iaxc_initialize(MAX_LINES)) {
-		Tcl_SetObjResult( interp,  
-			    Tcl_NewStringObj( "cannot initialize iaxclient!", -1 ));
-		return TCL_ERROR;
+	Tcl_SetObjResult( interp,  
+			 Tcl_NewStringObj( "cannot initialize iaxclient!", -1 ));
+	return TCL_ERROR;
     }
-
-	MUTEXINIT(&notifyRecordMutex);
-	MUTEXINIT(&asyncCallbackMutex);
-
+    
+    MUTEXINIT(&notifyRecordMutex);
+    MUTEXINIT(&asyncCallbackMutex);
+    
     iaxc_set_silence_threshold(-99.0); /* the default */
     iaxc_set_audio_output(0);	/* the default */
     iaxc_set_event_callback(IAXCCallback); 
     iaxc_start_processing_thread();
     ringTone.data = NULL;
-
+    
     Tcl_CreateExitHandler( ExitHandler, (ClientData) NULL );
-
+    
     i = 0 ;
     while(cmdList[i].cmdname) {
         Tcl_CreateObjCommand( interp, cmdList[i].cmdname, cmdList[i].proc,
-                (ClientData) NULL, cmdList[i].delproc);
+			     (ClientData) NULL, cmdList[i].delproc);
         i++ ;
     }
     sMainThreadID = Tcl_GetCurrentThread();
-
+    
 #if USE_THREAD_EVENTS_METHOD    
     XThread_RegisterThread(interp);
 #else
@@ -365,37 +373,43 @@ Iaxclient_Init(
  *	A standard Tcl result.
  *
  * Side Effects:
- *   Tcl commands created
+ *	Tcl commands created
  *----------------------------------------------------------------------
  */
 
-DLLEXPORT int Iaxclient_SafeInit(Tcl_Interp *interp )
-{
-	return Iaxclient_Init( interp );
-}
+DLLEXPORT int 
+Tcliaxclient_SafeInit(Tcl_Interp *interp ) { return Tcliaxclient_Init( interp ); }
 
-static int AnswerObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+DLLEXPORT int 
+Tcliaxclient_Unload(Tcl_Interp *interp ) { return TCL_ERROR; }
+
+DLLEXPORT int 
+Tcliaxclient_SafeUnload(Tcl_Interp *interp ) { return TCL_ERROR; }
+
+static int 
+AnswerObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {	
     int result = TCL_OK;
-	int	line = 0;
+    int	line = 0;
 
-	/* We tell to the AnswerObj the Line where is incoming call, by default use line 0 */
-	if (objc == 2) {
-		if (Tcl_GetIntFromObj(interp, objv[1], &line) != TCL_OK) {
-			result = TCL_ERROR;
-		} else if (line < 0 || line > MAX_LINES) {
-			// @@@ guess
-			Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient::answer, callNo must be > 0 and < 9", -1));        
-			result = TCL_ERROR;
-		}
+    /* We tell to the AnswerObj the Line where is incoming call, by default use line 0 */
+    if (objc == 2) {
+	if (Tcl_GetIntFromObj(interp, objv[1], &line) != TCL_OK) {
+	    result = TCL_ERROR;
+	} else if (line < 0 || line > MAX_LINES) {
+	    // @@@ guess
+	    Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient::answer, callNo must be > 0 and < 9", -1));        
+	    result = TCL_ERROR;
 	}
-	iaxc_answer_call(line);
-	iaxc_select_call(line);
+    }
+    iaxc_answer_call(line);
+    iaxc_select_call(line);
 
     return result;
 }
 
-static int CallerIDObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+CallerIDObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
 
@@ -412,12 +426,13 @@ static int CallerIDObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
     return result;
 }
 
-static int ChangelineObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+ChangelineObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
+    int	line;
 
     if (objc == 2) {
-        int	line;
         if (Tcl_GetIntFromObj(interp, objv[1], &line) != TCL_OK) {
             result = TCL_ERROR;
         } else if (line < 0 || line > MAX_LINES) {
@@ -428,24 +443,25 @@ static int ChangelineObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             iaxc_select_call(line);
         }
     } else {
-		Tcl_WrongNumArgs( interp, 1, objv, "newCallNo" );
-		result = TCL_ERROR;
+	Tcl_WrongNumArgs( interp, 1, objv, "newCallNo" );
+	result = TCL_ERROR;
     }
     return result;
 }
 
-static int ApplyFiltersObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+ApplyFiltersObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     // Clear filters
     int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_AAGC | IAXC_FILTER_CN |
                  IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
-	int AGC;
-	int AAGC;
-	int CN;
-	int NoiseReduce;
-	int EchoCancel;
+    int AGC;
+    int AAGC;
+    int CN;
+    int NoiseReduce;
+    int EchoCancel;
     int result = TCL_OK;
-	
+    
     if (objc == 6) {
         if (Tcl_GetIntFromObj(interp, objv[1], &AGC) != TCL_OK) {
             result = TCL_ERROR;
@@ -462,47 +478,48 @@ static int ApplyFiltersObjCmd(ClientData clientData, Tcl_Interp *interp, int obj
         if (Tcl_GetIntFromObj(interp, objv[5], &EchoCancel) != TCL_OK) {
             result = TCL_ERROR;
         } 
-
-		//Clear Filters before apply new ones
-		iaxc_set_filters(iaxc_get_filters() & flag);
-		flag = 0;
 	
-		if(AGC)
-			flag = IAXC_FILTER_AGC;
-
-		if(AAGC)
-			flag = IAXC_FILTER_AAGC;
-
-		if(CN)
-			flag = IAXC_FILTER_CN;
-
-		if(NoiseReduce)
-			flag |= IAXC_FILTER_DENOISE;
-
-		if(EchoCancel)
-			flag |= IAXC_FILTER_ECHO;
-
-		iaxc_set_filters(iaxc_get_filters() | flag);
-	}  else {
-		Tcl_WrongNumArgs( interp, 1, objv, "AGC AAGC CN NoiseReduce EchoCancel" );
-		result = TCL_ERROR;
+	//Clear Filters before apply new ones
+	iaxc_set_filters(iaxc_get_filters() & flag);
+	flag = 0;
+	
+	if(AGC)
+	    flag = IAXC_FILTER_AGC;
+	
+	if(AAGC)
+	    flag = IAXC_FILTER_AAGC;
+	
+	if(CN)
+	    flag = IAXC_FILTER_CN;
+	
+	if(NoiseReduce)
+	    flag |= IAXC_FILTER_DENOISE;
+	
+	if(EchoCancel)
+	    flag |= IAXC_FILTER_ECHO;
+	
+	iaxc_set_filters(iaxc_get_filters() | flag);
+    }  else {
+	Tcl_WrongNumArgs( interp, 1, objv, "AGC AAGC CN NoiseReduce EchoCancel" );
+	result = TCL_ERROR;
     }
-	return result;
+    return result;
 }
 
-static int SetDevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+SetDevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-	int	input = 0;
-	int output = 0;
+    int	input = 0;
+    int output = 0;
     int ring = 0;
     int index;
     int value;
-    int ndevs;						/* audio dedvice count */
+    int ndevs;			    /* audio dedvice count */
     struct iaxc_audio_device *devs; /* audio devices */
-		
+    
     if (objc == 3) {
         if (Tcl_GetIndexFromObj( interp, objv[1], devicesCmd, "command", TCL_EXACT, &index )
-                != TCL_OK ) {
+	    != TCL_OK ) {
             return TCL_ERROR;
         }
         if (Tcl_GetIntFromObj(interp, objv[2], &value) != TCL_OK) {
@@ -516,39 +533,40 @@ static int SetDevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         iaxc_audio_devices_set(input, output, ring);
     } else {
-		Tcl_WrongNumArgs( interp, 1, objv, "type deviceid" );
-		return TCL_ERROR;
+	Tcl_WrongNumArgs( interp, 1, objv, "type deviceid" );
+	return TCL_ERROR;
     }
     return TCL_OK;
 }
 
-static int DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int index;
     struct iaxc_audio_device *devs; /* audio devices */
-    int ndevs = 0;						/* audio dedvice count */
-    int input, output, ring;		/* audio device id's */
+    int ndevs = 0;		    /* audio dedvice count */
+    int input, output, ring;	    /* audio device id's */
     int current = 0, i;
     int flag;
     int len;
-	char *str;
-	Tcl_Obj *listObj, *subListObj;
-
+    char *str;
+    Tcl_Obj *listObj, *subListObj;
+    
     static int mapFlag[32];
     mapFlag[kIaxcInput]  = IAXC_AD_INPUT;
     mapFlag[kIaxcOutput] = IAXC_AD_OUTPUT;
     mapFlag[kIaxcRing]   = IAXC_AD_RING;
-
+    
     if (objc != 2 && objc != 3) {
         Tcl_WrongNumArgs( interp, 1, objv, "type ?-current?" );
-	    return TCL_ERROR;
+	return TCL_ERROR;
     }
-	if (Tcl_GetIndexFromObj( interp, objv[1], devicesCmd, "command", TCL_EXACT, &index )
-	        != TCL_OK ) {
-	    return TCL_ERROR;
-	}
+    if (Tcl_GetIndexFromObj( interp, objv[1], devicesCmd, "command", TCL_EXACT, &index )
+	!= TCL_OK ) {
+	return TCL_ERROR;
+    }
     if (objc == 3) {
-		str = Tcl_GetStringFromObj(objv[2], &len);
+	str = Tcl_GetStringFromObj(objv[2], &len);
         if (strncmp(str, "-current", len)) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj("Usage: iaxclient::devices type ?-current?", -1));
             return TCL_ERROR;
@@ -556,7 +574,7 @@ static int DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     }
     flag = mapFlag[index];
     iaxc_audio_devices_get(&devs, &ndevs, &input, &output, &ring);
-
+    
     listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
     if (objc == 3) {
         switch (index) {
@@ -586,25 +604,26 @@ static int DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     return TCL_OK;
 }
 
-static int DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
-	char *num = NULL;
-	int line;
-		
-	if (objc >= 2 ) {
-		num = Tcl_GetStringFromObj(objv[1], NULL);
-	} else {
-		Tcl_WrongNumArgs( interp, 1, objv, "user:pass@server/nnn callNo" );
-		result = TCL_ERROR;
+    char *num = NULL;
+    int line;
+    
+    if (objc >= 2 ) {
+	num = Tcl_GetStringFromObj(objv[1], NULL);
+    } else {
+	Tcl_WrongNumArgs( interp, 1, objv, "user:pass@server/nnn callNo" );
+	result = TCL_ERROR;
     }
-	
+    
     if (objc == 2) {
 	// Problems reported coming from this line.
 	// If including it again you must be very sure of exactly what you do!
-			//line = iaxc_selected_call();
-	}
-
+	//line = iaxc_selected_call();
+    }
+    
     if (objc == 3) {
         if (Tcl_GetIntFromObj(interp, objv[2], &line) != TCL_OK) {
             result = TCL_ERROR;
@@ -613,27 +632,28 @@ static int DialObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_O
             result = TCL_ERROR;
         }
     } 
-
-	if (result == TCL_OK) {
-		iaxc_call(num);
-		// Problems reported coming from this line.
-		// If including it again you must be very sure of exactly what you do!
-		//iaxc_select_call(line);
-	}
+    
+    if (result == TCL_OK) {
+	iaxc_call(num);
+	// Problems reported coming from this line.
+	// If including it again you must be very sure of exactly what you do!
+	//iaxc_select_call(line);
+    }
     return result;	
 }
 
-static int FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     char *codec;
     int value;
     int result = TCL_OK;
-
+    
     if (objc == 2) {
         codec = Tcl_GetStringFromObj(objv[1], NULL);
         result = GetMapperIntFromString(interp, mapFormat, codec, "iaxclient:formats, codec must be: ", &value);
         if (result == TCL_OK) {
-             iaxc_set_formats(value,value);
+	    iaxc_set_formats(value,value);
         }
     } else {
         Tcl_WrongNumArgs(interp, 1, objv, "codec");
@@ -642,27 +662,29 @@ static int FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     return result;
 }
 
-static int GetPortObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+GetPortObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {	
     Tcl_SetObjResult(interp, Tcl_NewIntObj(iaxc_get_bind_port()));
     return TCL_OK;
 }
 
-static int HangUpObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int
+ HangUpObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     iaxc_dump_call();
     return TCL_OK;
 }
 
-static int HoldObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+HoldObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
-	int selected = 0;
-
+    int selected = 0;
+    
     if (objc == 1) {
-			selected = iaxc_selected_call();
-	}
-
+	selected = iaxc_selected_call();
+    }
     if (objc == 2) {
         if (Tcl_GetIntFromObj(interp, objv[1], &selected) != TCL_OK) {
             result = TCL_ERROR;
@@ -671,27 +693,27 @@ static int HoldObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_O
             Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient:hold, callNo must be > 0 and < 9", -1));        
             result = TCL_ERROR;
         }
-	}
-	
-	if ( result == TCL_OK ) {
-		iaxc_quelch(selected, 1);
-		iaxc_select_call(-1);
-	}
-	
+    }
+    if ( result == TCL_OK ) {
+	iaxc_quelch(selected, 1);
+	iaxc_select_call(-1);
+    }
     return result;
 }
 
-static int InfoObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+InfoObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-/*
-char* iaxc_version(char *ver);
-EXPORT void iaxc_set_min_outgoing_framesize(int samples);
-EXPORT void iaxc_set_silence_threshold(double thr);
-*/
+    /*
+     char* iaxc_version(char *ver);
+     EXPORT void iaxc_set_min_outgoing_framesize(int samples);
+     EXPORT void iaxc_set_silence_threshold(double thr);
+     */
     return TCL_ERROR;
 }
 
-static int LevelObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+LevelObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int index;
     double level;
@@ -704,15 +726,15 @@ static int LevelObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
         kIaxcLevelInput                = 0L, 
         kIaxcLevelOutput
     };
-
+    
     if (objc != 2 && objc != 3) {
         Tcl_WrongNumArgs( interp, 1, objv, "type ?value?" );
-	    return TCL_ERROR;
+	return TCL_ERROR;
     }
-	if (Tcl_GetIndexFromObj( interp, objv[1], levelCmd, "command", TCL_EXACT, &index )
-	        != TCL_OK ) {
-	    return TCL_ERROR;
-	}
+    if (Tcl_GetIndexFromObj( interp, objv[1], levelCmd, "command", TCL_EXACT, &index )
+	!= TCL_OK ) {
+	return TCL_ERROR;
+    }
     if (index == kIaxcLevelInput) {
         if (objc == 3) {
             if (TCL_OK != Tcl_GetDoubleFromObj(interp, objv[2], &level)) {
@@ -739,20 +761,21 @@ static int LevelObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
  * This is always called from the Tcl main thread.
  */
 
-static int NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int index;
     int len;
-
+    
     if (objc != 2 && objc != 3) {
         Tcl_WrongNumArgs( interp, 1, objv, "eventType ?tclProc?" );
-	    return TCL_ERROR;
+	return TCL_ERROR;
     }
-	if (Tcl_GetIndexFromObj( interp, objv[1], notifyCmd, "command", TCL_EXACT, &index )
-	        != TCL_OK ) {
-	    return TCL_ERROR;
-	}
-
+    if (Tcl_GetIndexFromObj( interp, objv[1], notifyCmd, "command", TCL_EXACT, &index )
+	!= TCL_OK ) {
+	return TCL_ERROR;
+    }
+    
     MUTEXLOCK(&notifyRecordMutex);
     if (objc == 3) {
         if (sNotifyRecord[index]) {
@@ -780,7 +803,8 @@ static int NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl
     return TCL_OK;
 }
 
-static int PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     struct iaxc_sound sound; /* sound to play */
     char tone;
@@ -788,16 +812,16 @@ static int PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
     int len = 2000;
     short *buff;
     int result = TCL_OK;
-
+    
     /* Must get dynamic memory for this! */
     buff = (short *)calloc(len, sizeof(short));    
-
+    
     memset(&sound, 0, sizeof(sound));
     sound.data = buff;
     sound.len = len;
     sound.malloced = 1;
     sound.repeat = 0;
-
+    
     if (objc == 2) {
         char *s;
         int tlen;
@@ -815,22 +839,23 @@ static int PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
         Tcl_WrongNumArgs( interp, 1, objv, "tone" );
         return TCL_ERROR;
     }
-
+    
     tone_dtmf(tone, 1600, vol, buff);
     tone_dtmf('x', 400, vol, buff+1600);
     iaxc_play_sound(&sound, 0);
     return result;
 }
 
-static int RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-	char *user;
-	char *pass;
-	char *host;
+    char *user;
+    char *pass;
+    char *host;
     int result = TCL_OK;
-	int session = 0;
+    int session = 0;
     Tcl_Obj *listObj = NULL;
-
+    
     if (objc == 4) {
         user = Tcl_GetStringFromObj(objv[1], NULL);
         pass = Tcl_GetStringFromObj(objv[2], NULL);
@@ -838,15 +863,15 @@ static int RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
 	
         /* @@@ UTF stuff? */
 #ifdef TIPIC_LIBS
-	    iaxc_register(user, pass, host);
+	iaxc_register(user, pass, host);
 #else
-	    session = iaxc_register(user, pass, host);
+	session = iaxc_register(user, pass, host);
 #endif
-		
-		/* Return SessionId */
-		listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
-		Tcl_ListObjAppendElement( interp, listObj, Tcl_NewIntObj( session ) );
-		Tcl_SetObjResult(interp, listObj);		
+	
+	/* Return SessionId */
+	listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
+	Tcl_ListObjAppendElement( interp, listObj, Tcl_NewIntObj( session ) );
+	Tcl_SetObjResult(interp, listObj);		
     } else {
         Tcl_WrongNumArgs( interp, 1, objv, "user password host" );
         result = TCL_ERROR;
@@ -854,16 +879,17 @@ static int RegisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
     return result;
 }
 
-static int RejectObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+RejectObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
-	int	line = 0;
-
-/* We tell to the AnswerObj the Line where is incoming call */
+    int	line = 0;
+    
+    /* We tell to the AnswerObj the Line where is incoming call */
     if (objc == 1) {
-			line = iaxc_selected_call();
-	}
-	
+	line = iaxc_selected_call();
+    }
+    
     if (objc == 2) {
         if (Tcl_GetIntFromObj(interp, objv[1], &line) != TCL_OK) {
             result = TCL_ERROR;
@@ -873,38 +899,41 @@ static int RejectObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl
             result = TCL_ERROR;
         }
     }
-
-	if ( result == TCL_OK ) {
-		iaxc_select_call(line);
-		iaxc_reject_call();
-	}
+    
+    if ( result == TCL_OK ) {
+	iaxc_select_call(line);
+	iaxc_reject_call();
+    }
     return result;
 }
 
-static int RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
+static int 
+RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
 {
-	int ringdev;
-
+    int ringdev;
+    
     if (objc == 2) {
         if (Tcl_GetIntFromObj(interp, objv[1], &ringdev) != TCL_OK) {
             return TCL_ERROR;
         }
-		iaxc_play_sound(&ringTone, ringdev);
-	}  else {
+	iaxc_play_sound(&ringTone, ringdev);
+    }  else {
         Tcl_WrongNumArgs( interp, 1, objv, "ringdev" );
         return TCL_ERROR;
     }
-	
-	return TCL_OK;
+    
+    return TCL_OK;
 }
 
-static int RingStopObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+RingStopObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     iaxc_stop_sound(ringTone.id);
     return TCL_OK;
 }
 
-static int SendTextObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+SendTextObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     if (objc == 2) {
         char *text;
@@ -918,7 +947,8 @@ static int SendTextObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
     return TCL_OK;
 }
 
-static int SendToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+SendToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     if (objc == 2) {
         char *s;
@@ -940,7 +970,8 @@ static int SendToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
     return TCL_OK;
 }
 
-static int StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     if (objc == 1) {
         Tcl_SetObjResult(interp, NewMapStateObj(sLastState));
@@ -951,17 +982,18 @@ static int StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
     }
 }
 
-static int ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
+static int 
+ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
 {
-	int F1;
-	int F2;
-	int Dur;
-	int Len;
-	int Repeat;
+    int F1;
+    int F2;
+    int Dur;
+    int Len;
+    int Repeat;
     int i;
-	
+    
     int result = TCL_OK;
-
+    
     if (objc == 6) {
         if (Tcl_GetIntFromObj(interp, objv[1], &F1) != TCL_OK) {
             result = TCL_ERROR;
@@ -978,49 +1010,48 @@ static int ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
         if (Tcl_GetIntFromObj(interp, objv[5], &Repeat) != TCL_OK) {
             result = TCL_ERROR;
         }
-	} else {
+    } else {
         Tcl_WrongNumArgs( interp, 1, objv, "F1 F2 Duration Length Repeat" );
         result = TCL_ERROR;
     }
-	
-	if ( result == TCL_OK ) {	
+    
+    if ( result == TCL_OK ) {	
         if (ringTone.data) {
             iaxc_stop_sound(ringTone.id);
             free(ringTone.data);
         }
-
-		// clear tone structures. (otherwise we free un-allocated memory in LoadTone)
-		memset(&ringTone, 0, sizeof(ringTone));
-
-		ringTone.len  = Len;
-		ringTone.data = (short *)calloc(ringTone.len , sizeof(short));
-
-		for(i = 0; i < Dur; i++ ) {
-			ringTone.data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
-						+ (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
-		}
-		ringTone.repeat = Repeat;
-	}
 	
-	return result;
+	// clear tone structures. (otherwise we free un-allocated memory in LoadTone)
+	memset(&ringTone, 0, sizeof(ringTone));
+	
+	ringTone.len  = Len;
+	ringTone.data = (short *)calloc(ringTone.len , sizeof(short));
+	
+	for(i = 0; i < Dur; i++ ) {
+	    ringTone.data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
+	    + (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
+	}
+	ringTone.repeat = Repeat;
+    }
+    
+    return result;
 }
 
-static int TransferObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+TransferObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-	int	selected;
-	char *num = NULL;
+    int	selected;
+    char *num = NULL;
     int result = TCL_OK;
-
+    
     if (objc != 2 && objc != 3) {
         Tcl_WrongNumArgs( interp, 1, objv, "dstnumber ?callNo?" );
-	    return TCL_ERROR;
+	return TCL_ERROR;
     }
-	
     if (objc >= 2) {
         num = Tcl_GetStringFromObj(objv[1], NULL);    
     }
-
-	if (objc == 3) {
+    if (objc == 3) {
         if ( Tcl_GetIntFromObj(interp, objv[2], &selected) != TCL_OK ) {
             result = TCL_ERROR;
         } else if (selected < 0 || selected > MAX_LINES) {
@@ -1028,27 +1059,25 @@ static int TransferObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
             Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient:transfer, callNo must be > 0 and < 9", -1));        
             result = TCL_ERROR;
         }
-	} else {
-		selected = iaxc_selected_call();
-	}
-	
-	if ( result == TCL_OK ) {
-		iaxc_blind_transfer_call(selected, num);
-	}
-	
-	return result;
+    } else {
+	selected = iaxc_selected_call();
+    }
+    if (result == TCL_OK) {
+	iaxc_blind_transfer_call(selected, num);
+    }    
+    return result;
 }
 
 
-static int UnholdObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+UnholdObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
-	int selected = 0;
-
+    int selected = 0;
+    
     if (objc == 1) {
-			selected = iaxc_selected_call();
-	}
-
+	selected = iaxc_selected_call();
+    }    
     if (objc == 2) {
         if (Tcl_GetIntFromObj(interp, objv[1], &selected) != TCL_OK) {
             result = TCL_ERROR;
@@ -1057,20 +1086,19 @@ static int UnholdObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl
             Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient:unhold, callNo must be > 0 and < 9", -1));        
             result = TCL_ERROR;
         }
-	}
-	
-	if ( result == TCL_OK ) {
-		iaxc_unquelch(selected);
-		iaxc_select_call(selected);
-	}
-	
+    }
+    if (result == TCL_OK) {
+	iaxc_unquelch(selected);
+	iaxc_select_call(selected);
+    }
     return result;
 }
 
-static int UnregisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int 
+UnregisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int result = TCL_OK;
-
+    
     if (objc == 2) {
         int id;
         if (Tcl_GetIntFromObj(interp, objv[1], &id) != TCL_OK) {
@@ -1087,7 +1115,8 @@ static int UnregisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return result;
 }
 
-static void PollEvents(ClientData clientData)
+static void 
+PollEvents(ClientData clientData)
 {
     MUTEXLOCK(&asyncCallbackMutex);
     if (strlen(asyncCallbackCache) > 0) {
@@ -1098,7 +1127,8 @@ static void PollEvents(ClientData clientData)
     MUTEXUNLOCK(&asyncCallbackMutex);
 }
 
-static void ExitHandler(ClientData clientData)
+static void 
+ExitHandler(ClientData clientData)
 {
     if (sTimerToken != NULL) {
         Tcl_DeleteTimerHandler(sTimerToken);
@@ -1107,16 +1137,17 @@ static void ExitHandler(ClientData clientData)
     iaxc_millisleep(1000);
     iaxc_stop_processing_thread();
     iaxc_shutdown();
-
+    
     MUTEXDESTROY(&notifyRecordMutex);
-	MUTEXDESTROY(&asyncCallbackMutex);
+    MUTEXDESTROY(&asyncCallbackMutex);
 }
 
 /*
  * All iax callbacks come here.
  */
 
-static int IAXCCallback(iaxc_event e) 
+static int 
+IAXCCallback(iaxc_event e) 
 {
     switch(e.type) {
         case IAXC_EVENT_TEXT:
@@ -1154,7 +1185,8 @@ static int IAXCCallback(iaxc_event e)
  * NEVER use Tcl_Objs here!
  */
 
-static void EventText(struct iaxc_ev_text text)
+static void 
+EventText(struct iaxc_ev_text text)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdText]) {
@@ -1162,7 +1194,7 @@ static void EventText(struct iaxc_ev_text text)
         char buf[32];
         int len;
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdText], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1189,7 +1221,8 @@ static void EventText(struct iaxc_ev_text text)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventLevels(struct iaxc_ev_levels levels)
+static void 
+EventLevels(struct iaxc_ev_levels levels)
 {
     if (sLastState == IAXC_CALL_STATE_FREE) {
         return;
@@ -1200,7 +1233,7 @@ static void EventLevels(struct iaxc_ev_levels levels)
         char buf[32];
         int len;
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdLevels], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1214,7 +1247,8 @@ static void EventLevels(struct iaxc_ev_levels levels)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventState(struct iaxc_ev_call_state call)
+static void 
+EventState(struct iaxc_ev_call_state call)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdState]) {
@@ -1222,7 +1256,7 @@ static void EventState(struct iaxc_ev_call_state call)
         char buf[32];
         int len;
         Tcl_DString ds, ds2;
-
+	
         Tcl_DStringInit(&ds);
         Tcl_DStringInit(&ds2);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdState], &len);
@@ -1242,7 +1276,8 @@ static void EventState(struct iaxc_ev_call_state call)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventNetStats(struct iaxc_ev_netstats netstats)
+static void 
+EventNetStats(struct iaxc_ev_netstats netstats)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdNetStats]) {
@@ -1255,7 +1290,7 @@ static void EventNetStats(struct iaxc_ev_netstats netstats)
             "-remote:"
         };
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdNetStats], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1298,7 +1333,8 @@ static void EventNetStats(struct iaxc_ev_netstats netstats)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventUrl(struct iaxc_ev_url eurl)
+static void 
+EventUrl(struct iaxc_ev_url eurl)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdUrl]) {
@@ -1306,7 +1342,7 @@ static void EventUrl(struct iaxc_ev_url eurl)
         char buf[32];
         int len;
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdUrl], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1321,7 +1357,8 @@ static void EventUrl(struct iaxc_ev_url eurl)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventVideo(struct iaxc_ev_video video)
+static void 
+EventVideo(struct iaxc_ev_video video)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdVideo]) {
@@ -1329,7 +1366,7 @@ static void EventVideo(struct iaxc_ev_video video)
         char buf[32];
         int len;
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdVideo], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1346,7 +1383,8 @@ static void EventVideo(struct iaxc_ev_video video)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventRegistration(struct iaxc_ev_registration reg)
+static void 
+EventRegistration(struct iaxc_ev_registration reg)
 {
     MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdRegistration]) {
@@ -1354,7 +1392,7 @@ static void EventRegistration(struct iaxc_ev_registration reg)
         char buf[32];
         int len;
         Tcl_DString ds;
-
+	
         Tcl_DStringInit(&ds);
         cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdRegistration], &len);
         Tcl_DStringAppend(&ds, cmd, len);
@@ -1369,24 +1407,26 @@ static void EventRegistration(struct iaxc_ev_registration reg)
     MUTEXUNLOCK(&notifyRecordMutex);
 }
 
-static void EventUnknown(int type)
+static void 
+EventUnknown(int type)
 {
     // empty
 }
 
 #if 0
-static void EvalScriptAsync(Tcl_Obj *cmdObj)
+static void 
+EvalScriptAsync(Tcl_Obj *cmdObj)
 {
     char *script;
     int len;
-
+    
     script = Tcl_GetStringFromObj(cmdObj, &len);
-
+    
 #if USE_THREAD_EVENTS_METHOD
     XThread_EvalInThread(sMainThreadID, script, 0);
 #else
     MUTEXLOCK(&asyncCallbackMutex);
-
+    
     /* Do not add commands that do not fit. */
     if (strlen(asyncCallbackCache) + len < kNotifyCallbackCacheSize - 2) {
         strcat(asyncCallbackCache, script);
@@ -1397,11 +1437,12 @@ static void EvalScriptAsync(Tcl_Obj *cmdObj)
 }
 #endif
 
-static int GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr)
+static int 
+GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr)
 {
     int result = TCL_ERROR;
     struct Mapper *m;
-
+    
     for (m = mapper; m->s != NULL; m++) {
         if (!strcmp(m->s, str)) {
             *iPtr = m->i;
@@ -1423,11 +1464,12 @@ static int GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], ch
 }
 
 #if 0
-static Tcl_Obj *NewMapIntStateObj(struct Mapper mapper[], int state)
+static Tcl_Obj *
+NewMapIntStateObj(struct Mapper mapper[], int state)
 {
     struct Mapper *m;
     Tcl_Obj *obj = NULL;
-
+    
     for (m = mapper; m->s != NULL; m++) {
         if (m->i == state) {
             obj = Tcl_NewStringObj(m->s, -1);
@@ -1438,7 +1480,8 @@ static Tcl_Obj *NewMapIntStateObj(struct Mapper mapper[], int state)
 }
 #endif
 
-static char *GetMapIntString(struct Mapper mapper[], int state)
+static char *
+GetMapIntString(struct Mapper mapper[], int state)
 {
     struct Mapper *m;    
     for (m = mapper; m->s != NULL; m++) {
@@ -1449,11 +1492,12 @@ static char *GetMapIntString(struct Mapper mapper[], int state)
     return NULL;
 }
 
-static Tcl_Obj *NewMapFlagStateObj(struct Mapper mapper[], int flag)
+static Tcl_Obj *
+NewMapFlagStateObj(struct Mapper mapper[], int flag)
 {
     struct Mapper *m;
     Tcl_Obj *listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
-
+    
     for (m = mapper; m->s != NULL; m++) {
         if (m->i & flag) {
             Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewStringObj(m->s, -1));				
@@ -1462,10 +1506,11 @@ static Tcl_Obj *NewMapFlagStateObj(struct Mapper mapper[], int flag)
     return listObj;
 }
 
-static char *GetMapFlagDString(Tcl_DString *dsPtr, struct Mapper mapper[], int flag)
+static char *
+GetMapFlagDString(Tcl_DString *dsPtr, struct Mapper mapper[], int flag)
 {
     struct Mapper *m;
-
+    
     /* This fails for flags = 0 */
     for (m = mapper; m->s != NULL; m++) {
         if (m->i & flag) {
@@ -1475,18 +1520,20 @@ static char *GetMapFlagDString(Tcl_DString *dsPtr, struct Mapper mapper[], int f
     return Tcl_DStringValue(dsPtr);
 }
 
-static Tcl_Obj *NewMapStateObj(int flag)
+static Tcl_Obj *
+NewMapStateObj(int flag)
 {
     if (flag == IAXC_CALL_STATE_FREE) {
-		Tcl_Obj *listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
+	Tcl_Obj *listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
         Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewStringObj("free", -1));
-		return listObj;
+	return listObj;
     } else {
         return NewMapFlagStateObj(mapCallState, flag);
     }
 }
 
-static char *GetMapStateDString(Tcl_DString *dsPtr, int flag)
+static char *
+GetMapStateDString(Tcl_DString *dsPtr, int flag)
 {
     if (flag == IAXC_CALL_STATE_FREE) {
         return "free";
@@ -1497,28 +1544,28 @@ static char *GetMapStateDString(Tcl_DString *dsPtr, int flag)
 
 
 /*
-static int ToneLoadObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
-{
-	//char *Filename, int Repeat
-    wxFFile     fTone;
-
-    if(Filename.IsEmpty())
-        return;
-
-    fTone.Open(Filename, _T("r"));
-
-    if(!fTone.IsOpened())
-        return;
-
-    // Free old tone, if there was one
-    if(tone.data != NULL)
-        free(tone.data);
-
-    tone.len  = fTone.Length();
-    tone.data = (short *)calloc(tone.len , sizeof(short));
-    fTone.Read(&tone.data[0], tone.len);
-    fTone.Close();
-
-    tone.repeat = Repeat;
-}
-*/
+ static int ToneLoadObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+ {
+ //char *Filename, int Repeat
+ wxFFile     fTone;
+ 
+ if(Filename.IsEmpty())
+ return;
+ 
+ fTone.Open(Filename, _T("r"));
+ 
+ if(!fTone.IsOpened())
+ return;
+ 
+ // Free old tone, if there was one
+ if(tone.data != NULL)
+ free(tone.data);
+ 
+ tone.len  = fTone.Length();
+ tone.data = (short *)calloc(tone.len , sizeof(short));
+ fTone.Read(&tone.data[0], tone.len);
+ fTone.Close();
+ 
+ tone.repeat = Repeat;
+ }
+ */
