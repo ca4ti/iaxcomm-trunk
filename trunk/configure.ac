@@ -79,8 +79,8 @@ AC_ARG_ENABLE(local-iax,
 AC_ARG_ENABLE(debug-iax,
       [AS_HELP_STRING([--enable-debug-iax],
          [Enable debug support in local iax library])],
-				 enable_debug_iax2=$enableval,
- 				 enable_debug_iax2="no")
+      enable_debug_iax2=$enableval,
+      enable_debug_iax2="no")
 
 AC_ARG_ENABLE(video,
       [AS_HELP_STRING([--enable-video],
@@ -233,17 +233,15 @@ if test x$enable_video = xyes; then
       fi
    fi
    
-   if test x$with_vidcap != xno; then
-      if test x$has_vidcap = xyes; then
-         AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
-         PKG_REQUIRES="$PKG_REQUIRES vidcap"
-      elif test x$with_vidcap != xauto ; then
-         AC_MSG_ERROR([
-            libvidcap is required to build this package!
-            please see http://libvidcap.sourceforge.net/ for how to
-            obtain a copy.
-         ])
-      fi
+   if test x$has_vidcap = xyes; then
+      AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
+      PKG_REQUIRES="$PKG_REQUIRES vidcap"
+   else
+      AC_MSG_ERROR([
+         libvidcap is required to build this package!
+         please see http://libvidcap.sourceforge.net/ for how to
+         obtain a copy.
+      ])
    fi
    
    if test x$with_ffmpeg != xno; then
