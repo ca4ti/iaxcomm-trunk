@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so you can encode the package version directly into the source files.
 #-----------------------------------------------------------------------
 
-AC_INIT([iaxclient], [0.2])
+AC_INIT([tcliaxclient], [0.2])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -73,7 +73,6 @@ TEA_SETUP_COMPILER
 
 TEA_ADD_SOURCES([iaxclient.c tones.c XThreadUtil.c])
 TEA_ADD_HEADERS([])
-#TEA_ADD_INCLUDES([-I../../lib])
 TEA_ADD_LIBS([-lportaudio -lspeexdsp -lspeex -liaxclient])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
@@ -98,7 +97,11 @@ if test "${TEA_PLATFORM}" = "windows" ; then
     CLEANFILES="pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
 else
     CLEANFILES="pkgIndex.tcl"
-    TEA_ADD_LIBS([-lpthread -lasound])
+    if test "`uname -s`" = "Darwin" ; then
+        TEA_ADD_LIBS([-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreServices])
+    else
+        TEA_ADD_LIBS([-lpthread -lasound])
+    fi
 fi
 AC_SUBST(CLEANFILES)
 
