@@ -2,9 +2,9 @@ These are instructions to build iaxclient with Microsoft Visual Studio
 2005. A reference solution file and project files are located in the
 contrib/win/vs2005 directory.
 
- 1) The following environment variables must be set. Use the "System"
-    properties dialog in the Windows Control Panel to set these
-    variables either for the user or system-wide.
+ 1) The following environment variable must be set. Use the "System"
+    properties dialog in the Windows Control Panel to set this
+    variable either for the user or system-wide.
 
       %DXSDK_DIR%
 
@@ -12,29 +12,24 @@ contrib/win/vs2005 directory.
     SDK is known to work. The December 2006 version is also know to
     work.
 
-      %PSDK_DIR%
+ 2) The Microsoft Windows Software Development Kit version 6.0
+    must be installed. After installing the Windows SDK, run the
+    program "Start -> Microsoft Windows SDK -> Visual Studio
+    Registration -> Integrate Windows SDK with Visual Studio".
+    This registers include and library paths with Visual Studio.
     
-    Path to the Platform SDK. The Windows SDK is known to work for
-    this. Assuming the Windows SDK is installed in the default
-    location, PSDK_DIR would be set to:
-
-      C:\Program Files\Microsoft SDKs\Windows\v6.0
-
-    The older Platform SDK for Windows Server 2003 Release 2 is also
-    known to work.
-
     See here for the Windows SDK:
 
       http://www.microsoft.com/downloads/details.aspx?FamilyID=c2b1e300-f358-4523-b479-f53d234cdccf
 
- 2) Obtain dependencies. At the time of this writing, portaudio-v19,
-    libogg 1.1.3, speex 1.2beta1, libtheora 1.0alpha7, and libvidcap are required.
-    Source for these dependencies are available here:
+ 3) Obtain dependencies. At the time of this writing, portaudio-v19,
+    libogg 1.1.3, speex 1.2beta3, libtheora 1.0beta2, and libvidcap are
+    required. Source for these dependencies are available here:
 
       http://portaudio.com/archives/pa_snapshot_v19.tar.gz
       http://downloads.xiph.org/releases/ogg/libogg-1.1.3.tar.gz
-      http://downloads.xiph.org/releases/speex/speex-1.2beta1.tar.gz
-      http://downloads.xiph.org/releases/theora/libtheora-1.0alpha7.tar.gz
+      http://downloads.xiph.org/releases/speex/speex-1.2beta3.tar.gz
+      http://downloads.xiph.org/releases/theora/libtheora-1.0beta2.tar.gz
       http://downloads.sourceforge.net/libvidcap/libvidcap-0.1.tar.gz
 
     In order to build with the vcproj files provided by iaxclient,
@@ -50,15 +45,15 @@ contrib/win/vs2005 directory.
       C:\...\whereever\libtheora
       C:\...\whereever\libvidcap
 
- 2) Open the solution file: contrib/win/vs2005/iaxclient.sln
+ 4) Open the solution file: contrib/win/vs2005/iaxclient.sln
 
- 3) Choose configuration. There are four options:
+ 5) Choose configuration. There are four options:
       Release     -- optimized static library
       Release_dll -- optimized dynamic link library
       Debug       -- debug static library
       Debug_dll   -- debug dynamic link library
 
- 4) Build the solution. This will build iaxclient and all its
+ 6) Build the solution. This will build iaxclient and all its
     dependent libraries. All dependent libraries are linked into
     the final library. The final libiaxclient library can be found
     here (depending on the configuration chosen):
@@ -68,3 +63,23 @@ contrib/win/vs2005 directory.
       Debug\libiaxclient\libiaxclient.lib
       Debug_dll\libiaxclient\libiaxclient.dll
 
+ APPENDIX A: Disable Video
+
+ Not everyone wants or needs the video features in iaxclient. It is
+ possible to disable the video features in iaxclient by modifying
+ the solution and project files.
+
+ A1) Remove "USE_VIDEO" and "USE_THEORA" from the PreprocessorDefinitions
+     sections of libiaxclient.vcproj. Note that there are four instances
+     of PreprocessorDefinitions, one for each configuration.
+
+ A2) Remove vtestcall, libvidcap, libtheora, and libogg from solution.
+
+ A3) Remove link dependencies from libiaxclient.vcproj. The following
+     should be removed from the "AdditionalDependencies" sections:
+     libvidcap.lib, libtheora.lib, and libogg.lib.
+
+ A4) As a bonus, references to libtheora, libogg, and libvidcap may
+     be removed from AdditionalIncludeDirectories and
+     AdditionalLibraryDirectories. This is not explicitly required
+     though.
