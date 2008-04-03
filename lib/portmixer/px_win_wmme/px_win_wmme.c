@@ -171,9 +171,6 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
    mixer->numInputs = 0;
    mixer->muxID = -1;
 
-   /* ??? win32 default for wave control seems to be 0 ??? */
-   mixer->waveID = 0 ;
-
    if (mixer->hInputMixer)
    {
       MIXERLINE line;
@@ -349,20 +346,40 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
       }
    }
 
-   /*
-    * Find the ID of the output speaker volume control
-    */
+   // mixer->speakerID = MIXERLINE_COMPONENTTYPE_DST_SPEAKERS/VolumeControl
+   // mixer->speakerID = MIXERLINE_COMPONENTTYPE_DST_HEADPHONES/VolumeControl
+   // mixer->speakerID = MIXERLINE_COMPONENTTYPE_DST_UNDEFINED/VolumeControl
 
-   mixer->speakerID = 0;
+   mixer->speakerID = -1;
+   mixer->waveID = -1;
 
    if (mixer->hOutputMixer) {
+
+      const DWORD componentTypes [] =
+      {
+         MIXERLINE_COMPONENTTYPE_DST_SPEAKERS,
+         MIXERLINE_COMPONENTTYPE_DST_HEADPHONES,
+         MIXERLINE_COMPONENTTYPE_DST_UNDEFINED,
+      };
+      const size_t componentTypeLen = sizeof(componentTypes) / sizeof(DWORD);
+      DWORD j;
+
       MIXERLINE line;
       line.cbStruct = sizeof(MIXERLINE);
-      line.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_SPEAKERS;
-      result = mixerGetLineInfo(mixer->hOutputMixer,
-                                &line,
-                                MIXER_GETLINEINFOF_COMPONENTTYPE);
-      if (result == MMSYSERR_NOERROR) {
+
+      for (j = 0; j < componentTypeLen; j++)
+      {
+         line.dwComponentType = componentTypes[j];
+         result = mixerGetLineInfo(mixer->hOutputMixer,
+                                   &line,
+                                   MIXER_GETLINEINFOF_COMPONENTTYPE);
+
+         if (result == MMSYSERR_NOERROR)
+            break;
+      }
+
+      if (result == MMSYSERR_NOERROR)
+      {
          MIXERLINECONTROLS controls;
          MIXERCONTROL control;
 
@@ -380,6 +397,31 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
 
          if (result == MMSYSERR_NOERROR)
             mixer->speakerID = control.dwControlID;
+
+         // mixer->waveID = MIXERLINE_COMPONENTTYPE_SRC_WAVEOUT/VolumeControl
+
+         const DWORD numSources = line.cConnections;
+
+         for (j = 0; j < numSources; j++)
+         {
+             line.dwSource = j;
+             result = mixerGetLineInfo(mixer->hOutputMixer,
+                                       &line,
+                                       MIXER_GETLINEINFOF_SOURCE);
+             if (result == MMSYSERR_NOERROR &&
+                 line.dwComponentType == MIXERLINE_COMPONENTTYPE_SRC_WAVEOUT)
+             {
+                controls.dwLineID = line.dwLineID;
+                result = mixerGetLineControls(mixer->hOutputMixer,
+                                              &controls,
+                                              MIXER_GETLINECONTROLSF_ONEBYTYPE);
+                if (result == MMSYSERR_NOERROR)
+                {
+                   mixer->waveID = control.dwControlID;
+                   break;
+                }
+             }
+         }
       }
    }
 
@@ -465,49 +507,21 @@ int Px_SupportsPCMOutputVolume( PxMixer* mixer )
 
 PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
 {
-   MMRESULT result;
-   DWORD vol = 0;
-   unsigned short mono_vol = 0;
    PxInfo *info = (PxInfo *)mixer;
+   PxVolume vol;
 
-   /* invalid waveID, return zero */
-   if ( info->waveID == -1 )
-      return 0.0 ;
-
-   /* get the wave output volume */
-   result = waveOutGetVolume( (HWAVEOUT)( info->waveID ), &vol);
-
-   /* on failure, mark waveID as invalid and return zero */
-   if ( result != MMSYSERR_NOERROR )
-   {
-      info->waveID = -1 ;
-      return 0.0 ;
-   }
-
-   mono_vol = (unsigned short)vol;
-   return (PxVolume)mono_vol/65535.0F;
+   vol = -1.0;
+   VolumeFunction(info->hOutputMixer, info->waveID, &vol);
+   return vol;
 }
 
 void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
 {
-   MMRESULT result;
    PxInfo *info = (PxInfo *)mixer;
 
-   /* invalid waveID */
-   if ( info->waveID == -1 )
-      return ;
-
-   /* set the wave output volume */
-   result = waveOutSetVolume( (HWAVEOUT)( info->waveID ), MAKELONG(volume*0xFFFF, volume*0xFFFF));
-
-   /* on failure, mark waveID as invalid  */
-   if ( result != MMSYSERR_NOERROR )
-   {
-      info->waveID = -1 ;
-   }
-
-   return ;
+   VolumeFunction(info->hOutputMixer, info->waveID, &volume);
 }
+
 
 /*
  All output volumes
