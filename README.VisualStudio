@@ -31,7 +31,7 @@ support.
       http://portaudio.com/archives/pa_snapshot_v19.tar.gz
       http://downloads.xiph.org/releases/speex/speex-1.2beta3.tar.gz
 
- 3b*) For video support, libogg-1.1.3, libtheora-1.0beta2, and libvidcap
+ 3b*) For video support, libogg-1.1.3, libtheora-1.0beta2, and libvidcap-0.1
       are also required. Source for these dependencies are available
       here:
 
