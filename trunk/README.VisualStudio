@@ -23,7 +23,7 @@ contrib/win/vs2005 directory.
       http://www.microsoft.com/downloads/details.aspx?familyid=4377F86D-C913-4B5C-B87E-EF72E5B4E065
 
  3) Obtain dependencies. At the time of this writing, portaudio-v19,
-    libogg 1.1.3, speex 1.2beta3, libtheora 1.0beta2, and libvidcap are
+    libogg-1.1.3, speex-1.2beta3, libtheora-1.0beta2, and libvidcap are
     required. Source for these dependencies are available here:
 
       http://portaudio.com/archives/pa_snapshot_v19.tar.gz
@@ -31,6 +31,11 @@ contrib/win/vs2005 directory.
       http://downloads.xiph.org/releases/speex/speex-1.2beta3.tar.gz
       http://downloads.xiph.org/releases/theora/libtheora-1.0beta2.tar.gz
       http://downloads.sourceforge.net/libvidcap/libvidcap-0.1.tar.gz
+
+    Additionally, to build vtestcall, SDL is required. A prebuilt binary
+    development package is available here:
+
+      http://www.libsdl.org/release/SDL-devel-1.2.13-VC8.zip
 
     In order to build with the vcproj files provided by iaxclient,
     these dependent libraries must be moved to be peer directories to
@@ -44,14 +49,17 @@ contrib/win/vs2005 directory.
       C:\...\whereever\speex
       C:\...\whereever\libtheora
       C:\...\whereever\libvidcap
+      C:\...\whereever\SDL
 
  4) Open the solution file: contrib/win/vs2005/iaxclient.sln
 
  5) Choose configuration. There are four options:
-      Release     -- optimized static library
-      Release_dll -- optimized dynamic link library
-      Debug       -- debug static library
-      Debug_dll   -- debug dynamic link library
+      Release         -- optimized static library
+      Release_dll     -- optimized dynamic link library
+      Release_novideo -- optimized static library without video support
+      Debug           -- debug static library
+      Debug_dll       -- debug dynamic link library
+      Debug_novideo   -- debug static library without video support
 
  6) Build the solution. This will build iaxclient and all its
     dependent libraries. All dependent libraries are linked into
@@ -60,26 +68,8 @@ contrib/win/vs2005 directory.
 
       Release\libiaxclient\libiaxclient.lib
       Release_dll\libiaxclient\libiaxclient.dll
+      Release_novideo\libiaxclient\libiaxclient.lib
       Debug\libiaxclient\libiaxclient.lib
       Debug_dll\libiaxclient\libiaxclient.dll
+      Debug_novideo\libiaxclient\libiaxclient.lib
 
- APPENDIX A: Disable Video
-
- Not everyone wants or needs the video features in iaxclient. It is
- possible to disable the video features in iaxclient by modifying
- the solution and project files.
-
- A1) Remove "USE_VIDEO" and "USE_THEORA" from the PreprocessorDefinitions
-     sections of libiaxclient.vcproj. Note that there are four instances
-     of PreprocessorDefinitions, one for each configuration.
-
- A2) Remove vtestcall, libvidcap, libtheora, and libogg from solution.
-
- A3) Remove link dependencies from libiaxclient.vcproj. The following
-     should be removed from the "AdditionalDependencies" sections:
-     libvidcap.lib, libtheora.lib, and libogg.lib.
-
- A4) As a bonus, references to libtheora, libogg, and libvidcap may
-     be removed from AdditionalIncludeDirectories and
-     AdditionalLibraryDirectories. This is not explicitly required
-     though.
