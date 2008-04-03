@@ -5,7 +5,7 @@
 	Name="vtestcall"
 	ProjectGUID="{B5F8E725-85A8-4CB1-8824-B82127BB2B1E}"
 	RootNamespace="vtestcall"
-	Keyword="ManagedCProj"
+	Keyword="Win32Proj"
 	>
 	<Platforms>
 		<Platform
@@ -17,12 +17,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\debug"
-			IntermediateDirectory=".\debug"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
-			ManagedExtensions="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -42,15 +40,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\lib;..\..\lib\SDL\include;&quot;$(SDL_DIR)\include&quot;"
+				AdditionalIncludeDirectories="..\..\..\lib;..\..\..\..\SDL\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WINDOWS"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				BufferSecurityCheck="false"
-				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 				CompileAs="1"
 			/>
 			<Tool
@@ -65,15 +61,11 @@
 			<Tool
 				Name="VCLinkerTool"
 				IgnoreImportLibrary="false"
-				AdditionalOptions="/NODEFAULTLIB:LIBCMTD.lib /NODEFAULTLIB:LIBCD.lib "
-				AdditionalDependencies="dsound.lib libiaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib libvidcap.lib libiax2.lib libgsm.lib libportaudio.lib libspeex.lib strmiids.lib libportmixer.lib"
-				ShowProgress="0"
-				OutputFile="$(OutDir)\$(ProjectName).exe"
+				AdditionalDependencies="libiaxclient.lib SDL.lib wsock32.lib winmm.lib strmiids.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;&quot;$(SDL_DIR)\lib&quot;;..\..\lib\portmixer\winproj;..\..\contrib\win\vs2005\Debug\libiaxclient;..\..\contrib\win\vs2005\Debug\libtheora;..\..\contrib\win\vs2005\Debug\libogg;..\..\contrib\win\vs2005\Debug\libvidcap;..\..\contrib\win\vs2005\Debug\libiax2;..\..\contrib\win\vs2005\Debug\libgsm;..\..\contrib\win\vs2005\Debug\libportaudio;..\..\contrib\win\vs2005\Debug\libspeex;..\..\contrib\win\vs2005\Debug\libportmixer"
-				IgnoreAllDefaultLibraries="false"
+				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;..\..\..\..\SDL\lib;$(SolutionDir)$(ConfigurationName)\libiaxclient"
+				IgnoreDefaultLibraryNames="libcmtd.lib"
 				GenerateDebugInformation="true"
-				AssemblyDebug="0"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -104,12 +96,11 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="release"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
-			ManagedExtensions="0"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -128,15 +119,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories="..\..\lib;..\..\lib\SDL\include;&quot;$(SDL_DIR)\include&quot;"
+				AdditionalIncludeDirectories="..\..\..\lib;..\..\..\..\SDL\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WINDOWS"
-				MinimalRebuild="false"
-				BasicRuntimeChecks="0"
 				RuntimeLibrary="2"
-				BufferSecurityCheck="true"
-				UsePrecompiledHeader="0"
 				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
 				CompileAs="1"
 			/>
@@ -151,9 +138,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="dsound.lib libiaxclient.lib libtheora.lib libogg.lib SDL.lib wsock32.lib winmm.lib libvidcap.lib libiax2.lib libgsm.lib libportaudio.lib libspeex.lib strmiids.lib libportmixer.lib"
+				IgnoreImportLibrary="false"
+				AdditionalDependencies="libiaxclient.lib SDL.lib wsock32.lib winmm.lib strmiids.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;$(DXSDK_DIR)\lib\x86&quot;;&quot;$(SDL_DIR)\lib&quot;;..\..\lib\portmixer\winproj;..\..\contrib\win\vs2005\Release\libiaxclient;..\..\contrib\win\vs2005\Release\libtheora;..\..\contrib\win\vs2005\Release\libogg;..\..\contrib\win\vs2005\Release\libgsm;..\..\contrib\win\vs2005\Release\libvidcap;..\..\contrib\win\vs2005\Release\libiax2;..\..\contrib\win\vs2005\Release\libportaudio;..\..\contrib\win\vs2005\Release\libportmixer;..\..\contrib\win\vs2005\Release\libspeex"
+				AdditionalLibraryDirectories="..\..\..\..\SDL\lib;$(SolutionDir)$(ConfigurationName)\libiaxclient"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -187,20 +175,6 @@
 			/>
 		</Configuration>
 	</Configurations>
-	<References>
-		<AssemblyReference
-			RelativePath="mscorlib.dll"
-			AssemblyName="mscorlib, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=IA64"
-		/>
-		<AssemblyReference
-			RelativePath="System.dll"
-			AssemblyName="System, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL"
-		/>
-		<AssemblyReference
-			RelativePath="System.Data.dll"
-			AssemblyName="System.Data, Version=2.0.0.0, PublicKeyToken=b77a5c561934e089, processorArchitecture=x86"
-		/>
-	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
@@ -208,24 +182,8 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\vtestcall.c"
+				RelativePath="..\..\..\simpleclient\vtestcall\vtestcall.c"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="1"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -235,7 +193,7 @@
 			>
 		</Filter>
 		<File
-			RelativePath=".\ReadMe.txt"
+			RelativePath="..\..\..\simpleclient\vtestcall\ReadMe.txt"
 			>
 		</File>
 	</Files>
