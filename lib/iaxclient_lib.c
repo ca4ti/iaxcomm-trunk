@@ -1910,13 +1910,14 @@ EXPORT int iaxc_mic_boost_set( int enable )
 	return audio_driver.mic_boost_set( &audio_driver, enable ) ;
 }
 
-#ifdef LIBVER
 EXPORT char* iaxc_version(char * ver)
 {
+#ifndef LIBVER
+#define LIBVER ""
+#endif
 	strncpy(ver, LIBVER, IAXC_EVENT_BUFSIZ);
 	return ver;
 }
-#endif
 
 EXPORT unsigned int iaxc_get_audio_prefs(void)
 {
