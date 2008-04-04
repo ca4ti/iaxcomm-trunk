@@ -12,6 +12,8 @@ EXTRA_DIST = \
 	README.VisualStudio	\
 	autogen.sh		\
 	contrib			\
+	doc			\
+	Doxyfile		\
 	m4
 
 dist-hook:
