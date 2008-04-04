@@ -227,6 +227,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\..\..\libvidcap\src\double_buffer.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\libvidcap\src\directshow\DShowSrcManager.cpp"
 				>
 				<FileConfiguration
@@ -353,6 +357,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\libvidcap\src\double_buffer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\libvidcap\src\directshow\DShowSrcManager.h"
 				>
 			</File>
@@ -366,6 +374,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\libvidcap\src\logging.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\libvidcap\src\os_funcs.h"
 				>
 			</File>
 			<File
