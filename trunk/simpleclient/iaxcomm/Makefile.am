@@ -85,4 +85,4 @@ $(PROG).app: $(PROG)
 
 endif MACOSX
 
-EXTRA_DIST = QUICKSTART ring.raw iaxcomm.icns
+EXTRA_DIST = QUICKSTART ring.raw iaxcomm.icns iaxcomm.sln iaxcomm.vcproj
