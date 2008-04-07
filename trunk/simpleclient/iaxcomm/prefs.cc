@@ -106,11 +106,11 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_CHECKBOX( XRCID("SPXVBR"),           PrefsDialog::OnSpeexTune)
     EVT_SPINCTRL( XRCID("SPXComplexity"),    PrefsDialog::OnSpeexTuneSpinEvent)
 
-    EVT_BUTTON  ( XRCID("CancelAudio"),      PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelCallerID"),   PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelMisc"),       PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelFilters"),    PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelCodecs"),     PrefsDialog::OnCancel)
+//    EVT_BUTTON  ( XRCID("CancelAudio"),      PrefsDialog::OnCancel)
+//    EVT_BUTTON  ( XRCID("CancelCallerID"),   PrefsDialog::OnCancel)
+//    EVT_BUTTON  ( XRCID("CancelMisc"),       PrefsDialog::OnCancel)
+//    EVT_BUTTON  ( XRCID("CancelFilters"),    PrefsDialog::OnCancel)
+//    EVT_BUTTON  ( XRCID("CancelCodecs"),     PrefsDialog::OnCancel)
 
 END_EVENT_TABLE()
 
