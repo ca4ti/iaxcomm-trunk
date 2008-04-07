@@ -535,7 +535,7 @@
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
 				AdditionalDependencies="libiax2.lib libportmixer.lib libportaudio.lib libgsm.lib libspeex.lib comsuppw.lib strmiids.lib wininet.lib ws2_32.lib"
-				AdditionalLibraryDirectories="&quot;$(SolutionDir)Release\libiax2&quot;;&quot;$(SolutionDir)Release\libportaudio&quot;;&quot;$(SolutionDir)Release\libportmixer&quot;;&quot;$(SolutionDir)Release\libspeex&quot;;&quot;$(SolutionDir)Release\libgsm&quot;"
+				AdditionalLibraryDirectories="&quot;$(SolutionDir)Debug\libiax2&quot;;&quot;$(SolutionDir)Debug\libportaudio&quot;;&quot;$(SolutionDir)Debug\libportmixer&quot;;&quot;$(SolutionDir)Debug\libspeex&quot;;&quot;$(SolutionDir)Debug\libgsm&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"

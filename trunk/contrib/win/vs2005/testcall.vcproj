@@ -416,6 +416,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy $(SolutionDir)$(ConfigurationName)\libiaxclient\libiaxclient.dll $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration
@@ -496,6 +497,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy $(SolutionDir)$(ConfigurationName)\libiaxclient\libiaxclient.dll $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration
@@ -577,6 +579,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy $(SolutionDir)$(ConfigurationName)\libiaxclient\libiaxclient.dll $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration
@@ -657,6 +660,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="copy $(SolutionDir)$(ConfigurationName)\libiaxclient\libiaxclient.dll $(OutDir)"
 			/>
 		</Configuration>
 	</Configurations>
