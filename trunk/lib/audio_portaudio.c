@@ -212,7 +212,6 @@ static int scan_devices(struct iaxc_audio_driver *d)
 static void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples)
 {
 	int i;
-	//fprintf(stderr, "mono2stereo: %d samples\n", nSamples);
 	for ( i=0; i < nSamples; i++ )
 	{
 		*(out++) = *in;
@@ -223,12 +222,11 @@ static void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples)
 static void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples)
 {
 	int i;
-	//fprintf(stderr, "stereo2mono: %d samples\n", nSamples);
 	for ( i=0; i < nSamples; i++ )
 	{
 		*(out) = *(in++);
-		out++; in++;
-		//*(out++) += *(in++);
+		out++;
+		in++;
 	}
 }
 
@@ -262,7 +260,8 @@ static void mix_slin(short *dst, short *src, int samples, int virtualMono)
 	}
 }
 
-static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel, int virtualMono)
+static int pa_mix_sounds (void *outputBuffer, unsigned long frames,
+		int channel, int virtualMono)
 {
 	struct iaxc_sound *s;
 	struct iaxc_sound **sp;
@@ -470,30 +469,43 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 		exit(1);
 	}
 #endif
+	if ( statusFlags & paOutputUnderflow )
+		fprintf(stderr, "WARNING: Output Underflow detected\n");
+	if ( statusFlags & paInputUnderflow )
+		fprintf(stderr, "WARNING: Input Underflow detected\n");
+	if ( statusFlags & paOutputOverflow )
+		fprintf(stderr, "WARNING: Output Overflow detected\n");
+	if ( statusFlags & paInputOverflow )
+		fprintf(stderr, "WARNING: Input Overflow detected\n");
 
 	if ( outputBuffer )
 	{
 		int bWritten;
 		/* output underflow might happen here */
-		if (virtualMonoOut)
+		if ( virtualMonoOut )
 		{
 			bWritten = rb_ReadRingBuffer(&outRing, virtualOutBuffer,
 					totBytes);
-			/* we zero "virtualOutBuffer", then convert the whole thing,
-			 * yes, because we use virtualOutBuffer for ec below */
+
+			/* we zero "virtualOutBuffer", then convert the whole
+			 * thing, yes, because we use virtualOutBuffer for ec
+			 * below */
 			if ( bWritten < totBytes )
 			{
-				memset(((char *)virtualOutBuffer) + bWritten,
-						0, totBytes - bWritten);
+				memset((char *)virtualOutBuffer + bWritten, 0,
+						totBytes - bWritten);
 				//fprintf(stderr, "*U*");
 			}
+
 			mono2stereo((SAMPLE *)outputBuffer, virtualOutBuffer,
 					samplesPerFrame);
 		}
 		else
 		{
-			bWritten = rb_ReadRingBuffer(&outRing, outputBuffer, totBytes);
-			if ( bWritten < totBytes)
+			bWritten = rb_ReadRingBuffer(&outRing, outputBuffer,
+					totBytes);
+
+			if ( bWritten < totBytes )
 			{
 				memset((char *)outputBuffer + bWritten,
 						0, totBytes - bWritten);
@@ -506,8 +518,9 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 
 		pa_mix_sounds(outputBuffer, samplesPerFrame, 0, virtualMonoOut);
 
-		if(!auxStream)
-			pa_mix_sounds(outputBuffer, samplesPerFrame, 1, virtualMonoOut);
+		if ( !auxStream )
+			pa_mix_sounds(outputBuffer, samplesPerFrame, 1,
+					virtualMonoOut);
 	}
 
 
@@ -696,7 +709,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 	ring_stream_params.hostApiSpecificStreamInfo = NULL;
 
 	// first we'll try mono
-	ring_stream_params.channelCount = 1; 
+	ring_stream_params.channelCount = 1;
 
 	err = Pa_OpenStream(&aStream,
 			NULL,
@@ -710,7 +723,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 	if ( err != paNoError )
 	{
 		// next we'll try virtual mono (stereo)
-		ring_stream_params.channelCount = 1; 
+		ring_stream_params.channelCount = 1;
 
 		err = Pa_OpenStream(&aStream,
 				NULL,
