@@ -209,7 +209,7 @@ static int scan_devices(struct iaxc_audio_driver *d)
 	return 0;
 }
 
-static void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples)
+static void mono2stereo(SAMPLE *out, const SAMPLE *in, int nSamples)
 {
 	int i;
 	for ( i=0; i < nSamples; i++ )
@@ -219,7 +219,7 @@ static void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples)
 	}
 }
 
-static void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples)
+static void stereo2mono(SAMPLE *out, const SAMPLE *in, int nSamples)
 {
 	int i;
 	for ( i=0; i < nSamples; i++ )
@@ -451,7 +451,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 #endif
 }
 
-static int pa_callback(void *inputBuffer, void *outputBuffer,
+static int pa_callback(const void *inputBuffer, void *outputBuffer,
 	    unsigned long samplesPerFrame,
 	    const PaStreamCallbackTimeInfo* outTime,
 	    PaStreamCallbackFlags statusFlags,
