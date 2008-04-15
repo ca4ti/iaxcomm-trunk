@@ -756,7 +756,9 @@ static void iaxc_refresh_registrations()
 			cur->session = iax_session_new();
 			if ( !cur->session )
 			{
-				iaxci_usermsg(IAXC_ERROR, "Can't make new registration session");
+				iaxci_usermsg(IAXC_ERROR,
+						"Can't make new registration "
+						"session");
 				return;
 			}
 			iax_register(cur->session, cur->host, cur->user, cur->pass, cur->refresh);
@@ -1025,16 +1027,11 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 #endif
 	struct iaxc_call *call;
 
-	if ( callNo < 0 )
+	/* drop audio for unselected call? */
+	if ( callNo < 0 || callNo != selected_call )
 		return;
 
 	call = &calls[callNo];
-
-	if ( callNo != selected_call )
-	{
-	    /* drop audio for unselected call? */
-	    return;
-	}
 
 	samples = fr_samples;
 	format = call->format & IAXC_AUDIO_FORMAT_MASK;
@@ -1055,13 +1052,16 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 		if ( bytes_decoded < 0 )
 		{
 			iaxci_usermsg(IAXC_STATUS,
-				"Bad or incomplete voice packet. Unable to decode. dropping");
+				"Bad or incomplete voice packet. "
+				"Unable to decode. dropping");
 			return;
 		}
 
 		/* Pass encoded audio back to the app if required */
 		if ( audio_prefs & IAXC_AUDIO_PREF_RECV_REMOTE_ENCODED )
-			iaxci_do_audio_callback(callNo, e->ts, IAXC_SOURCE_REMOTE,
+			iaxci_do_audio_callback(callNo,
+					e->ts,
+					IAXC_SOURCE_REMOTE,
 					1, format & IAXC_AUDIO_FORMAT_MASK,
 					e->datalen - total_consumed,
 					e->data + total_consumed);
@@ -1083,8 +1083,13 @@ static void handle_audio_event(struct iax_event *e, int callNo)
 			// the number to obtain the size in bytes.
 			// format will also be 0 since this is raw audio
 			int size = (fr_samples - samples - mainbuf_delta) * 2;
-			iaxci_do_audio_callback(callNo, e->ts, IAXC_SOURCE_REMOTE,
-					0, 0, size, (unsigned char *)fr);
+			iaxci_do_audio_callback(callNo,
+					e->ts,
+					IAXC_SOURCE_REMOTE,
+					0,
+					0,
+					size,
+					(unsigned char *)fr);
 		}
 
 		if ( iaxci_audio_output_mode )
