@@ -676,6 +676,8 @@ static int capture_callback(vidcap_src * src, void * user_data,
 
 	if ( call->vformat == 0 )
 	{
+		fprintf(stderr, "video format not set for call %d\n",
+				selected_call);
 		goto callback_failed;
 	}
 
