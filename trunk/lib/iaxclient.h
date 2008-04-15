@@ -1063,6 +1063,7 @@ EXPORT int iaxc_stop_sound(int id);
 #define IAXC_FILTER_ECHO        (1<<2) /*!< Echo cancellation filter */
 #define IAXC_FILTER_AAGC        (1<<3) /*!< Analog (mixer-based) Automatic Gain Control */
 #define IAXC_FILTER_CN          (1<<4) /*!< Send Comfort Noise (CN) frames when silence is detected */
+#define IAXC_FILTER_DEREVERB	(1<<5) /*!< Reverb reduction filter */
 
 /*!
 	Returns the set of audio filters being applied.

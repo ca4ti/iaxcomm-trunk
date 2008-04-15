@@ -104,12 +104,14 @@ static void set_speex_filters()
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC, &i);
 	i = (iaxci_filters & IAXC_FILTER_DENOISE) ? 1 : 0;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DENOISE, &i);
+	i = (iaxci_filters & IAXC_FILTER_DEREVERB) ? 1 : 0;
+	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DEREVERB, &i);
 
 	/*
-	* We can tweak these parameters to play with VAD sensitivity.
-	* For now, we use the default values since it seems they are a good starting point.
-	* However, if need be, this is the code that needs to change
-	*/
+	 * We can tweak these parameters to play with VAD sensitivity.
+	 * For now, we use the default values since it seems they are a good starting point.
+	 * However, if need be, this is the code that needs to change
+	 */
 	i = 35;
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_START, &i);
 	i = 20;
@@ -149,8 +151,8 @@ static int input_postprocess(void *audio, int len, int rate)
 
 	calculate_level((short *)audio, len, &input_level);
 
-	/* only preprocess if we're interested in VAD, AGC, or DENOISE */
-	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) ||
+	/* go through the motions only if we need at least one of the preprocessor filters */
+	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC | IAXC_FILTER_DEREVERB)) ||
 			iaxci_silence_threshold > 0.0f )
 		silent = !speex_preprocess(st, (spx_int16_t *)audio, NULL);
 
@@ -350,7 +352,8 @@ int audio_decode_audio(struct iaxc_call * call, void * out, void * data, int len
 
 	if ( format == 0 )
 	{
-		fprintf(stderr, "audio_decode_audio: Format is zero (should't happen)!\n");
+		fprintf(stderr, "audio_decode_audio: Format is zero "
+				"(should not happen)!\n");
 		return -1;
 	}
 
