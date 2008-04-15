@@ -1,16 +1,20 @@
-bin_PROGRAMS=stresstest
-stresstest_SOURCES=stresstest.c file.c file.h
+bin_PROGRAMS = stresstest
 
-AM_CPPFLAGS=-I$(top_srcdir)/lib $(SDL_CFLAGS) $(OGGZ_CFLAGS) $(THEORA_CFLAGS)
-stresstest_LDADD=$(top_builddir)/lib/libiaxclient.la $(OGGZ_LIBS) $(THEORA_LIBS)
+stresstest_SOURCES = stresstest.c file.c file.h
 
-if MACOSX
-stresstest_LDFLAGS =			\
-		-framework AudioToolbox \
-		-framework AudioUnit	\
-		-framework Carbon	\
-		-framework CoreAudio	\
-		-framework QuartzCore	\
-		-framework QuickTime
-endif
+stresstest_CPPFLAGS = -I$(top_srcdir)/lib
+stresstest_CFLAGS = $(OGGZ_CFLAGS) \
+		    $(THEORA_CFLAGS) \
+		    $(PORTAUDIO_CFLAGS) \
+		    $(SPEEX_CFLAGS) \
+		    $(VIDCAP_CFLAGS)
+stresstest_LDFLAGS =
+stresstest_LDADD = $(top_builddir)/lib/libiaxclient.la \
+		   $(OGGZ_LIBS) \
+		   $(THEORA_LIBS) \
+		   $(PORTAUDIO_LIBS) \
+		   $(SPEEX_LIBS) \
+		   $(VIDCAP_LIBS)
+
+
 
