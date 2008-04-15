@@ -118,7 +118,7 @@ static void set_speex_filters()
 	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &i);
 }
 
-static void calculate_level(short *audio, int len, float *level)
+static void calculate_level(const short *audio, int len, float *level)
 {
 	int big_sample = 0;
 	int i;
@@ -133,7 +133,7 @@ static void calculate_level(short *audio, int len, float *level)
 	*level += ((float)big_sample / 32767.0f - *level) / 5.0f;
 }
 
-static int input_postprocess(void *audio, int len, int rate)
+static int input_postprocess(short * audio, int len, int rate)
 {
 	static float lowest_volume = 1.0f;
 	float volume;
@@ -149,7 +149,7 @@ static int input_postprocess(void *audio, int len, int rate)
 		set_speex_filters();
 	}
 
-	calculate_level((short *)audio, len, &input_level);
+	calculate_level(audio, len, &input_level);
 
 	/* go through the motions only if we need at least one of the preprocessor filters */
 	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC | IAXC_FILTER_DEREVERB)) ||
@@ -213,9 +213,9 @@ static int input_postprocess(void *audio, int len, int rate)
 		return volume < iaxci_silence_threshold;
 }
 
-static int output_postprocess(void *audio, int len)
+static int output_postprocess(const short * audio, int len)
 {
-	calculate_level((short *)audio, len, &output_level);
+	calculate_level(audio, len, &output_level);
 
 	do_level_callback();
 
@@ -342,8 +342,8 @@ int audio_send_encoded_audio(struct iaxc_call *call, int callNo, void *data,
 
 /* decode encoded audio; return the number of bytes decoded
  * negative indicates error */
-int audio_decode_audio(struct iaxc_call * call, void * out, void * data, int len,
-		int format, int * samples)
+int audio_decode_audio(struct iaxc_call * call, void * out, void * data,
+		int len, int format, int * samples)
 {
 	int insize = len;
 	int outsize = *samples;
