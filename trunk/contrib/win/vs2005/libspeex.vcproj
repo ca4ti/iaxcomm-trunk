@@ -274,6 +274,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\speex\libspeex\resample.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\speex\libspeex\sb_celp.c"
 				>
 			</File>
@@ -325,6 +329,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\speex\libspeex\fftwrap.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\speex\libspeex\filterbank.h"
 				>
 			</File>
 			<File
@@ -413,6 +421,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\speex\include\speex\speex_preprocess.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\speex\include\speex\speex_resampler.h"
 				>
 			</File>
 			<File
