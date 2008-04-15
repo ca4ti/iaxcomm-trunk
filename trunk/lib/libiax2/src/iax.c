@@ -857,9 +857,9 @@ static int iax_xmit_frame(struct iax_frame *f)
 
 		if (ntohs(h->scallno) & IAX_FLAG_FULL)
 			iax_showframe(f, NULL, 0, f->transfer ?
-										&(f->session->transfer) :
-										&(f->session->peeraddr),
-										f->datalen - sizeof(struct ast_iax2_full_hdr));
+					&(f->session->transfer) :
+					&(f->session->peeraddr),
+					f->datalen - sizeof(struct ast_iax2_full_hdr));
 	}
 #endif
 	/* Send the frame raw */
@@ -1425,7 +1425,6 @@ int iax_setup_transfer(struct iax_session *org_session, struct iax_session *new_
 	int transfer_id = 1 + (int)(32767.0 * (iax_random() / (RAND_MAX + 1.0)));
 
 	memset(&ied0, 0, sizeof(ied0));
-
 	memset(&ied1, 0, sizeof(ied1));
 
 	/* reversed setup */
