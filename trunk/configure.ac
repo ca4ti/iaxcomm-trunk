@@ -350,10 +350,10 @@ if test x$has_gsm = xyes && test x$with_gsm != xno; then
 fi
 
 AM_CONDITIONAL(VIDEO, test x$enable_video = xyes)
-AM_CONDITIONAL(OGG, test x$has_ogg = xyes)
-AM_CONDITIONAL(THEORA, test x$has_theora = xyes)
-AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes)
-AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes)
+AM_CONDITIONAL(OGG, test x$has_ogg = xyes && test x$with_ogg != xno)
+AM_CONDITIONAL(THEORA, test x$has_theora = xyes && test x$with_theora != xno)
+AM_CONDITIONAL(VIDCAP, test x$has_vidcap = xyes && test x$with_vidcap != xno)
+AM_CONDITIONAL(FFMPEG, test x$has_ffmpeg = xyes && test x$with_ffmpeg != xno)
 AM_CONDITIONAL(SPAN_EC, test x$use_echo_can = xspan)
 AM_CONDITIONAL(USE_CODEC_GSM, test x$has_gsm = xyes && test x$with_gsm != xno)
 AM_CONDITIONAL(USE_LOCAL_GSM, test x$enable_local_gsm = xyes)
