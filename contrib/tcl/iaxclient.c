@@ -696,7 +696,9 @@ HoldObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST o
     }
     if ( result == TCL_OK ) {
 	iaxc_quelch(selected, 1);
-	iaxc_select_call(-1);
+	// this core dumps, see iaxclient-devel@lists.sourceforge.net
+	// Andrea Suisani <sickpig@opinioni.net>
+	//iaxc_select_call(-1);
     }
     return result;
 }
@@ -1089,7 +1091,9 @@ UnholdObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST
     }
     if (result == TCL_OK) {
 	iaxc_unquelch(selected);
-	iaxc_select_call(selected);
+	// this core dumps, see iaxclient-devel@lists.sourceforge.net
+	// Andrea Suisani <sickpig@opinioni.net>
+	//iaxc_select_call(selected);
     }
     return result;
 }
