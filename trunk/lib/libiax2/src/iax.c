@@ -1878,6 +1878,16 @@ int iax_answer(struct iax_session *session)
 	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_ANSWER, 0, NULL, 0, -1);
 }
 
+int iax_key_radio(struct iax_session *session)
+{
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_KEY, 0, NULL, 0, -1);
+}
+
+int iax_unkey_radio(struct iax_session *session)
+{
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_UNKEY, 0, NULL, 0, -1);
+}
+
 int iax_load_complete(struct iax_session *session)
 {
 	return send_command(session, AST_FRAME_HTML, AST_HTML_LDCOMPLETE, 0, NULL, 0, -1);
@@ -2956,6 +2966,14 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 				break;
 			case AST_CONTROL_RINGING:
 				e->etype = IAX_EVENT_RINGA;
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
+			case AST_CONTROL_KEY:
+				e->etype = IAX_EVENT_KEY;
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
+			case AST_CONTROL_UNKEY:
+				e->etype = IAX_EVENT_UNKEY;
 				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			default:

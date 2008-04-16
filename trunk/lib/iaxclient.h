@@ -143,6 +143,7 @@ typedef int socklen_t;
 #define IAXC_CALL_STATE_SELECTED (1<<5)  /*!< Indicates the call is selected */
 #define IAXC_CALL_STATE_BUSY     (1<<6)  /*!< Indicates a call is busy */
 #define IAXC_CALL_STATE_TRANSFER (1<<7)  /*!< Indicates the call transfer has been released */
+#define IAXC_CALL_STATE_KEYED    (1<<8)  /*!< Indicates the call radio is activated */
 
 /*! Indicates that text is for an IAXClient status change */
 #define IAXC_TEXT_TYPE_STATUS     1   
@@ -771,6 +772,18 @@ EXPORT void iaxc_send_busy_on_incoming_call(int callNo);
 	\param callNo The number of the call to answer.
 */
 EXPORT void iaxc_answer_call(int callNo);
+
+/*!
+	Radio Transmitter and Receiver Control Activiate
+	\param callNo The number of the call to activate
+*/
+EXPORT void iaxc_key_radio(int callNo);
+
+/*!
+	Radio Transmitter and Receiver Control Deactivate
+	\param callNo The number of the call to deactivate
+*/
+EXPORT void iaxc_unkey_radio(int callNo);
 
 /*!
 	Initiate a blind call transfer of \a callNo to \a number.

@@ -99,6 +99,8 @@ extern "C" {
 #define AST_CONTROL_FLASH		9			/* Flash hook */
 #define AST_CONTROL_WINK		10			/* Wink */
 #define AST_CONTROL_OPTION		11			/* Set an option */
+#define AST_CONTROL_KEY			12			/* Key Radio */
+#define AST_CONTROL_UNKEY		13			/* Unkey Radio */
 
 #define AST_FRIENDLY_OFFSET		64			/* Reserved header space */
 

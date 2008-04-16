@@ -1153,6 +1153,16 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		// XXX does the session go away now?
 		iaxc_clear_call(callNo);
 		break;
+	case IAX_EVENT_KEY:
+		calls[callNo].state |= IAXC_CALL_STATE_KEYED;
+		iaxci_do_state_callback(callNo);
+		iaxci_usermsg(IAXC_STATUS,"Call %d Radio Key", callNo);
+		break;
+	case IAX_EVENT_UNKEY:
+		calls[callNo].state &= ~IAXC_CALL_STATE_KEYED;	
+		iaxci_do_state_callback(callNo);
+		iaxci_usermsg(IAXC_STATUS,"Call %d Radio Unkey", callNo);
+		break;
 	case IAX_EVENT_REJECT:
 		iaxci_usermsg(IAXC_STATUS, "Call rejected by remote");
 		iaxc_clear_call(callNo);
@@ -1423,6 +1433,22 @@ EXPORT void iaxc_answer_call(int callNo)
 	calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
 	iax_answer(calls[callNo].session);
 	iaxci_do_state_callback(callNo);
+}
+
+EXPORT void iaxc_key_radio(int callNo)
+{
+	if ( callNo < 0 )
+		return;
+
+	iax_key_radio(calls[callNo].session);
+}
+
+EXPORT void iaxc_unkey_radio(int callNo)
+{
+	if ( callNo < 0 )
+		return;
+
+	iax_unkey_radio(calls[callNo].session);
 }
 
 EXPORT void iaxc_blind_transfer_call(int callNo, const char * dest_extension)

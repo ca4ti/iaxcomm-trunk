@@ -80,7 +80,8 @@ struct iax_session;
 #define IAX_EVENT_CNG           32      /* Comfort-noise (almost silence) */
 #define IAX_EVENT_POKE          33
 #define IAX_EVENT_VIDEO         34      /* Send/receive video */
-
+#define IAX_EVENT_KEY		35	/* Radio Control Key */
+#define IAX_EVENT_UNKEY		36	/* Radio Control UnKey */
 
 /* moved from iax.c to support attended transfer */
 #define IAX_EVENT_REREQUEST     999
@@ -194,6 +195,9 @@ extern int iax_transfer(struct iax_session *session, const char *number);
 extern int iax_quelch_moh(struct iax_session *session, int MOH);
 extern int iax_send_video(struct iax_session *session, int format, unsigned char *data, int datalen, int fullframe);
 extern int iax_send_video_trunk(struct iax_session *session, int format, char *data, int datalen, int fullframe, int ntrunk);
+
+extern int iax_key_radio(struct iax_session *session);
+extern int iax_unkey_radio(struct iax_session *session);
 
 extern void iax_destroy(struct iax_session  * session);
 
