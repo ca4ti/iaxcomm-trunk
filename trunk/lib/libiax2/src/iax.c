@@ -3207,6 +3207,12 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 	struct ast_iax2_video_hdr *vh = (struct ast_iax2_video_hdr *)buf;
 	struct iax_session *session;
 
+	if ((size_t)len < sizeof(fh->scallno)) {
+		DEBU(G "Short header received from %s\n", inet_ntoa(sin->sin_addr));
+		IAXERROR "Short header received from %s\n", inet_ntoa(sin->sin_addr));
+		return NULL;
+	}
+
 	if (ntohs(fh->scallno) & IAX_FLAG_FULL) {
 		/* Full size header */
 		if ((size_t)len < sizeof(struct ast_iax2_full_hdr)) {
@@ -3225,32 +3231,49 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 					ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS);
 		if (session)
 			return iax_header_to_event(session, fh, len - sizeof(struct ast_iax2_full_hdr), sin);
-		DEBU(G "No session?\n");
-		return NULL;
 	} else {
 		if ((size_t)len < sizeof(struct ast_iax2_mini_hdr)) {
 			DEBU(G "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			IAXERROR "Short header received from %s\n", inet_ntoa(sin->sin_addr));
 			return NULL;
 		}
-		/* Miniature, voice frame */
-		if ((vh->zeros == 0) && (ntohs(vh->callno) & 0x8000))
-		{
+
+		if (mh->callno == 0) {
+			/* We have a meta frame, could be a video meta frame
+			 * or an ordinary meta frame, to find out we check
+			 * the V flag.
+			 */
+			if (!(ntohs(vh->callno) & 0x8000)) {
+				DEBU(G "Meta frame received from %s, but we cannot handle it\n",
+						inet_ntoa(sin->sin_addr));
+				IAXERROR "Meta frame received from %s, but we cannot handle it\n",
+					 	inet_ntoa(sin->sin_addr));
+				return NULL;
+			}
+			/* it is a video metaframe, verify its size */
+			if ((size_t)len < sizeof(struct ast_iax2_video_hdr)) {
+				DEBU(G "Short video mini header received from %s\n",
+						inet_ntoa(sin->sin_addr));
+				IAXERROR "Short video mini header received from %s\n",
+					 	inet_ntoa(sin->sin_addr));
+				return NULL;
+			}
+
 			session = iax_find_session(sin, ntohs(vh->callno) & ~0x8000, 0, 0);
 
 			if (session)
 				return iax_videoheader_to_event(session, vh,
 						len - sizeof(struct ast_iax2_video_hdr));
 		} else {
-			/* audio frame */
-			session = iax_find_session(sin, ntohs(fh->scallno), 0, 0);
+			/* mini audio frame */
+			session = iax_find_session(sin, ntohs(mh->callno), 0, 0);
 			if (session)
 				return iax_miniheader_to_event(session, mh,
 						len - sizeof(struct ast_iax2_mini_hdr));
 		}
-		DEBU(G "No session?\n");
-		return NULL;
 	}
+	DEBU(G "No session?\n");
+	return NULL;
 }
 
 static struct iax_sched *iax_get_sched(struct timeval tv)
