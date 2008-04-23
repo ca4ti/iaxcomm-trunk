@@ -44,12 +44,16 @@ NOTE: If all this isnt done, the system doesnt not handle this
 cleanly and has to be rebooted. What a pile of doo doo!! */
 void killem(void)
 {
-	if (initialized)
+	if ( initialized )
+	{
 		iaxc_shutdown();
-	if (reg_id){
-		iaxc_unregister(reg_id);
+		initialized = 0;
 	}
-	return;
+	if ( reg_id )
+	{
+		iaxc_unregister(reg_id);
+		reg_id = 0;
+	}
 }
 
 void signal_handler(int signum)
