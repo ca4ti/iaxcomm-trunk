@@ -1229,7 +1229,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 			fr->iseqno = -1;
 			vh = (struct ast_iax2_video_hdr *)(((char* )fr->af.data) - sizeof(struct ast_iax2_video_hdr));
 			vh->zeros = 0;
-			vh->callno = htons(0x8000 | fr->callno);
+			vh->callno = htons(IAX_FLAG_FULL | fr->callno);
 			vh->ts = htons((fr->ts & 0x7FFF) | (fr->af.subclass & 0x1 ? 0x8000 : 0));
 			fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_video_hdr);
 			fr->data = vh;
@@ -3243,11 +3243,11 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 			 * or an ordinary meta frame, to find out we check
 			 * the V flag.
 			 */
-			if (!(ntohs(vh->callno) & 0x8000)) {
+			if (!(ntohs(vh->callno) & IAX_FLAG_VIDEO)) {
 				DEBU(G "Meta frame received from %s, but we cannot handle it\n",
 						inet_ntoa(sin->sin_addr));
 				IAXERROR "Meta frame received from %s, but we cannot handle it\n",
-					 	inet_ntoa(sin->sin_addr));
+						inet_ntoa(sin->sin_addr));
 				return NULL;
 			}
 			/* it is a video metaframe, verify its size */
@@ -3255,11 +3255,11 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 				DEBU(G "Short video mini header received from %s\n",
 						inet_ntoa(sin->sin_addr));
 				IAXERROR "Short video mini header received from %s\n",
-					 	inet_ntoa(sin->sin_addr));
+						inet_ntoa(sin->sin_addr));
 				return NULL;
 			}
 
-			session = iax_find_session(sin, ntohs(vh->callno) & ~0x8000, 0, 0);
+			session = iax_find_session(sin, ntohs(vh->callno) & ~IAX_FLAG_VIDEO, 0, 0);
 
 			if (session)
 				return iax_videoheader_to_event(session, vh,

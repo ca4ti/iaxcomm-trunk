@@ -20,7 +20,7 @@
 #define IAX_MAX_CALLS 32768
 
 #define IAX_FLAG_FULL		0x8000
-
+#define IAX_FLAG_VIDEO		0x8000
 #define IAX_FLAG_RETRANS	0x8000
 
 #define IAX_FLAG_SC_LOG		0x80
