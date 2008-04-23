@@ -47,14 +47,14 @@ void killem(void)
 	if (initialized)
 		iaxc_shutdown();
 	if (reg_id){
-		   iaxc_unregister(reg_id);
+		iaxc_unregister(reg_id);
 	}
 	return;
 }
 
 void signal_handler(int signum)
 {
-	if ( signum == SIGTERM || signum == SIGINT ) 
+	if ( signum == SIGTERM || signum == SIGINT )
 	{
 		killem();
 		exit(0);
@@ -76,7 +76,7 @@ int state_event_callback(struct iaxc_ev_call_state call){
     if((call.state & IAXC_CALL_STATE_RINGING))
     {
 		printf("Receiving Incoming Call Request...\n");
-		if ( intercom ) 
+		if ( intercom )
 		{
 			printf("Intercom mode, answer automatically\n");
 			return iaxc_select_call(call.callNo);
@@ -152,7 +152,7 @@ void list_devices()
 }
 
 void usage()
-{ 
+{
     fprintf(stderr, "Usage: testcall [-?] [-v] [-i] [-s SILENCE_THRESHOLD] [-u USERNAME -p PASSWORD -h HOST]\n");
     exit(1);
 }
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 
 	for(i=1;i<argc;i++)
 	{
-	   if(argv[i][0] == '-') 
+	   if(argv[i][0] == '-')
 	   {
 	      switch(tolower(argv[i][1]))
 	      {
@@ -215,11 +215,11 @@ int main(int argc, char **argv)
 
 	/* activate the exit handler */
 	atexit(killem);
-	
+
 	/* install signal handler to catch CRTL-Cs */
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
-	
+
 	if ( iaxc_initialize(1) ) fatal_error("cannot initialize iaxclient!");
 	initialized = 1;
 
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 	list_devices();
 
 	//if(do_levels)
-	  iaxc_set_event_callback(iaxc_callback); 
+	  iaxc_set_event_callback(iaxc_callback);
 
 
 	fprintf(f, "\n\
@@ -262,19 +262,19 @@ int main(int argc, char **argv)
 		   reg_id = iaxc_register(username, password, host);
 
 	printf("ready for keyboard input\n");
-	
+
 	if(output_filename) {
 	    for(;;)
 	      iaxc_millisleep(10*1000);
 	}
-	while((c = getc(stdin))) 
+	while((c = getc(stdin)))
 	{
-	    switch (tolower(c)) 
+	    switch (tolower(c))
 	    {
 	    case 'a':
 			printf("Answering call 0\n");
 			iaxc_select_call(0);
-	      	break;	
+	      	break;
 	    case 'g':
 	    	level = iaxc_input_level_get();
 	    	level += LEVEL_INCREMENT;
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 	    	printf("Decreasing input level to %f\n", level);
 	    	iaxc_input_level_set(level);
 	    	break;
-	    case 'h': 
+	    case 'h':
 	    	level = iaxc_output_level_get();
 	    	level += LEVEL_INCREMENT;
 	    	if ( level > 1.00 ) level = 1.00;
