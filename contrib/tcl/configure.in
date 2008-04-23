@@ -73,7 +73,7 @@ TEA_SETUP_COMPILER
 
 TEA_ADD_SOURCES([iaxclient.c tones.c XThreadUtil.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_LIBS([-liaxclient -lportaudio -lspeex -lspeexdsp])
+TEA_ADD_LIBS([-liaxclient -lportaudio -lspeex -lspeexdsp -lrt])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
 TEA_ADD_TCL_SOURCES([iaxclient.tcl])
