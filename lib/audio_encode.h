@@ -15,22 +15,20 @@
 #ifndef _AUDIO_ENCODE_H
 #define _AUDIO_ENCODE_H
 
+/* Some audio parameters */
+#define MAX_SAMPLE_RATE       48000
+#ifndef MS_PER_FRAME
+# define MS_PER_FRAME         20
+#endif
+#define SAMPLES_PER_FRAME     (MS_PER_FRAME * iaxci_sample_rate / 1000)
+#define MAX_SAMPLES_PER_FRAME (MS_PER_FRAME * MAX_SAMPLE_RATE  / 1000)
+
 extern int iaxci_sample_rate;
 
 /* Minimum dB possible in the iaxclient world. This level
  * is intended to represent silence.
  */
 #define AUDIO_ENCODE_SILENCE_DB -99.0f
-
-/* AAGC threshold */
-#define AAGC_VERY_HOT 16
-#define AAGC_HOT      8
-#define AAGC_COLD     4
-
-/* AAGC increments */
-#define AAGC_RISE_SLOW 0.10f
-#define AAGC_DROP_SLOW 0.15f
-#define AAGC_DROP_FAST 0.20f
 
 struct iaxc_call;
 struct iax_event;
@@ -43,6 +41,8 @@ int audio_send_encoded_audio(struct iaxc_call * most_recent_answer, int callNo,
 
 int audio_decode_audio(struct iaxc_call * p, void * out, void * data, int len,
 		int iEncodeType, int * samples);
+
+int audio_echo_cancellation(short *inputBuffer, short *outputBuffer, int samples);
 
 #endif
 

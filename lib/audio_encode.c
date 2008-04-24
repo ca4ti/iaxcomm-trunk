@@ -25,6 +25,18 @@
 #include "codec_speex.h"
 #include <speex/speex_preprocess.h>
 
+/* Determine if we should do AEC */
+#if defined(SPEEX_EC) && !defined(WIN32)
+#define DO_EC
+#else
+#undef DO_EC
+#endif
+
+#ifdef DO_EC
+#include <speex/speex_echo.h>
+#include "ringbuffer.h"
+#endif
+
 #ifdef CODEC_ILBC
 #include "codec_ilbc.h"
 #endif
@@ -40,6 +52,35 @@ static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
 static int speex_state_rate = 0;
 int iaxci_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
+
+static MUTEX audio_lock;
+
+/* echo_tail length, in samples */
+#define ECHO_TAIL 512
+
+/* Maximum attenuation of residual echo in dB (negative number) */
+#define ECHO_SUPPRESS -60
+/* Maximum attenuation of residual echo when near end is active, in dB (negative number) */
+#define ECHO_SUPPRESS_ACTIVE -60
+
+/* Size of ring buffer used for echo cancellation. Must be power of 2. */
+#define EC_RING_SIZE  512
+
+#ifdef DO_EC
+static SpeexEchoState *ec = 0;
+static rb_RingBuffer ecOutRing;
+static char outRingBuf[EC_RING_SIZE];
+#endif
+
+/* AAGC threshold */
+#define AAGC_VERY_HOT 16
+#define AAGC_HOT      8
+#define AAGC_COLD     4
+
+/* AAGC increments */
+#define AAGC_RISE_SLOW 0.10f
+#define AAGC_DROP_SLOW 0.15f
+#define AAGC_DROP_FAST 0.20f
 
 /* use to measure time since last audio was processed */
 static struct timeval timeLastInput ;
@@ -141,20 +182,34 @@ static int input_postprocess(short * audio, int len, int rate)
 	float volume;
 	int silent = 0;
 
+	MUTEXLOCK(&audio_lock);
 	if ( !st || speex_state_size != len || speex_state_rate != rate )
 	{
 		if (st)
 			speex_preprocess_state_destroy(st);
 		st = speex_preprocess_state_init(len,rate);
+#ifdef DO_EC
+		if ( ec )
+		{
+			int i;
+
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_STATE, ec);
+			i = ECHO_SUPPRESS;
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &i);
+			i = ECHO_SUPPRESS_ACTIVE;
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &i);
+		}
+#endif 
 		speex_state_size = len;
 		speex_state_rate = rate;
 		set_speex_filters();
 	}
+	MUTEXUNLOCK(&audio_lock);
 
 	calculate_level(audio, len, &input_level);
 
 	/* go through the motions only if we need at least one of the preprocessor filters */
-	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC | IAXC_FILTER_DEREVERB)) ||
+	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC | IAXC_FILTER_DEREVERB | IAXC_FILTER_ECHO)) ||
 			iaxci_silence_threshold > 0.0f )
 		silent = !speex_preprocess(st, (spx_int16_t *)audio, NULL);
 
@@ -410,12 +465,87 @@ EXPORT void iaxc_set_silence_threshold(float thr)
 	set_speex_filters();
 }
 
+int audio_echo_cancellation(short *inputBuffer, short *outputBuffer, int samples)
+{
+#ifdef DO_EC
+	int i;
+	short delayedBuf[1024];
+	short cancelledBuffer[1024];
+
+	/* if ec is off, clear ec state -- this way, we start fresh if/when
+	* it's turned back on. */
+	MUTEXLOCK(&audio_lock);
+	if ( !(iaxci_filters & IAXC_FILTER_ECHO) )
+	{
+		if ( ec )
+		{
+			speex_echo_state_destroy(ec);
+			ec = NULL;
+			if ( st )
+			{
+				speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_STATE, NULL);
+			}
+		}
+
+		MUTEXUNLOCK(&audio_lock);
+		return 0;
+	}
+
+	/* we want echo cancellation */
+	if ( !ec )
+	{
+		rb_InitializeRingBuffer(&ecOutRing, EC_RING_SIZE, &outRingBuf);
+		ec = speex_echo_state_init(SAMPLES_PER_FRAME, ECHO_TAIL);
+
+		if ( st )
+		{
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_STATE, ec);
+			i = ECHO_SUPPRESS;
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &i);
+			i = ECHO_SUPPRESS_ACTIVE;
+			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &i);
+		}
+	}
+	MUTEXUNLOCK(&audio_lock);
+
+	// Put our data in the EC ring buffer.
+	// Echo canceller needs SAMPLES_PER_FRAME samples, so if we don't have enough
+	// at this time, we just store what we have and return.
+	rb_WriteRingBuffer(&ecOutRing, outputBuffer, samples * 2);
+	if ( rb_GetRingBufferReadAvailable(&ecOutRing) < (SAMPLES_PER_FRAME * 2) )
+		return -1;
+
+	rb_ReadRingBuffer(&ecOutRing, delayedBuf, SAMPLES_PER_FRAME * 2);
+
+	speex_echo_cancellation(ec, inputBuffer, delayedBuf, cancelledBuffer);
+
+	memcpy(inputBuffer, cancelledBuffer, samples * sizeof(short));
+#endif
+	return 0;
+}
+
 int audio_initialize()
 {
+	MUTEXINIT(&audio_lock);
 	return 0;
 }
 
 int audio_destroy()
 {
+	MUTEXLOCK(&audio_lock);
+	if ( st )
+	{
+		speex_preprocess_state_destroy(st);
+		st = NULL;
+	}
+#ifdef DO_EC
+	if ( ec )
+	{
+		speex_echo_state_destroy(ec);
+		ec = NULL;
+	}
+#endif
+	MUTEXUNLOCK(&audio_lock);
+	MUTEXDESTROY(&audio_lock);
 	return 0;
 }
