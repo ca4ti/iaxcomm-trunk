@@ -170,26 +170,26 @@ static int input_postprocess(short * audio, int len, int rate)
 
 		if ( (i & 0x3f) == 0 )
 		{
-			float loudness;
+			int loudness;
 			speex_preprocess_ctl(st, SPEEX_PREPROCESS_GET_AGC_LOUDNESS, &loudness);
-			if ( loudness > 8000.0f || loudness < 4000.0f )
+			if ( loudness > AAGC_HOT || loudness < AAGC_COLD )
 			{
 				const float level = iaxc_input_level_get();
 
-				if ( loudness > 16000.0f && level > 0.5f )
+				if ( loudness > AAGC_VERY_HOT && level > 0.5f )
 				{
 					/* lower quickly if we're really too hot */
-					iaxc_input_level_set(level - 0.2f);
+					iaxc_input_level_set(level - AAGC_DROP_FAST);
 				}
-				else if ( loudness > 8000.0f && level >= 0.15f )
+				else if ( loudness > AAGC_HOT && level >= 0.15f )
 				{
 					/* lower less quickly if we're a bit too hot */
-					iaxc_input_level_set(level - 0.1f);
+					iaxc_input_level_set(level - AAGC_DROP_SLOW);
 				}
-				else if ( loudness < 4000.0f && level <= 0.9f )
+				else if ( loudness < AAGC_COLD && level <= 0.9f )
 				{
 					/* raise slowly if we're cold */
-					iaxc_input_level_set(level + 0.1f);
+					iaxc_input_level_set(level + AAGC_RISE_SLOW);
 				}
 			}
 		}

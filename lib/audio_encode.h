@@ -20,6 +20,16 @@
  */
 #define AUDIO_ENCODE_SILENCE_DB -99.0f
 
+/* AAGC threshold */
+#define AAGC_VERY_HOT 16
+#define AAGC_HOT      8
+#define AAGC_COLD     4
+
+/* AAGC increments */
+#define AAGC_RISE_SLOW 0.10f
+#define AAGC_DROP_SLOW 0.15f
+#define AAGC_DROP_FAST 0.20f
+
 struct iaxc_call;
 struct iax_event;
 
