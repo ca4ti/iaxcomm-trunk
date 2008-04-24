@@ -1170,11 +1170,13 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	case IAX_EVENT_ACCEPT:
 		calls[callNo].format = e->ies.format & IAXC_AUDIO_FORMAT_MASK;
 		calls[callNo].vformat = e->ies.format & IAXC_VIDEO_FORMAT_MASK;
+#if USE_VIDEO
 		if ( !(e->ies.format & IAXC_VIDEO_FORMAT_MASK) )
 		{
 			iaxci_usermsg(IAXC_NOTICE,
 					"Failed video codec negotiation.");
 		}
+#endif
 		iaxci_usermsg(IAXC_STATUS,"Call %d accepted", callNo);
 		break;
 	case IAX_EVENT_ANSWER:
