@@ -38,27 +38,6 @@
 #include "ringbuffer.h"
 #include "portmixer.h"
 
-#ifdef USE_MEC2
-#define DO_EC
-#include "mec3.h"
-static echo_can_state_t *ec;
-#endif
-
-#ifdef SPAN_EC
-#define DO_EC
-#include "ec/echo.h"
-static echo_can_state_t *ec;
-#endif
-
-#if defined(SPEEX_EC) && ! defined (WIN32)
-#define DO_EC
-#define restrict __restrict
-#include "speex/speex_echo.h"
-static SpeexEchoState *ec;
-#endif
-
-#define EC_RING_SZ  8192 /* must be pow(2) */
-
 typedef short SAMPLE;
 
 static PaStream *iStream, *oStream, *aStream;
@@ -67,18 +46,6 @@ static PxMixer *iMixer = NULL, *oMixer = NULL;
 static int selectedInput, selectedOutput, selectedRing;
 
 static int mixers_initialized;
-
-#define MAX_SAMPLE_RATE       48000
-#ifndef MS_PER_FRAME
-# define MS_PER_FRAME         20
-#endif
-#define SAMPLES_PER_FRAME     (MS_PER_FRAME * iaxci_sample_rate / 1000)
-
-/* static frame buffer allocation */
-#define MAX_SAMPLES_PER_FRAME (MS_PER_FRAME * MAX_SAMPLE_RATE  / 1000)
-
-/* echo_tail length, in frames must be pow(2) for mec/span ? */
-#define ECHO_TAIL 4096
 
 /* RingBuffer Size; Needs to be Pow(2), 1024 = 512 samples = 64ms */
 #ifndef OUTRBSZ
@@ -372,84 +339,6 @@ static int pa_stop_sound(int soundID)
 	return retval; /* found? */
 }
 
-static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
-{
-	static rb_RingBuffer ecOutRing;
-	static char outRingBuf[EC_RING_SZ];
-	static long bias = 0;
-	short  delayedBuf[1024];
-	int i;
-
-	/* remove bias -- whether ec is on or not. */
-	for ( i = 0; i < n; i++ )
-	{
-		bias += ((((long int) inputBuffer[i]) << 15) - bias) >> 14;
-		inputBuffer[i] -= (short int) (bias >> 15);
-	}
-
-	/* if ec is off, clear ec state -- this way, we start fresh if/when
-	 * it's turned back on. */
-	if ( !(iaxc_get_filters() & IAXC_FILTER_ECHO) )
-	{
-#if defined(DO_EC)
-		if ( ec )
-		{
-#if defined(USE_MEC2) || defined(SPAN_EC)
-			echo_can_free(ec);
-			ec = NULL;
-#elif defined(SPEEX_EC)
-			speex_echo_state_destroy(ec);
-			ec = NULL;
-#endif
-		}
-#endif
-
-		return;
-	}
-
-	/* we want echo cancellation */
-
-#if defined(DO_EC)
-	if ( !ec )
-	{
-		rb_InitializeRingBuffer(&ecOutRing, EC_RING_SZ, &outRingBuf);
-#if defined(USE_MEC2) || defined(SPAN_EC)
-		ec = echo_can_create(ECHO_TAIL, 0);
-#elif defined(SPEEX_EC)
-		ec = speex_echo_state_init(SAMPLES_PER_FRAME, ECHO_TAIL);
-#endif
-	}
-#endif
-
-	/* fill ecOutRing */
-	rb_WriteRingBuffer(&ecOutRing, outputBuffer, n * 2);
-
-	// Make sure we have enough buffer.
-	// Currently, just one SAMPLES_PER_FRAME's worth.
-	if ( rb_GetRingBufferReadAvailable(&ecOutRing) < ((n + SAMPLES_PER_FRAME) * 2) )
-		return;
-
-	rb_ReadRingBuffer(&ecOutRing, delayedBuf, n * 2);
-
-#if defined(DO_EC) && defined(SPEEX_EC)
-	{
-		short cancelledBuffer[1024];
-
-		speex_echo_cancel(ec, inputBuffer, delayedBuf,
-				cancelledBuffer, NULL);
-
-		for ( i = 0; i < n; i++ )
-			inputBuffer[i] = cancelledBuffer[i];
-	}
-#endif
-
-#if defined(USE_MEC2) || defined(SPAN_EC)
-	for ( i = 0; i < n; i++ )
-		inputBuffer[i] = echo_can_update(ec, delayedBuf[i],
-				inputBuffer[i]);
-#endif
-}
-
 static int pa_callback(const void *inputBuffer, void *outputBuffer,
 	    unsigned long samplesPerFrame,
 	    const PaStreamCallbackTimeInfo* outTime,
@@ -524,23 +413,26 @@ static int pa_callback(const void *inputBuffer, void *outputBuffer,
 
 	if ( inputBuffer )
 	{
+		int res;
+
 		/* input overflow might happen here */
 		if ( virtualMonoIn )
 		{
 			stereo2mono(virtualInBuffer, (SAMPLE *)inputBuffer,
 					samplesPerFrame);
-			iaxc_echo_can(virtualInBuffer, virtualOutBuffer,
-					samplesPerFrame);
-
-			rb_WriteRingBuffer(&inRing, virtualInBuffer, totBytes);
+			res = audio_echo_cancellation(virtualInBuffer,
+			                              virtualOutBuffer,
+			                              samplesPerFrame);
+			if ( !res )
+				rb_WriteRingBuffer(&inRing, virtualInBuffer, totBytes);
 		}
 		else
 		{
-			iaxc_echo_can((short *)inputBuffer,
-					(short *)outputBuffer,
-					samplesPerFrame);
-
-			rb_WriteRingBuffer(&inRing, inputBuffer, totBytes);
+			res = audio_echo_cancellation((short *)inputBuffer,
+			                              (short *)outputBuffer,
+			                              samplesPerFrame);
+			if ( !res)
+				rb_WriteRingBuffer(&inRing, inputBuffer, totBytes);
 		}
 	}
 
@@ -599,7 +491,7 @@ static int pa_open(int single, int inMono, int outMono)
 			&in_stream_params,
 			&out_stream_params,
 			iaxci_sample_rate,
-			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			SAMPLES_PER_FRAME,
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
 			NULL);
@@ -612,7 +504,7 @@ static int pa_open(int single, int inMono, int outMono)
 			&in_stream_params,
 			&no_device,
 			iaxci_sample_rate,
-			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			SAMPLES_PER_FRAME,
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
 			NULL);
@@ -622,7 +514,7 @@ static int pa_open(int single, int inMono, int outMono)
 			&no_device,
 			&out_stream_params,
 			iaxci_sample_rate,
-			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			SAMPLES_PER_FRAME,
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
 			NULL);
