@@ -668,17 +668,25 @@ static int capture_callback(vidcap_src * src, void * user_data,
 
 	call = &calls[selected_call];
 
-	if ( !call || !(call->state & (IAXC_CALL_STATE_COMPLETE |
-					IAXC_CALL_STATE_OUTGOING)) )
+	if ( call->vformat &&
+			( call->state & IAXC_CALL_STATE_COMPLETE ||
+			  call->state & IAXC_CALL_STATE_OUTGOING ) )
 	{
-		goto callback_done;
+		/* For incoming calls, we must ANSWER (complete) the
+		 * call before sending video. For outgoing calls, the
+		 * call must only be ACCEPTed (vformat set) before we
+		 * start sending video. 
+		 */
 	}
-
-	if ( call->vformat == 0 )
+	else if ( !call->vformat && call->state & IAXC_CALL_STATE_COMPLETE )
 	{
 		fprintf(stderr, "video format not set for call %d\n",
 				selected_call);
 		goto callback_failed;
+	}
+	else
+	{
+		goto callback_done;
 	}
 
 	if ( !need_encode )

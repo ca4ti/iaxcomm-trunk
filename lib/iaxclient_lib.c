@@ -832,11 +832,13 @@ static int service_audio()
 	/* TODO: maybe we shouldn't allocate 8kB on the stack here. */
 	short buf [4096];
 
+	struct iaxc_call * call =
+		selected_call >= 0 ? &calls[selected_call] : 0;
+
 	int want_send_audio =
-		selected_call >= 0 &&
-		((calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) ||
-		 (calls[selected_call].state & IAXC_CALL_STATE_COMPLETE))
-		&& !(audio_prefs & IAXC_AUDIO_PREF_SEND_DISABLE);
+		call && !(audio_prefs & IAXC_AUDIO_PREF_SEND_DISABLE) &&
+		((call->state & IAXC_CALL_STATE_COMPLETE) ||
+		 (call->format && (call->state & IAXC_CALL_STATE_OUTGOING)));
 
 	int want_local_audio =
 		(audio_prefs & IAXC_AUDIO_PREF_RECV_LOCAL_RAW) ||
@@ -852,9 +854,8 @@ static int service_audio()
 			audio_driver.start(&audio_driver);
 
 			/* use codec minimum if higher */
-			cmin = want_send_audio && calls[selected_call].encoder ?
-				calls[selected_call].encoder->minimum_frame_size :
-				1;
+			cmin = want_send_audio && call->encoder ?
+				call->encoder->minimum_frame_size : 1;
 
 			to_read = cmin > minimum_outgoing_framesize ?
 				cmin : minimum_outgoing_framesize;
@@ -887,10 +888,9 @@ static int service_audio()
 						to_read * 2, (unsigned char *)buf);
 
 			if ( want_send_audio )
-				audio_send_encoded_audio(&calls[selected_call],
-						selected_call, buf,
-						calls[selected_call].format &
-							IAXC_AUDIO_FORMAT_MASK,
+				audio_send_encoded_audio(call, selected_call,
+						buf, call->format &
+						IAXC_AUDIO_FORMAT_MASK,
 						to_read);
 		}
 	}
@@ -1369,6 +1369,15 @@ EXPORT int iaxc_call_ex(const char *num, const char* callerid_name, const char* 
 	calls[callNo].session = newsession;
 
 	codec_destroy( callNo );
+
+	/* When the ACCEPT comes back from the other-end, these formats
+	 * are set. Whether the format is set or not determines whether
+	 * we are in the Linked state (see the iax2 rfc).
+	 * These will have already been cleared by iaxc_clear_call(),
+	 * but we reset them anyway just to be pedantic.
+	 */
+	calls[callNo].format = 0;
+	calls[callNo].vformat = 0;
 
 	if ( ext )
 	{
