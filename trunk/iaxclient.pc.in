@@ -9,5 +9,5 @@ Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -liaxclient @PTHREAD_LIBS@
 Libs.private: @GSM_LIBS@
 Cflags: -I${includedir}
-Requires.private: portaudio-2.0 speex @PKG_REQUIRES@
+Requires.private: portaudio-2.0 speex @PACKAGE_REQUIRES@
 
