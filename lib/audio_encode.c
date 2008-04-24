@@ -34,6 +34,8 @@ float iaxci_silence_threshold = AUDIO_ENCODE_SILENCE_DB;
 static float input_level = 0.0f;
 static float output_level = 0.0f;
 
+int iaxci_sample_rate = 8000;
+
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
 static int speex_state_rate = 0;
@@ -408,3 +410,12 @@ EXPORT void iaxc_set_silence_threshold(float thr)
 	set_speex_filters();
 }
 
+int audio_initialize()
+{
+	return 0;
+}
+
+int audio_destroy()
+{
+	return 0;
+}

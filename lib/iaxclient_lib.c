@@ -626,6 +626,7 @@ EXPORT int iaxc_initialize(int num_calls)
 
 	if ( !test_mode )
 	{
+		audio_initialize();
 #ifndef AUDIO_ALSA
 		if ( pa_initialize(&audio_driver, 8000) )
 		{
@@ -672,6 +673,7 @@ EXPORT void iaxc_shutdown()
 	if ( !test_mode )
 	{
 		audio_driver.destroy(&audio_driver);
+		audio_destroy();
 #ifdef USE_VIDEO
 		video_destroy();
 #endif

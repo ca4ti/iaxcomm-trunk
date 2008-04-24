@@ -33,6 +33,7 @@
 #endif
 
 #include "audio_portaudio.h"
+#include "audio_encode.h"
 #include "iaxclient_lib.h"
 #include "ringbuffer.h"
 #include "portmixer.h"
@@ -58,7 +59,6 @@ static SpeexEchoState *ec;
 
 #define EC_RING_SZ  8192 /* must be pow(2) */
 
-
 typedef short SAMPLE;
 
 static PaStream *iStream, *oStream, *aStream;
@@ -66,15 +66,13 @@ static PxMixer *iMixer = NULL, *oMixer = NULL;
 
 static int selectedInput, selectedOutput, selectedRing;
 
-static int sample_rate = 8000;
 static int mixers_initialized;
-
 
 #define MAX_SAMPLE_RATE       48000
 #ifndef MS_PER_FRAME
-# define MS_PER_FRAME         40
+# define MS_PER_FRAME         20
 #endif
-#define SAMPLES_PER_FRAME     (MS_PER_FRAME * sample_rate / 1000)
+#define SAMPLES_PER_FRAME     (MS_PER_FRAME * iaxci_sample_rate / 1000)
 
 /* static frame buffer allocation */
 #define MAX_SAMPLES_PER_FRAME (MS_PER_FRAME * MAX_SAMPLE_RATE  / 1000)
@@ -124,11 +122,12 @@ static int mixers_initialized;
 #endif
 
 /* size in bytes of ringbuffer target */
-#define RBOUTTARGET_BYTES (RBOUTTARGET * (sample_rate / 1000) * sizeof(SAMPLE))
+#define RBOUTTARGET_BYTES (RBOUTTARGET * (iaxci_sample_rate / 1000) * sizeof(SAMPLE))
 
 static char inRingBuf[INRBSZ], outRingBuf[OUTRBSZ];
 static rb_RingBuffer inRing, outRing;
 
+/* TODO: This is used without explicit initialization */
 static int outRingLenAvg;
 
 static int oneStream;
@@ -457,10 +456,9 @@ static int pa_callback(const void *inputBuffer, void *outputBuffer,
 	    PaStreamCallbackFlags statusFlags,
 	    void *userData)
 {
+	short virtualInBuffer[MAX_SAMPLES_PER_FRAME];
+	short virtualOutBuffer[MAX_SAMPLES_PER_FRAME];
 	int totBytes = samplesPerFrame * sizeof(SAMPLE);
-
-	short virtualInBuffer[MAX_SAMPLES_PER_FRAME * 2];
-	short virtualOutBuffer[MAX_SAMPLES_PER_FRAME * 2];
 
 #if 0
 	/* I think this can't happen */
@@ -600,7 +598,7 @@ static int pa_open(int single, int inMono, int outMono)
 		err = Pa_OpenStream(&iStream,
 			&in_stream_params,
 			&out_stream_params,
-			sample_rate,
+			iaxci_sample_rate,
 			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
@@ -613,7 +611,7 @@ static int pa_open(int single, int inMono, int outMono)
 		err = Pa_OpenStream(&iStream,
 			&in_stream_params,
 			&no_device,
-			sample_rate,
+			iaxci_sample_rate,
 			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
@@ -623,7 +621,7 @@ static int pa_open(int single, int inMono, int outMono)
 		err = Pa_OpenStream(&oStream,
 			&no_device,
 			&out_stream_params,
-			sample_rate,
+			iaxci_sample_rate,
 			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
@@ -714,7 +712,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 	err = Pa_OpenStream(&aStream,
 			NULL,
 			&ring_stream_params,
-			sample_rate,
+			iaxci_sample_rate,
 			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
 			paNoFlag,
 			(PaStreamCallback *)pa_aux_callback,
@@ -728,7 +726,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 		err = Pa_OpenStream(&aStream,
 				NULL,
 				&ring_stream_params,
-				sample_rate,
+				iaxci_sample_rate,
 				paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
 				paNoFlag,
 				(PaStreamCallback *)pa_aux_callback,
@@ -1092,7 +1090,7 @@ static int _pa_initialize (struct iaxc_audio_driver *d, int sr)
 {
 	PaError  err;
 
-	sample_rate = sr;
+	iaxci_sample_rate = sr;
 
 	/* initialize portaudio */
 	if ( paNoError != (err = Pa_Initialize()) )
