@@ -205,12 +205,14 @@ else
    AM_PATH_GSM(has_gsm=yes, has_gsm=no)
 fi
 
+PACKAGE_REQUIRES=""
+
 if test x$enable_video = xyes; then
 
    if test x$with_ogg != xno; then
       if test x$has_ogg = xyes; then
          AC_DEFINE(USE_OGG, 1, [OGG])
-         PKG_REQUIRES="$PKG_REQUIRES ogg"
+         PACKAGE_REQUIRES="$PACKAGE_REQUIRES ogg"
       elif test x$with_ogg != xauto ; then
          AC_MSG_ERROR([
             libogg is required to build this package!
@@ -223,7 +225,7 @@ if test x$enable_video = xyes; then
    if test x$with_theora != xno; then
       if test x$has_theora = xyes; then
          AC_DEFINE(USE_THEORA, 1, [THEORA])
-         PKG_REQUIRES="$PKG_REQUIRES theora"
+         PACKAGE_REQUIRES="$PACKAGE_REQUIRES theora"
       elif test x$with_theora != xauto ; then
          AC_MSG_ERROR([
             libtheora is required to build this package!
@@ -235,7 +237,7 @@ if test x$enable_video = xyes; then
    
    if test x$has_vidcap = xyes; then
       AC_DEFINE(USE_VIDCAP, 1, [VIDCAP])
-      PKG_REQUIRES="$PKG_REQUIRES vidcap"
+      PACKAGE_REQUIRES="$PACKAGE_REQUIRES vidcap"
    else
       AC_MSG_ERROR([
          libvidcap is required to build this package!
@@ -247,7 +249,7 @@ if test x$enable_video = xyes; then
    if test x$with_ffmpeg != xno; then
       if test x$has_ffmpeg = xyes; then
          AC_DEFINE(USE_FFMPEG, 1, [FFMPEG])
-         PKG_REQUIRES="$PKG_REQUIRES ffmpeg"
+         PACKAGE_REQUIRES="$PACKAGE_REQUIRES ffmpeg"
       elif test x$with_ffmpeg != xauto ; then
          AC_MSG_ERROR([
             FFmpeg is required to build this package!
@@ -461,7 +463,7 @@ do
 done
 
 AC_SUBST(CLIENTS)
-AC_SUBST(PKG_REQUIRES)
+AC_SUBST(PACKAGE_REQUIRES)
 
 AC_CONFIG_FILES([
       Makefile
