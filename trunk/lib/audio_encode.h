@@ -15,6 +15,8 @@
 #ifndef _AUDIO_ENCODE_H
 #define _AUDIO_ENCODE_H
 
+extern int iaxci_sample_rate;
+
 /* Minimum dB possible in the iaxclient world. This level
  * is intended to represent silence.
  */
@@ -32,6 +34,9 @@
 
 struct iaxc_call;
 struct iax_event;
+
+int audio_initialize();
+int audio_destroy();
 
 int audio_send_encoded_audio(struct iaxc_call * most_recent_answer, int callNo,
 		void * data, int iEncodeType, int samples);
