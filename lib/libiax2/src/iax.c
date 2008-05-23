@@ -2380,51 +2380,33 @@ static int display_time(int ms)
 #endif
 
 /* From chan_iax2/steve davies:  need to get permission from steve or digium, I guess */
-static long unwrap_timestamp(long ts, long last)
+static long unwrap_timestamp(long ts, long last, int is_video)
 {
-	int x;
+	const int ts_shift = is_video ? 15 : 16;
+	const long lower_mask = (1 << ts_shift) - 1;
+	const long upper_mask = ~lower_mask;
 
-	if ( (ts & 0xFFFF0000) == (last & 0xFFFF0000) ) {
-		x = ts - last;
-		if (x < -50000) {
-			/* Sudden big jump backwards in timestamp:
-			   What likely happened here is that miniframe
-			   timestamp has circled but we haven't gotten the
-			   update from the main packet. We'll just pretend
-			   that we did, and update the timestamp
-			   appropriately. */
-			ts = ( (last & 0xFFFF0000) + 0x10000) | (ts & 0xFFFF);
+	if ( (ts & upper_mask) == (last & upper_mask) ) {
+		const long x = ts - last;
+		const long threshold = is_video ? 25000 : 50000;
+
+		if (x < -threshold) {
+			/* Sudden big jump backwards in timestamp: What likely
+			 * happened here is that miniframe timestamp has
+			 * circled but we haven't gotten the update from the
+			 * main packet. We'll just pretend that we did, and
+			 * update the timestamp appropriately.
+			 */
+			ts = ((last & upper_mask) + (1 << ts_shift)) | (ts & lower_mask);
 			DEBU(G "schedule_delivery: pushed forward timestamp\n");
-		}
-		if (x > 50000) {
-			/* Sudden apparent big jump forwards in timestamp:
-			   What's likely happened is this is an old miniframe
-			   belonging to the previous top-16-bit timestamp that
-			   has turned up out of order. Adjust the timestamp
-			   appropriately. */
-			ts = ( (last & 0xFFFF0000) - 0x10000) | (ts & 0xFFFF);
-			DEBU(G "schedule_delivery: pushed back timestamp\n");
-		}
-	}
-	else if ( (ts & 0xFFFF8000L) == (last & 0xFFFF8000L) ) {
-		x = ts - last;
-		if (x < -50000) {
-			/* Sudden big jump backwards in timestamp:
-			   What likely happened here is that miniframe
-			   timestamp has circled but we haven't gotten the
-			   update from the main packet. We'll just pretend
-			   that we did, and update the timestamp
-			   appropriately. */
-			ts = ( (last & 0xFFFF8000L) + 0x10000) | (ts & 0xFFFF);
-			DEBU(G "schedule_delivery: pushed forward timestamp\n");
-		}
-		if (x > 50000) {
+		} else if (x > threshold) {
 			/* Sudden apparent big jump forwards in timestamp:
 			 * What's likely happened is this is an old miniframe
-			 * belonging to the previous top-16-bit timestamp that
-			 * has turned up out of order. Adjust the timestamp
-			 * appropriately. */
-			ts = ( (last & 0xFFFF8000L) - 0x10000) | (ts & 0xFFFF);
+			 * belonging to the previous top 15-bit or 16-bit
+			 * timestamp that has turned up out of order. Adjust
+			 * the timestamp appropriately.
+			 */
+			ts = ((last & upper_mask) - (1 << ts_shift)) | (ts & lower_mask);
 			DEBU(G "schedule_delivery: pushed back timestamp\n");
 		}
 	}
@@ -2471,7 +2453,8 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 		}
 
 		/* unwrap timestamp */
-		ts = unwrap_timestamp(ts,e->session->last_ts);
+		ts = unwrap_timestamp(ts, e->session->last_ts,
+				e->etype == IAX_EVENT_VIDEO);
 
 		/* move forward last_ts if it's greater. We do this _after_
 		 * unwrapping, because asterisk _still_ has cases where it
