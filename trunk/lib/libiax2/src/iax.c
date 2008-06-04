@@ -2299,7 +2299,7 @@ static int forward_match(struct sockaddr_in *sin, short callno, short dcallno, s
 			{
 				// print a warning when the callno's don't match
 				fprintf( stderr, "WARNING: peercallno does not match callno"
-					", peercallno => %d, callno => %d, dcallno => %d",
+					", peercallno => %d, callno => %d, dcallno => %d\n",
 					cur->peercallno, callno, dcallno ) ;
 				return 0 ;
 			}
