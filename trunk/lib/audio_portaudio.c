@@ -643,8 +643,6 @@ static int pa_openauxstream (struct iaxc_audio_driver *d )
 
 static int pa_start(struct iaxc_audio_driver *d)
 {
-	static int errcnt = 0;
-
 	if ( running )
 		return 0;
 
@@ -661,28 +659,12 @@ static int pa_start(struct iaxc_audio_driver *d)
 		oMixer = NULL;
 	}
 
-	if ( errcnt > 5 )
-	{
-		iaxci_usermsg(IAXC_TEXT_TYPE_FATALERROR,
-				"iaxclient audio: Can't open Audio Device. "
-				"Perhaps you do not have an input or output device?");
-		/* OK, we'll give the application the option to abort or
-		 * not here, but we will throw a fatal error anyway */
-		iaxc_millisleep(1000);
-		//return -1; // Give Up.  Too many errors.
-	}
-
 	/* flush the ringbuffers */
 	rb_InitializeRingBuffer(&inRing, INRBSZ, inRingBuf);
 	rb_InitializeRingBuffer(&outRing, OUTRBSZ, outRingBuf);
 
 	if ( pa_openstreams(d) )
-	{
-		errcnt++;
 		return -1;
-	}
-
-	errcnt = 0; // only count consecutive errors.
 
 	if ( Pa_StartStream(iStream) != paNoError )
 		return -1;
