@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
 #endif
 
     atexit(iaxc_shutdown); /* activate the exit handler */
-    if (iaxc_initialize(AUDIO_INTERNAL_PA,1)) {
+    if (iaxc_initialize(1)) {
 	fatal_error("cannot initialize iaxclient!");
     }
 
