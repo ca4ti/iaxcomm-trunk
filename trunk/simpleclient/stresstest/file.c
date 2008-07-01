@@ -1,10 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "file.h"
 
 #include <oggz/oggz.h>
 #include <theora/theora.h>
+
+#include "file.h"
 
 #ifdef __GNUC__
 void mylog(const char * fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -211,7 +212,8 @@ read_page_cb(OGGZ *oggz, const ogg_page *og, long serialno, void *data)
 {
 	if ( serialno == audio_stream->serialno )
 	{
-		audio_stream->page_ts = ogg_page_granulepos(og) * 1000 /
+		audio_stream->page_ts =
+			ogg_page_granulepos((ogg_page *)og) * 1000 /
 			SPEEX_SAMPLING_RATE;
 		audio_stream->page_count = 0;
 	}
@@ -221,7 +223,7 @@ read_page_cb(OGGZ *oggz, const ogg_page *og, long serialno, void *data)
 	return 0;
 }
 
-void
+int
 load_ogg_file(const char *filename)
 {
 	OGGZ *oggz;
@@ -230,6 +232,7 @@ load_ogg_file(const char *filename)
 	if ( oggz == NULL )
 	{
 		mylog("Error opening ogg file\n");
+		return -1;
 	}
 	mylog("Successfully opened ogg file %s\n", filename);
 
@@ -243,28 +246,30 @@ load_ogg_file(const char *filename)
 	oggz_run(oggz);
 
 	oggz_close(oggz);
+
+	return 0;
 }
 
-static ogg_packet * get_next_op(struct ogg_stream *os)
+static ogg_packet * get_next_op(struct ogg_stream *os, struct timeval tv)
 {
-	ogg_packet     *op;
-	struct timeval tv;
-	long           time_now;
+	ogg_packet *op = 0;
+	long time_now;
 
-	if ( os == NULL )
+	if ( !os )
 		return NULL;
 
-	gettimeofday(&tv, NULL);
 	time_now = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
-	if ( os->current == NULL )
+	if ( !os->current )
 	{
+		if ( !os->first )
+			return NULL;
+
 		// point to the beginning of the stream and reset the time base
 		os->base_ts = time_now;
 		os->current = os->first;
 	}
 
-	op = NULL;
 	if ( os->current->timestamp < time_now - os->base_ts )
 	{
 		op = os->current->op;
@@ -274,14 +279,14 @@ static ogg_packet * get_next_op(struct ogg_stream *os)
 	return op;
 }
 
-ogg_packet * get_next_audio_op()
+ogg_packet * get_next_audio_op(struct timeval now)
 {
-	return get_next_op(audio_stream);
+	return get_next_op(audio_stream, now);
 }
 
-ogg_packet * get_next_video_op()
+ogg_packet * get_next_video_op(struct timeval now)
 {
-	return get_next_op(video_stream);
+	return get_next_op(video_stream, now);
 }
 
 int audio_is_eos()
