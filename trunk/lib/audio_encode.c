@@ -41,7 +41,7 @@
 #include "codec_ilbc.h"
 #endif
 
-float iaxci_silence_threshold = AUDIO_ENCODE_SILENCE_DB;
+static float iaxci_silence_threshold = AUDIO_ENCODE_SILENCE_DB;
 
 static float input_level = 0.0f;
 static float output_level = 0.0f;
@@ -51,7 +51,11 @@ int iaxci_sample_rate = 8000;
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
 static int speex_state_rate = 0;
-int iaxci_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
+static int iaxci_filters =
+		IAXC_FILTER_AGC |
+		IAXC_FILTER_DENOISE |
+		IAXC_FILTER_AAGC |
+		IAXC_FILTER_CN;
 
 static MUTEX audio_lock;
 
@@ -71,16 +75,6 @@ static SpeexEchoState *ec = 0;
 static rb_RingBuffer ecOutRing;
 static char outRingBuf[EC_RING_SIZE];
 #endif
-
-/* AAGC threshold */
-#define AAGC_VERY_HOT 16
-#define AAGC_HOT      8
-#define AAGC_COLD     4
-
-/* AAGC increments */
-#define AAGC_RISE_SLOW 0.10f
-#define AAGC_DROP_SLOW 0.15f
-#define AAGC_DROP_FAST 0.20f
 
 /* use to measure time since last audio was processed */
 static struct timeval timeLastInput ;
@@ -178,11 +172,17 @@ static void calculate_level(const short *audio, int len, float *level)
 
 static int input_postprocess(short * audio, int len, int rate)
 {
-	static float lowest_volume = 1.0f;
-	float volume;
-	int silent = 0;
+	static int aagc_frame_count = 0;
+	static int aagc_periods_to_skip = 0;
+
+	const int using_vad = iaxci_silence_threshold > 0.0f;
+	const int aagc_period = rate / len; /* 1 second */
+
+	int speaking = 1;
+	int loudness = 0;
 
 	MUTEXLOCK(&audio_lock);
+
 	if ( !st || speex_state_size != len || speex_state_rate != rate )
 	{
 		if (st)
@@ -199,75 +199,114 @@ static int input_postprocess(short * audio, int len, int rate)
 			i = ECHO_SUPPRESS_ACTIVE;
 			speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &i);
 		}
-#endif 
+#endif
 		speex_state_size = len;
 		speex_state_rate = rate;
 		set_speex_filters();
 	}
-	MUTEXUNLOCK(&audio_lock);
 
-	calculate_level(audio, len, &input_level);
-
-	/* go through the motions only if we need at least one of the preprocessor filters */
-	if ( (iaxci_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC | IAXC_FILTER_DEREVERB | IAXC_FILTER_ECHO)) ||
-			iaxci_silence_threshold > 0.0f )
-		silent = !speex_preprocess(st, (spx_int16_t *)audio, NULL);
-
-	/* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
-	/* use a higher continuation threshold for AAGC than for VAD itself */
-	if ( !silent &&
-	     iaxci_silence_threshold != 0.0f &&
-	     (iaxci_filters & IAXC_FILTER_AGC) &&
-	     (iaxci_filters & IAXC_FILTER_AAGC)
-	   )
+	/* go through the motions only if we need at least one of the
+	 * preprocessor filters */
+	if ( using_vad || (iaxci_filters &
+				(IAXC_FILTER_DENOISE |
+				 IAXC_FILTER_AGC |
+				 IAXC_FILTER_DEREVERB |
+				 IAXC_FILTER_ECHO)) )
 	{
-		static int i = 0;
-
-		i++;
-
-		if ( (i & 0x3f) == 0 )
-		{
-			int loudness;
-			speex_preprocess_ctl(st, SPEEX_PREPROCESS_GET_AGC_LOUDNESS, &loudness);
-			if ( loudness > AAGC_HOT || loudness < AAGC_COLD )
-			{
-				const float level = iaxc_input_level_get();
-
-				if ( loudness > AAGC_VERY_HOT && level > 0.5f )
-				{
-					/* lower quickly if we're really too hot */
-					iaxc_input_level_set(level - AAGC_DROP_FAST);
-				}
-				else if ( loudness > AAGC_HOT && level >= 0.15f )
-				{
-					/* lower less quickly if we're a bit too hot */
-					iaxc_input_level_set(level - AAGC_DROP_SLOW);
-				}
-				else if ( loudness < AAGC_COLD && level <= 0.9f )
-				{
-					/* raise slowly if we're cold */
-					iaxc_input_level_set(level + AAGC_RISE_SLOW);
-				}
-			}
-		}
+		speaking = speex_preprocess_run(st, audio);
+		speex_preprocess_ctl(st, SPEEX_PREPROCESS_GET_AGC_LOUDNESS,
+				&loudness);
 	}
 
-	/* This is ugly. Basically just don't get volume level if speex thought
-	 * we were silent. Just set it to 0 in that case */
-	if ( iaxci_silence_threshold > 0.0f && silent )
+	MUTEXUNLOCK(&audio_lock);
+
+	/* If we are using the VAD test and if speex indicates non-speaking,
+	 * ignore the computed input level and indicate to the user that the
+	 * input level was zero.
+	 */
+	if ( using_vad && !speaking )
 		input_level = 0.0f;
+	else
+		calculate_level(audio, len, &input_level);
+
+	/* Analog Automatic Gain Control, AAGC. */
+	if ( speaking && iaxci_silence_threshold != 0.0f &&
+			(iaxci_filters & IAXC_FILTER_AGC) &&
+			(iaxci_filters & IAXC_FILTER_AAGC) &&
+			++aagc_frame_count % aagc_period == 0 &&
+			!aagc_periods_to_skip-- )
+	{
+		/* This heuristic uses the loudness value from the speex
+		 * preprocessor to determine a new mixer level. The loudness
+		 * ranges from 0 to up over 80. When mixer level, speex AGC,
+		 * and the actual speaker's level are in equilibrium, the
+		 * loudness tends to be from 4 to 16. When the loudness goes
+		 * above this comfortable range, there is a risk of the input
+		 * signal being clipped. AAGC's primary purpose is to avoid
+		 * clipping.
+		 *
+		 * After a loud event (think cough), the loudness level will
+		 * spike and then decay over time (assuming the speaker
+		 * speaking at a relatively constant level). To avoid
+		 * over-adjusting, we skip some number of aagc sampling periods
+		 * before making any more adjustments.  This gives the loudness
+		 * value time to normalize after one-time spikes in the input
+		 * level.
+		 */
+
+		/* The mixer level is a percentage ranging from 0.00 to 1.00 */
+		const float mixer_level = iaxc_input_level_get();
+		float new_mixer_level = mixer_level;
+
+		if ( loudness > 40 )
+		{
+			new_mixer_level -= 0.20f;
+			aagc_periods_to_skip = 8;
+		}
+		else if ( loudness > 25 )
+		{
+			new_mixer_level -= 0.15f;
+			aagc_periods_to_skip = 4;
+		}
+		else if ( loudness > 15 )
+		{
+			new_mixer_level -= 0.10f;
+			aagc_periods_to_skip = 2;
+		}
+		else if ( loudness > 12 )
+		{
+			new_mixer_level -= 0.05f;
+			aagc_periods_to_skip = 4;
+		}
+		else if ( loudness < 2 )
+		{
+			new_mixer_level += 0.15f;
+			aagc_periods_to_skip = 4;
+		}
+		else if ( loudness < 4 )
+		{
+			new_mixer_level += 0.10f;
+			aagc_periods_to_skip = 4;
+		}
+		else
+		{
+			aagc_periods_to_skip = 0;
+		}
+
+		/* Normalize the proposed new mixer level */
+		if ( new_mixer_level < 0.05f )
+			new_mixer_level = 0.05f;
+		else if ( new_mixer_level > 1.00f )
+			new_mixer_level = 1.00f;
+
+		if ( new_mixer_level != mixer_level )
+			iaxc_input_level_set(new_mixer_level);
+	}
 
 	do_level_callback();
 
-	volume = vol_to_db(input_level);
-
-	if ( volume < lowest_volume )
-		lowest_volume = volume;
-
-	if ( iaxci_silence_threshold > 0.0f )
-		return silent;
-	else
-		return volume < iaxci_silence_threshold;
+	return using_vad ? !speaking :
+		vol_to_db(input_level) < iaxci_silence_threshold;
 }
 
 static int output_postprocess(const short * audio, int len)
@@ -517,6 +556,36 @@ int audio_echo_cancellation(short *inputBuffer, short *outputBuffer, int samples
 
 	rb_ReadRingBuffer(&ecOutRing, delayedBuf, SAMPLES_PER_FRAME * 2);
 
+	/* TODO: speex_echo_cancellation() and speex_preprocess_run() operate
+	 * on the same state and thus must be serialized. Because the audio
+	 * lock is not held, this call has the potential to mess-up the
+	 * preprocessor (which is serialized by the audio lock). I believe the
+	 * net effect of this problem is to break residual echo cancellation
+	 * when these calls overlap. Unfortunately, just serializing this
+	 * speex_echo_cancellation() call with the audio lock may not be
+	 * sufficient since the next call to speex_preprocess_run() is counting
+	 * on operating on this cancelledBuffer -- since we buffer the input
+	 * audio (cancelledBuffer), we are actually explicitly decoupling the
+	 * calls to speex_echo_cancellation() and speex_preprocess_run(). Oops.
+	 *
+	 * In other words, it should go like this:
+	 *
+	 *   speex_echo_cancellation(A)
+	 *   speex_preprocess_run(A)
+	 *   speex_echo_cancellation(B)
+	 *   speex_preprocess_run(B)
+	 *   speex_echo_cancellation(C)
+	 *   speex_preprocess_run(C)
+	 *
+	 * but it actually may be going like this:
+	 *
+	 *   speex_echo_cancellation(A)
+	 *   speex_echo_cancellation(B)
+	 *   speex_preprocess_run(A) -- bad, residual echo from B is applied to A
+	 *   speex_echo_cancellation(C)
+	 *   speex_preprocess_run(B) -- bad, residual echo from C is applied to B
+	 *   speex_preprocess_run(C)
+	 */
 	speex_echo_cancellation(ec, inputBuffer, delayedBuf, cancelledBuffer);
 
 	memcpy(inputBuffer, cancelledBuffer, samples * sizeof(short));
