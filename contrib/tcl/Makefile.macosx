@@ -9,7 +9,6 @@ CFLAGS= -I. -I../../lib -I../../lib/gsm/inc -I../../lib/libiax2/src \
 CFLAGS:= $(CFLAGS) -g -Wall -O2
 
 # debug flags
-# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG
 # CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
 
 OBJS=\
