@@ -407,7 +407,7 @@ static int iaxc_remove_registration_by_id(int id)
 	return count;
 }
 
-EXPORT int iaxc_first_free_call()
+EXPORT int iaxc_first_free_call(void)
 {
 	int i;
 	for ( i = 0; i < max_calls; i++ )
@@ -769,10 +769,13 @@ static void iaxc_refresh_registrations()
 	}
 }
 
-#define LOOP_SLEEP 5 // In ms
 static THREADFUNCDECL(main_proc_thread_func)
 {
+	const int sleep_ms = 5;
+	const int counts_per_second = 1000 / sleep_ms;
 	static int refresh_registration_count = 0;
+	static int audio_error_count = 0;
+	static int audio_error_state = 0;
 
 	THREADFUNCRET(ret);
 
@@ -784,11 +787,31 @@ static THREADFUNCDECL(main_proc_thread_func)
 		get_iaxc_lock();
 
 		service_network();
-		if ( !test_mode )
-			service_audio();
+
+		if ( !test_mode &&
+				(!audio_error_state ||
+				 audio_error_count++ % counts_per_second == 0) )
+		{
+			/* There are cases when service audio fails such
+			 * as when there is no audio devices present in
+			 * the system. In these cases, only call
+			 * service_audio() once per second until it
+			 * succeeds.
+			 */
+			if ( (audio_error_state = service_audio()) )
+			{
+				iaxci_usermsg(IAXC_NOTICE,
+						"failed to service audio");
+
+				if ( audio_error_count / counts_per_second == 5 )
+					iaxci_usermsg(IAXC_TEXT_TYPE_FATALERROR,
+							"cannot open audio device"
+							" after several tries");
+			}
+		}
 
 		// Check registration refresh once a second
-		if ( refresh_registration_count++ > 1000/LOOP_SLEEP )
+		if ( refresh_registration_count++ > counts_per_second )
 		{
 			iaxc_refresh_registrations();
 			refresh_registration_count = 0;
@@ -796,7 +819,7 @@ static THREADFUNCDECL(main_proc_thread_func)
 
 		put_iaxc_lock();
 
-		iaxc_millisleep(LOOP_SLEEP);
+		iaxc_millisleep(sleep_ms);
 	}
 
 	/* Decrease priority */
@@ -853,7 +876,8 @@ static int service_audio()
 			int to_read;
 			int cmin;
 
-			audio_driver.start(&audio_driver);
+			if ( audio_driver.start(&audio_driver) )
+				return -1;
 
 			/* use codec minimum if higher */
 			cmin = want_send_audio && call->encoder ?
@@ -941,7 +965,7 @@ static void handle_text_event(struct iax_event *e, int callNo)
 }
 
 /* handle IAX URL events */
-void handle_url_event( struct iax_event *e, int callNo )
+static void handle_url_event( struct iax_event *e, int callNo )
 {
 	iaxc_event ev;
 
