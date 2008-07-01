@@ -83,38 +83,6 @@ extern "C" {
 
 #define AST_FRIENDLY_OFFSET 64 /* Reserved header space */
 
-struct ast_frame {
-        /*! Kind of frame */
-        int frametype;
-        /*! Subclass, frame dependent */
-        int subclass;
-        /*! Length of data */
-        int datalen;
-        /*! Number of 8khz samples in this frame */
-        int samples;
-        /*! Was the data malloc'd?  i.e. should we free it when we discard the f
-rame? */
-        int mallocd;
-        /*! How far into "data" the data really starts */
-        int offset;
-        /*! Optional source of frame for debugging */
-        char *src;
-        /*! Pointer to actual data */
-        void *data;
-        /*! Next/Prev for linking stand alone frames */
-        struct ast_frame *prev;
-       /*! Next/Prev for linking stand alone frames */
-        struct ast_frame *next;
-                                                                /* Unused except
- if debugging is turned on, but left
-                                                                   in the struct
- so that it can be turned on without
-                                                                   requiring a r
-ecompile of the whole thing */
-};
-
-
-
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif

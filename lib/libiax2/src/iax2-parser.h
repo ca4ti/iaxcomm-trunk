@@ -66,33 +66,27 @@ struct iax_ies {
 	unsigned int rr_ooo;
 };
 
-#define DIRECTION_INGRESS 1
-#define DIRECTION_OUTGRESS 2
-
 struct iax_frame {
 #ifdef LIBIAX
 	struct iax_session *session;
-	struct iax_event *event;
 #endif
 
 	/* /Our/ call number */
 	unsigned short callno;
 	/* /Their/ call number */
 	unsigned short dcallno;
-	/* Start of raw frame (outgoing only) */
-	void *data;
-	/* Length of frame (outgoing only) */
-	int datalen;
+	/* Start of raw frame (header plus payload) */
+	void *rawdata;
+	/* Length of raw frame */
+	size_t rawdatalen;
+	/* Length of payload part of iax2 frame */
+	size_t payloadlen;
 	/* How many retries so far? */
 	int retries;
 	/* Outgoing relative timestamp (ms) */
 	unsigned int ts;
 	/* How long to wait before retrying */
 	int retrytime;
-	/* Are we received out of order?  */
-	int outoforder;
-	/* Have we been sent at all yet? */
-	int sentyet;
 	/* Outgoing Packet sequence number */
 	int oseqno;
 	/* Next expected incoming packet sequence number */
@@ -101,17 +95,10 @@ struct iax_frame {
 	int transfer;
 	/* Non-zero if this is the final message */
 	int final;
-	/* Ingress or outgres */
-	int direction;
-	/* Retransmission ID */
-	int retrans;
-	/* Easy linking */
-	struct iax_frame *next;
-	struct iax_frame *prev;
-	/* Actual, isolated frame header */
-	struct ast_frame af;
-	unsigned char unused[AST_FRIENDLY_OFFSET];
-	unsigned char afdata[0];	/* Data for frame */
+	/* Header occupies last header-size bytes of this buffer */
+	unsigned char header_buf[AST_FRIENDLY_OFFSET];
+	/* Data for frame */
+	unsigned char payload[0];
 };
 
 struct iax_ie_data {
@@ -136,11 +123,17 @@ extern int iax_ie_append_byte(struct iax_ie_data *ied, unsigned char ie, unsigne
 extern int iax_ie_append(struct iax_ie_data *ied, unsigned char ie);
 extern int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen);
 
-extern int iax_get_frames(void);
-extern int iax_get_iframes(void);
-extern int iax_get_oframes(void);
-
-extern void iax_frame_wrap(struct iax_frame *fr, struct ast_frame *f);
-extern struct iax_frame *iax_frame_new(int direction, int datalen);
+extern struct iax_frame *iax_frame_new(size_t datalen);
 extern void iax_frame_free(struct iax_frame *fr);
+
+#define iax_frame_specialize(fr, header_type, _payload_, _payloadlen_) \
+	do { \
+		struct header_type * h; \
+		(fr)->payloadlen = (_payloadlen_); \
+		memcpy((fr)->payload, (_payload_), (_payloadlen_)); \
+		h = (struct header_type *)((fr)->payload - sizeof(*h)); \
+		(fr)->rawdata = h; \
+		(fr)->rawdatalen = (fr)->payloadlen + sizeof(*h); \
+	} while (0)
+
 #endif

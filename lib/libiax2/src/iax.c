@@ -364,6 +364,44 @@ static struct iax_sched *schedq = NULL;
 static struct iax_session *sessions = NULL;
 static int callnums = 1;
 
+static inline struct timeval iax_tvadd_ms(struct timeval tv, int ms)
+{
+	const int million = 1000000;
+	tv.tv_sec += ms / 1000;
+	ms %= 1000;
+	tv.tv_usec += ms * 1000;
+	if ( tv.tv_usec > million )
+	{
+		tv.tv_sec += 1;
+		tv.tv_usec -= million;
+	}
+	return tv;
+}
+
+static inline int iax_tvdiff_ms(struct timeval end, struct timeval start)
+{
+	return ((end.tv_sec - start.tv_sec) * 1000) +
+		(((1000000 + end.tv_usec - start.tv_usec) / 1000) - 1000);
+}
+
+static inline int iax_tvcmp(struct timeval a, struct timeval b)
+{
+	if ( a.tv_sec < b.tv_sec )
+		return -1;
+	if ( a.tv_sec > b.tv_sec )
+		return 1;
+	if ( a.tv_usec < b.tv_usec )
+		return -1;
+	if ( a.tv_usec > b.tv_usec )
+		return 1;
+	return 0;
+}
+
+static inline int iax_tvzero(const struct timeval t)
+{
+	return t.tv_sec == 0 && t.tv_usec == 0;
+}
+
 unsigned int iax_session_get_capability(struct iax_session *s)
 {
 	return s->capability;
@@ -376,65 +414,56 @@ static int inaddrcmp(struct sockaddr_in *sin1, struct sockaddr_in *sin2)
 
 static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched_func func, void *arg, int ms)
 {
-
-	/* Schedule event to be delivered to the client
-	   in ms milliseconds from now, or a reliable frame to be retransmitted */
-	struct iax_sched *sched, *cur, *prev = NULL;
+	/* Schedule event to be delivered to the client in ms milliseconds from
+	 * now, or a reliable frame to be retransmitted */
+	struct iax_sched *sched;
+	struct iax_sched *cur = schedq;
+	struct iax_sched *prev = NULL;
 
 	if (!event && !frame && !func) {
 		DEBU(G "No event, no frame, no func?  what are we scheduling?\n");
 		return -1;
 	}
 
-	//fprintf(stderr, "scheduling event %d ms from now\n", ms);
-	sched = (struct iax_sched*)malloc(sizeof(struct iax_sched));
-	if (sched) {
-		memset(sched, 0, sizeof(struct iax_sched));
-		sched->when = iax_tvnow();
-		sched->when.tv_sec += (ms / 1000);
-		ms = ms % 1000;
-		sched->when.tv_usec += (ms * 1000);
-		if (sched->when.tv_usec > 1000000) {
-			sched->when.tv_usec -= 1000000;
-			sched->when.tv_sec++;
-		}
-		sched->event = event;
-		sched->frame = frame;
-		sched->func = func;
-		sched->arg = arg;
-		/* Put it in the list, in order */
-		cur = schedq;
-		while(cur && ((cur->when.tv_sec < sched->when.tv_sec) ||
-					 ((cur->when.tv_usec <= sched->when.tv_usec) &&
-					  (cur->when.tv_sec == sched->when.tv_sec)))) {
-				prev = cur;
-				cur = cur->next;
-		}
-		sched->next = cur;
-		if (prev) {
-			prev->next = sched;
-		} else {
-			schedq = sched;
-		}
-		return 0;
-	} else {
+	sched = calloc(1, sizeof(struct iax_sched));
+	if (!sched) {
 		DEBU(G "Out of memory!\n");
 		return -1;
 	}
+
+	sched->when = iax_tvadd_ms(iax_tvnow(), ms);
+	sched->event = event;
+	sched->frame = frame;
+	sched->func = func;
+	sched->arg = arg;
+
+	/* Put it in the list, in order */
+	while (cur && iax_tvcmp(cur->when, sched->when) <= 0) {
+		prev = cur;
+		cur = cur->next;
+	}
+	sched->next = cur;
+	if (prev) {
+		prev->next = sched;
+	} else {
+		schedq = sched;
+	}
+
+	return 0;
 }
 
 static int iax_sched_del(struct iax_event *event, struct iax_frame *frame, sched_func func, void *arg, int all)
 {
-	struct iax_sched *cur, *tmp, *prev = NULL;
+	struct iax_sched *cur = schedq;
+	struct iax_sched *prev = NULL;
 
-	cur = schedq;
 	while (cur) {
 		if (cur->event == event && cur->frame == frame && cur->func == func && cur->arg == arg) {
+			struct iax_sched *tmp = cur;
 			if (prev)
 				prev->next = cur->next;
 			else
 				schedq = cur->next;
-			tmp = cur;
 			cur = cur->next;
 			free(tmp);
 			if (!all)
@@ -447,27 +476,25 @@ static int iax_sched_del(struct iax_event *event, struct iax_frame *frame, sched
 	return 0;
 }
 
-
 int iax_time_to_next_event(void)
 {
-	struct timeval tv;
+	struct timeval now;
 	struct iax_sched *cur = schedq;
-	int ms, min = 999999999;
+	int min = 999999999;
 
 	/* If there are no pending events, we don't need to timeout */
 	if (!cur)
 		return -1;
-	tv = iax_tvnow();
+
+	now = iax_tvnow();
+
 	while(cur) {
-		ms = (cur->when.tv_sec - tv.tv_sec) * 1000 +
-		     (cur->when.tv_usec - tv.tv_usec) / 1000;
+		int ms = iax_tvdiff_ms(cur->when, now);
 		if (ms < min)
 			min = ms;
 		cur = cur->next;
 	}
-	if (min < 0)
-		min = 0;
-	return min;
+	return min < 0 ? 0 : min;
 }
 
 struct iax_session *iax_session_new(void)
@@ -542,7 +569,8 @@ int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *
 
 	local->jitter = stats.jitter;
 	/* XXX: should be short-term loss pct.. */
-	if(stats.frames_in == 0) stats.frames_in = 1;
+	if(stats.frames_in == 0)
+		stats.frames_in = 1;
 	local->losspct = stats.losspct/1000;
 	local->losscnt = stats.frames_lost;
 	local->packets = stats.frames_in;
@@ -553,74 +581,29 @@ int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *
 	return 0;
 }
 
-#ifdef USE_VOICE_TS_PREDICTION
-static void add_ms(struct timeval *tv, int ms)
+static int calc_timestamp(struct iax_session *session, int frametype, int samples)
 {
-	tv->tv_usec += ms * 1000;
-	if (tv->tv_usec > 999999) {
-		tv->tv_sec += tv->tv_usec / 1000000;
-		tv->tv_usec %= 1000000;
-	}
-
-	if (tv->tv_usec < 0) {
-		tv->tv_sec += (tv->tv_usec / 1000000 - 1);
-		tv->tv_usec = (tv->tv_usec % 1000000) + 1000000;
-	}
-}
-#endif
-
-static int calc_timestamp(struct iax_session *session, unsigned int ts, struct ast_frame *f)
-{
-	int ms;
-	struct timeval tv;
-	int voice = 0;
-	int video = 0;
-	int genuine = 0;
-
-	if ( f && f->frametype == AST_FRAME_VOICE )
-	{
-		voice = 1;
-	} else if ( f && f->frametype == AST_FRAME_VIDEO )
-	{
-		video = 1;
-	} else if (!f || f->frametype == AST_FRAME_IAX)
-	{
-		genuine = 1;
-	}
-
-	/* If this is the first packet we're sending, get our
-	   offset now. */
-	if (!session->offset.tv_sec && !session->offset.tv_usec)
-		session->offset = iax_tvnow();
-
-	/* If the timestamp is specified, just use their specified
-	   timestamp no matter what.  Usually this is done for
-	   special cases.  */
-	if (ts)
-	{
-		if ( f && session )
-			session->lastsent = ts;
-		return ts;
-	}
-
-	/* Otherwise calculate the timestamp from the current time */
-	tv = iax_tvnow();
-
 	/* Calculate the number of milliseconds since we sent the first packet */
-	ms = (tv.tv_sec - session->offset.tv_sec) * 1000 +
-		 (tv.tv_usec - session->offset.tv_usec) / 1000;
+	int ms = iax_tvdiff_ms(iax_tvnow(), session->offset);
+	int genuine = !frametype || frametype == AST_FRAME_IAX;
+	int voice = frametype == AST_FRAME_VOICE;
+	int video = frametype == AST_FRAME_VIDEO;
 
-	if (ms < 0)
+	if (ms < 0) {
+		fprintf(stderr, "iax2: calc_timestamp: negative time delta "
+				"ms => %d\n", ms);
 		ms = 0;
+	}
 
-	if(voice) {
+	if (voice) {
 #ifdef USE_VOICE_TS_PREDICTION
 		/* If we haven't most recently sent silence, and we're
 		 * close in time, use predicted time */
 		if(session->notsilenttx && abs(ms - session->nextpred) <= 240) {
 			/* Adjust our txcore, keeping voice and non-voice
 			 * synchronized */
-			add_ms(&session->offset, (int)(ms - session->nextpred)/10);
+			session->offset = iax_tvadd_ms(session->offset,
+					(int)(ms - session->nextpred) / 10);
 
 			if(!session->nextpred)
 				session->nextpred = ms;
@@ -632,30 +615,34 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 			 * time.  Also, round ms to the next multiple of
 			 * frame size (so our silent periods are multiples
 			 * of frame size too) */
-			int diff = ms % (f->samples / 8);
+			int diff = ms % (samples / 8);
 			if(diff)
-				ms += f->samples/8 - diff;
+				ms += samples / 8 - diff;
 			session->nextpred = ms;
 		}
 		session->notsilenttx = 1;
+
+		/* set next predicted ts based on 8khz samples */
+		session->nextpred += samples / 8;
 #else
 		if(ms <= session->lastsent)
 			ms = session->lastsent + 3;
 #endif
 	} else if ( video ) {
-		/*
-		 * IAX2 draft 03 says that timestamps MUST be in order.
-		 * It does not say anything about several frames having the same timestamp
-		 * When transporting video, we can have a frame that spans multiple iax packets
-		 * (so called slices), so it would make sense to use the same timestamp for all of
-		 * them
-		 * We do want to make sure that frames don't go backwards though
+		/* IAX2 draft 03 says that timestamps MUST be in order.  It
+		 * does not say anything about several frames having the same
+		 * timestamp.  When transporting video, we can have a frame
+		 * that spans multiple iax packets (so called slices), so it
+		 * would make sense to use the same timestamp for all of them.
+		 * We do want to make sure that frames don't go backwards
+		 * though.
 		 */
 		if ( (unsigned int)ms < session->lastsent )
 			ms = session->lastsent;
 	} else {
-		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking)
-		   if appropriate unless it's a genuine frame */
+		/* On a dataframe, use last value + 3 (to accomodate jitter
+		 * buffer shrinking) if appropriate unless it's a genuine frame
+		 */
 		if (genuine) {
 			if ((unsigned int)ms <= session->lastsent)
 				ms = session->lastsent + 3;
@@ -665,21 +652,10 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 
 	}
 
-	/* Record the last sent packet for future reference */
-	/* unless an AST_FRAME_IAX */
-	if (!genuine)
-		session->lastsent = ms;
-
-#ifdef USE_VOICE_TS_PREDICTION
-	/* set next predicted ts based on 8khz samples */
-	if(voice)
-	    session->nextpred += f->samples / 8;
-#endif
-
 	return ms;
 }
 
-static unsigned char get_n_bits_at(unsigned char *data, int n, int bit)
+static unsigned char get_n_bits_at(const unsigned char *data, const int n, const int bit)
 {
 	int byte = bit / 8;       /* byte containing first bit */
 	int rem = 8 - (bit % 8);  /* remaining bits in first byte */
@@ -698,101 +674,106 @@ static unsigned char get_n_bits_at(unsigned char *data, int n, int bit)
 	return (ret & (0xff >> (8 - n)));
 }
 
-static int speex_get_wb_sz_at(unsigned char *data, int len, int bit)
+static int speex_get_wb_sz_at(const unsigned char *data, const int len, const int bit)
 {
-	static int SpeexWBSubModeSz[] = {
-		0, 36, 112, 192,
-		352, 0, 0, 0 };
+	static const int wb_skip_table[] = {
+		0, 36, 112, 192, 352, 0, 0, 0
+	};
+	const int bit_len = len * 8;
 	int off = bit;
-	unsigned char c;
+	int wideband;
+
+	if (bit_len - off < 5)
+		return -5;
+
+	wideband = get_n_bits_at(data, 1, off);
 
 	/* skip up to two wideband frames */
-	if (((len * 8 - off) >= 5) &&
-		get_n_bits_at(data, 1, off)) {
-		c = get_n_bits_at(data, 3, off + 1);
-		off += SpeexWBSubModeSz[c];
+	if (wideband)
+	{
+		int submode = get_n_bits_at(data, 3, off + 1);
+		off += wb_skip_table[submode];
 
-		if (((len * 8 - off) >= 5) &&
-			get_n_bits_at(data, 1, off)) {
-			c = get_n_bits_at(data, 3, off + 1);
-			off += SpeexWBSubModeSz[c];
+		if (bit_len - off < 5)
+			return -6;
 
-			if (((len * 8 - off) >= 5) &&
-				get_n_bits_at(data, 1, off)) {
+		wideband = get_n_bits_at(data, 1, off);
+
+		if (wideband)
+		{
+			submode = get_n_bits_at(data, 3, off + 1);
+			off += wb_skip_table[submode];
+
+			if (bit_len - off < 5)
+				return -7;
+
+			wideband = get_n_bits_at(data, 1, off);
+			if (wideband)
 				/* too many in a row */
-				DEBU(G "\tCORRUPT too many wideband streams in a row\n");
-				return -1;
-			}
+				return -8;
 		}
 
 	}
 	return off - bit;
 }
 
-static int speex_get_samples(unsigned char *data, int len)
+static int speex_get_samples(const unsigned char *data, const int len)
 {
-	static int SpeexSubModeSz[] = {
+	static const int SpeexSubModeSz[] = {
 		0, 43, 119, 160,
 		220, 300, 364, 492,
 		79, 0, 0, 0,
 		0, 0, 0, 0 };
-	static int SpeexInBandSz[] = {
+	static const int SpeexInBandSz[] = {
 		1, 1, 4, 4,
 		4, 4, 4, 4,
 		8, 8, 16, 16,
 		32, 32, 64, 64 };
+	const int bit_len = len * 8;
 	int bit = 0;
 	int cnt = 0;
-	int off = 0;
-	unsigned char c;
 
-	DEBU(G "speex_get_samples(%d)\n", len);
-	while ((len * 8 - bit) >= 5) {
+	while (bit_len - bit >= 5) {
+		unsigned char c;
+
 		/* skip wideband frames */
-		off = speex_get_wb_sz_at(data, len, bit);
-		if (off < 0)  {
-			DEBU(G "\tERROR reading wideband frames\n");
-			break;
-		}
-		bit += off;
+		const int advance = speex_get_wb_sz_at(data, len, bit);
+		if (advance < 0)
+			return advance;
 
-		if ((len * 8 - bit) < 5) {
-			DEBU(G "\tERROR not enough bits left after wb\n");
-			break;
-		}
+		bit += advance;
+
+		if (bit_len - bit < 5)
+			return -1;
 
 		/* get control bits */
 		c = get_n_bits_at(data, 5, bit);
-		DEBU(G "\tCONTROL: %d at %d\n", c, bit);
 		bit += 5;
 
 		if (c == 15) {
-			DEBU(G "\tTERMINATOR\n");
+			/* terminator */
 			break;
 		} else if (c == 14) {
 			/* in-band signal; next 4 bits contain signal id */
+			if (bit_len - bit < 4)
+				return -3;
 			c = get_n_bits_at(data, 4, bit);
-			bit += 4;
-			DEBU(G "\tIN-BAND %d bits\n", SpeexInBandSz[c]);
-			bit += SpeexInBandSz[c];
+			bit += 4 + SpeexInBandSz[c];
 		} else if (c == 13) {
 			/* user in-band; next 5 bits contain msg len */
+			if (bit_len - bit < 5)
+				return -4;
 			c = get_n_bits_at(data, 5, bit);
-			bit += 5;
-			DEBU(G "\tUSER-BAND %d bytes\n", c);
-			bit += c * 8;
+			bit += 5 + c * 8;
 		} else if (c > 8) {
-			DEBU(G "\tUNKNOWN sub-mode %d\n", c);
-			break;
+			/* unknown submode */
+			return -2;
 		} else {
 			/* skip number bits for submode (less the 5 control bits) */
-			DEBU(G "\tSUBMODE %d %d bits\n", c, SpeexSubModeSz[c]);
 			bit += SpeexSubModeSz[c] - 5;
-
 			cnt += 160; /* new frame */
 		}
 	}
-	DEBU(G "\tSAMPLES: %d\n", cnt);
 	return cnt;
 }
 
@@ -863,7 +844,7 @@ static int iax_xmit_frame(struct iax_frame *f)
 	}
 #endif
 	/* Send the frame raw */
-	res = f->session->sendto(netfd, (const char *) f->data, f->datalen,
+	res = f->session->sendto(netfd, f->rawdata, f->rawdatalen,
 			IAX_SOCKOPTS, f->transfer ?
 			(struct sockaddr *)&(f->session->transfer) :
 			(struct sockaddr *)&(f->session->peeraddr),
@@ -873,34 +854,13 @@ static int iax_xmit_frame(struct iax_frame *f)
 
 static int iax_reliable_xmit(struct iax_frame *f)
 {
-	struct iax_frame *fc;
-	struct ast_iax2_full_hdr *fh;
-	fh = (struct ast_iax2_full_hdr *) f->data;
-	if (!fh->type) {
+	struct ast_iax2_full_hdr *fh = f->rawdata;
+
+	if (!fh->type)
 		return -2;
-	}
-	fc = (struct iax_frame *)malloc(sizeof(struct iax_frame));
-	if (fc) {
-		/* Make a copy of the frame */
-		memcpy(fc, f, sizeof(struct iax_frame));
-		/* And a copy of the data if applicable */
-		if (!fc->data || !fc->datalen) {
-			IAXERROR "No frame data?");
-			DEBU(G "No frame data?\n");
-			return -1;
-		} else {
-			fc->data = (char *)malloc(fc->datalen);
-			if (!fc->data) {
-				DEBU(G "Out of memory\n");
-				IAXERROR "Out of memory\n");
-				return -1;
-			}
-			memcpy(fc->data, f->data, f->datalen);
-			iax_sched_add(NULL, fc, NULL, NULL, fc->retrytime);
-			return iax_xmit_frame(fc);
-		}
-	} else
-		return -1;
+
+	iax_sched_add(NULL, f, NULL, NULL, f->retrytime);
+	return iax_xmit_frame(f);
 }
 
 void iax_set_networking(iax_sendto_t st, iax_recvfrom_t rf)
@@ -1065,22 +1025,25 @@ static unsigned char compress_subclass(int subclass)
 	return power | IAX_FLAG_SC_LOG;
 }
 
-static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int ts, int seqno, int now, int transfer, int final, int fullframe)
+static int iax_send(struct iax_session *pvt,
+		int frametype,
+		int subclass,
+		const unsigned char *data,
+		const size_t datalen,
+		unsigned int ts,
+		int seqno,
+		int immediate,
+		int transfer,
+		int final,
+		int fullframe,
+		int samples)
 {
-	/* Queue a packet for delivery on a given private structure.  Use "ts" for
-	   timestamp, or calculate if ts is 0.  Send immediately without retransmission
-	   or delayed, with retransmission */
-	struct ast_iax2_full_hdr *fh;
-	struct ast_iax2_mini_hdr *mh;
-	struct ast_iax2_video_hdr *vh;
-	//unsigned char buf[5120]; //fd: changed max packet size[5120];
-	unsigned char buf[32 * 1024]; //Mihai: let's see if this is where it crashes
-
+	/* Queue a packet for delivery on a given private structure.  Use "ts"
+	 * for timestamp, or calculate if ts is 0.  Send immediately without
+	 * retransmission or delayed, with retransmission */
+	char buf[8192];
 	struct iax_frame *fr;
-	int res;
-	int sendmini=0;
-	unsigned int lastsent;
-	unsigned int fts;
+	int sendmini = 0;
 
 	if (!pvt)
 	{
@@ -1088,115 +1051,116 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		return -1;
 	}
 
-	/* this must come before the next call to calc_timestamp() since
-	 calc_timestamp() will change lastsent to the returned value */
-	lastsent = pvt->lastsent;
+	/* If this is the first packet we're sending, get our offset now. */
+	if (iax_tvzero(pvt->offset))
+		pvt->offset = iax_tvnow();
 
-	/* Calculate actual timestamp */
-	fts = calc_timestamp(pvt, ts, f);
-
-	if (((fts & 0xFFFF0000L) == (lastsent & 0xFFFF0000L))
-		/* High two bits are the same on timestamp, or sending on a trunk */ &&
-		(f->frametype == AST_FRAME_VOICE)
-		/* is a voice frame */ &&
-		(f->subclass == pvt->svoiceformat)
-		/* is the same type */ )
+	if (!ts)
 	{
-		/* Force immediate rather than delayed transmission */
-		now = 1;
-		/* Mark that mini-style frame is appropriate */
-		sendmini = 1;
+		/* Calculate actual timestamp */
+		ts = calc_timestamp(pvt, frametype, samples);
+
+		if (!ts)
+		{
+			IAXERROR "timestamp is 0?\n");
+			return -1;
+		}
 	}
 
-	/* Bitmask taken from chan_iax2.c... I must ask Mark Spencer for this? I think not... */
-	if ( f->frametype == AST_FRAME_VIDEO )
+	if ( frametype == AST_FRAME_VOICE )
 	{
-		/* Check if the timestamp has rolled over or if the video codec has changed */
-		if ( ((fts & 0xFFFF8000L) == (pvt->lastvsent & 0xFFFF8000L)) &&
-		     (f->subclass == pvt->svideoformat)
-		   )
+		/* High two bits are the same on timestamp, or sending on a trunk */
+		if ((ts & 0xFFFF0000L) == (pvt->lastsent & 0xFFFF0000L) &&
+				subclass == pvt->svoiceformat)
+		{
+			/* Force immediate rather than delayed transmission */
+			immediate = 1;
+			/* Mark that mini-style frame is appropriate */
+			sendmini = 1;
+		}
+
+		pvt->lastsent = ts;
+	}
+	else if ( frametype == AST_FRAME_VIDEO )
+	{
+		/* Check if the timestamp has rolled over or if the video codec
+		 * has changed */
+		if ( (ts & 0xFFFF8000L) == (pvt->lastvsent & 0xFFFF8000L) &&
+		     subclass == pvt->svideoformat )
 		{
 			/* send a mini video frame immediately */
-			now = 1;
+			immediate = 1;
 			sendmini = 1;
-		} else
+		}
+		else
 		{
-			/* we want to send a fullframe and be able to retransmit it */
-			now = 0;
+			/* we want to send a fullframe and be able to
+			 * retransmit it */
+			immediate = 0;
 			sendmini = 0;
 		}
-		pvt->lastvsent = fts;
+
+		pvt->lastvsent = ts;
+		pvt->lastsent = ts;
 	}
 
 	/* if requested, force a full frame */
 	if ( fullframe )
 	{
-		now = 0;
+		immediate = 0;
 		sendmini = 0;
 	}
-	
+
 	/* Allocate an iax_frame */
-	if (now)
+	if (immediate)
 	{
+		if ( sizeof(*fr) + datalen > sizeof(buf) )
+		{
+			IAXERROR "frame buffer too small");
+			return -1;
+		}
 		fr = (struct iax_frame *) buf;
-	} else
+	}
+	else
 	{
-		fr = iax_frame_new(DIRECTION_OUTGRESS, f->datalen);
+		fr = iax_frame_new(datalen);
 		if ( fr == NULL )
 		{
 			IAXERROR "Out of memory\n");
 			return -1;
 		}
 	}
-	
-	/* Copy our prospective frame into our immediate or retransmitted wrapper */
-	iax_frame_wrap(fr, f);
 
-	fr->ts = fts;
-	if (!fr->ts)
-	{
-		IAXERROR "timestamp is 0?\n");
-		if (!now)
-			iax_frame_free(fr);
-		return -1;
-	}
-
+	fr->ts = ts;
 	fr->callno = pvt->callno;
 	fr->transfer = transfer;
 	fr->final = final;
 	fr->session = pvt;
+
 	if (!sendmini)
 	{
 		/* We need a full frame */
-		if (seqno > -1)
-			fr->oseqno = seqno;
-		else
-			fr->oseqno = pvt->oseqno++;
+		struct ast_iax2_full_hdr *fh;
+
+		iax_frame_specialize(fr, ast_iax2_full_hdr, data, datalen);
+		
+		fh = fr->rawdata;
+		
+		fr->oseqno = seqno > -1 ? seqno : pvt->oseqno++;
 		fr->iseqno = pvt->iseqno;
-		fh = (struct ast_iax2_full_hdr *)(((char *)fr->af.data) - sizeof(struct ast_iax2_full_hdr));
 		fh->scallno = htons(fr->callno | IAX_FLAG_FULL);
 		fh->ts = htonl(fr->ts);
 		fh->oseqno = fr->oseqno;
-		if (transfer)
-		{
-			fh->iseqno = 0;
-		} else
-			fh->iseqno = fr->iseqno;
-			/* Keep track of the last thing we've acknowledged */
+		fh->iseqno = transfer ? 0 : fr->iseqno;
+		/* Keep track of the last thing we've acknowledged */
 		pvt->aseqno = fr->iseqno;
-		fh->type = fr->af.frametype & 0xFF;
-		if (f->frametype == AST_FRAME_VIDEO)
-			fh->csub = compress_subclass(fr->af.subclass & ~0x1) | ((fr->af.subclass & 0x1) << 6);
+		fh->type = frametype & 0xFF;
+		if (frametype == AST_FRAME_VIDEO)
+			fh->csub = compress_subclass(subclass & ~0x1) | ((subclass & 0x1) << 6);
 		else
-			fh->csub = compress_subclass(fr->af.subclass);
-		if (transfer)
-		{
-			fr->dcallno = pvt->transfercallno;
-		} else
-			fr->dcallno = pvt->peercallno;
+			fh->csub = compress_subclass(subclass);
+		fr->dcallno = transfer ? pvt->transfercallno : pvt->peercallno;
 		fh->dcallno = htons(fr->dcallno);
-		fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_full_hdr);
-		fr->data = fh;
 		fr->retries = maxretries;
 		/* Retry after 2x the ping time has passed */
 		fr->retrytime = pvt->pingtime * 2;
@@ -1205,54 +1169,47 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		if (fr->retrytime > MAX_RETRY_TIME)
 			fr->retrytime = MAX_RETRY_TIME;
 		/* Acks' don't get retried */
-		if ((f->frametype == AST_FRAME_IAX) && (f->subclass == IAX_COMMAND_ACK))
+		if (frametype == AST_FRAME_IAX && subclass == IAX_COMMAND_ACK)
 			fr->retries = -1;
-		if (f->frametype == AST_FRAME_VOICE)
-		{
-			pvt->svoiceformat = f->subclass;
-		}
-		else if (f->frametype == AST_FRAME_VIDEO)
-		{
-			pvt->svideoformat = f->subclass & ~0x1;
-		}
-		if (now)
-		{
-			res = iax_xmit_frame(fr);
-		} else
-			res = iax_reliable_xmit(fr);
-	} else
+		if (frametype == AST_FRAME_VOICE)
+			pvt->svoiceformat = subclass;
+		else if (frametype == AST_FRAME_VIDEO)
+			pvt->svideoformat = subclass & ~0x1;
+	}
+	else
 	{
-		if (fr->af.frametype == AST_FRAME_VIDEO)
+		/* Mini-frames have no sequence number */
+		fr->oseqno = -1;
+		fr->iseqno = -1;
+		fr->retries = -1;
+
+		if (frametype == AST_FRAME_VIDEO)
 		{
-			/* Video frame have no sequence number */
-			fr->oseqno = -1;
-			fr->iseqno = -1;
-			vh = (struct ast_iax2_video_hdr *)(((char* )fr->af.data) - sizeof(struct ast_iax2_video_hdr));
+			struct ast_iax2_video_hdr *vh;
+
+			iax_frame_specialize(fr, ast_iax2_video_hdr, data, datalen);
+
+			vh = fr->rawdata;
 			vh->zeros = 0;
 			vh->callno = htons(IAX_FLAG_FULL | fr->callno);
-			vh->ts = htons((fr->ts & 0x7FFF) | (fr->af.subclass & 0x1 ? 0x8000 : 0));
-			fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_video_hdr);
-			fr->data = vh;
-			fr->retries = -1;
-			res = iax_xmit_frame(fr);
-		} else
+			vh->ts = htons((fr->ts & 0x7FFF) | (subclass & 0x1 ? 0x8000 : 0));
+		}
+		else
 		{
-			/* Mini-frames have no sequence number */
-			fr->oseqno = -1;
-			fr->iseqno = -1;
 			/* Mini frame will do */
-			mh = (struct ast_iax2_mini_hdr *)(((char *)fr->af.data) - sizeof(struct ast_iax2_mini_hdr));
+			struct ast_iax2_mini_hdr *mh;
+
+			iax_frame_specialize(fr, ast_iax2_mini_hdr, data, datalen);
+
+			mh = fr->rawdata;
 			mh->callno = htons(fr->callno);
 			mh->ts = htons(fr->ts & 0xFFFF);
-			fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_mini_hdr);
-			fr->data = mh;
-			fr->retries = -1;
-			res = iax_xmit_frame(fr);
 		}
 	}
-	if( !now && fr!=NULL )
-		iax_frame_free( fr );
-	return res;
+
+	return immediate ?
+		iax_xmit_frame(fr) :
+		iax_reliable_xmit(fr);
 }
 
 #if 0
@@ -1281,61 +1238,78 @@ static int iax_predestroy(struct iax_session *pvt)
 }
 #endif
 
-static int __send_command(struct iax_session *i, char type, int command,
-		unsigned int ts, unsigned char *data, int datalen, int seqno,
-		int now, int transfer, int final, int fullframe, int samples)
+static int send_command(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen)
 {
-	struct ast_frame f;
-	f.frametype = type;
-	f.subclass = command;
-	f.datalen = datalen;
-	f.samples = samples;
-	f.mallocd = 0;
-	f.offset = 0;
-#ifdef __GNUC__
-	f.src = (char *) __FUNCTION__;
-#else
-	f.src = (char *) __FILE__;
-#endif
-	f.data = data;
-	return iax_send(i, &f, ts, seqno, now, transfer, final, fullframe);
+	return iax_send(i, type, command, data, datalen, ts,
+			-1, /* seqno */
+			0, /* immediate */
+			0, /* transfer */
+			0, /* final */
+			0, /* fullframe */ 
+			0  /* samples */
+			);
 }
 
-static int send_command(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
+static int send_command_video(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int fullframe)
 {
-	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, 0, 0);
+	return iax_send(i, type, command, data, datalen, ts,
+			-1, /* seqno */
+			1,  /* immediate */
+			0,  /* transfer */
+			0,  /* final */
+			fullframe,
+			0); /* samples */
 }
 
-static int send_command_video(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno, int fullframe)
-{
-	return __send_command(i, type, command, ts, data, datalen, seqno, 1, 0, 0, fullframe, 0);
-}
-
-static int send_command_final(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
+static int send_command_final(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen)
 {
 #if 0
 	/* It is assumed that the callno has already been locked */
 	iax_predestroy(i);
 #endif
-	int r;
-	r = __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 1, 0, 0);
-	if (r >= 0) destroy_session(i);
+	int r = iax_send(i, type, command, data, datalen, ts,
+			-1, /* seqno */
+			1,  /* immediate */
+			0,  /* transfer */
+			1,  /* final */
+			0,  /* fullframe */
+			0); /* samples */
+	if (r >= 0)
+		destroy_session(i);
 	return r;
 }
 
 static int send_command_immediate(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
 {
-	return __send_command(i, type, command, ts, data, datalen, seqno, 1, 0, 0, 0, 0);
+	return iax_send(i, type, command, data, datalen, ts, seqno,
+			1,  /* immediate */
+			0,  /* transfer */
+			0,  /* final */
+			0,  /* fullframe */
+			0); /* samples */
 }
 
-static int send_command_transfer(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen)
+static int send_command_transfer(struct iax_session *i, char type, int command, unsigned char *data, int datalen)
 {
-	return __send_command(i, type, command, ts, data, datalen, 0, 0, 1, 0, 0, 0);
+	return iax_send(i, type, command, data, datalen,
+			0,  /* ts */
+			0,  /* seqno */
+			0,  /* immediate */
+			1,  /* transfer */
+			0,  /* final */
+			0,  /* fullframe */
+			0); /* samples */
 }
 
-static int send_command_samples(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno, int samples)
+static int send_command_samples(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int samples)
 {
-	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, 0, samples);
+	return iax_send(i, type, command, data, datalen, ts,
+			-1, /* seqno */
+			0,  /* immediate */
+			0,  /* transfer */
+			0,  /* final */
+			0,  /* fullframe */
+			samples);
 }
 
 
@@ -1351,7 +1325,7 @@ int iax_transfer(struct iax_session *session, const char *number)
 	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
 
 	// Send The Transfer Command - Asterisk Will Handle The Rest!
-	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_TRANSFER, 0, ied.buf, ied.pos, -1);
+	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_TRANSFER, 0, ied.buf, ied.pos);
 
 	// Return Success
 	return 0;
@@ -1363,11 +1337,11 @@ static void stop_transfer(struct iax_session *session)
 
 	sch = schedq;
 	while(sch) {
-		if (sch->frame && (sch->frame->session == session))
-					sch->frame->retries = -1;
+		if (sch->frame && sch->frame->session == session)
+			sch->frame->retries = -1;
 		sch = sch->next;
 	}
-}	/* stop_transfer */
+}
 
 static void complete_transfer(struct iax_session *session, int peercallno, int xfr2peer, int preserveSeq)
 {
@@ -1458,12 +1432,12 @@ int iax_setup_transfer(struct iax_session *org_session, struct iax_session *new_
 	}
 #endif
 
-	res = send_command(s0, AST_FRAME_IAX, IAX_COMMAND_TXREQ, 0, ied0.buf, ied0.pos, -1);
+	res = send_command(s0, AST_FRAME_IAX, IAX_COMMAND_TXREQ, 0, ied0.buf, ied0.pos);
 	if (res < 0) {
 		return -1;
 	}
 
-	res = send_command(s1, AST_FRAME_IAX, IAX_COMMAND_TXREQ, 0, ied1.buf, ied1.pos, -1);
+	res = send_command(s1, AST_FRAME_IAX, IAX_COMMAND_TXREQ, 0, ied1.buf, ied1.pos);
 	if (res < 0) {
 		return -1;
 	}
@@ -1480,7 +1454,7 @@ static int iax_finish_transfer(struct iax_session *s, short new_peer)
 
 	iax_ie_append_short(&ied, IAX_IE_CALLNO, new_peer);
 
-	res = send_command(s, AST_FRAME_IAX, IAX_COMMAND_TXREL, 0, ied.buf, ied.pos, -1);
+	res = send_command(s, AST_FRAME_IAX, IAX_COMMAND_TXREL, 0, ied.buf, ied.pos);
 
 	complete_transfer(s, new_peer, 0, 1);
 
@@ -1564,7 +1538,6 @@ static void destroy_session(struct iax_session *session)
 {
 	struct iax_session *cur, *prev=NULL;
 	struct iax_sched *curs, *prevs=NULL, *nexts=NULL;
-	int    loop_cnt=0;
 	curs = schedq;
 	while(curs) {
 		nexts = curs->next;
@@ -1583,7 +1556,6 @@ static void destroy_session(struct iax_session *session)
 			prevs = curs;
 		}
 		curs = nexts;
-		loop_cnt++;
 	}
 
 	cur = sessions;
@@ -1673,14 +1645,14 @@ static int iax2_vnak(struct iax_session *session)
 
 int iax_send_dtmf(struct iax_session *session, char digit)
 {
-	return send_command(session, AST_FRAME_DTMF, digit, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_DTMF, digit, 0, NULL, 0);
 }
 
 int iax_send_voice(struct iax_session *session, int format, unsigned char *data, int datalen, int samples)
 {
 	/* Send a (possibly compressed) voice frame */
 	if (!session->quelch)
-		return send_command_samples(session, AST_FRAME_VOICE, format, 0, data, datalen, -1, samples);
+		return send_command_samples(session, AST_FRAME_VOICE, format, 0, data, datalen, samples);
 	return 0;
 }
 
@@ -1690,14 +1662,14 @@ int iax_send_cng(struct iax_session *session, int level, unsigned char *data,
 #ifdef USE_VOICE_TS_PREDICTION
 	session->notsilenttx = 0;
 #endif
-	return send_command(session, AST_FRAME_CNG, level, 0, data, datalen, -1);
+	return send_command(session, AST_FRAME_CNG, level, 0, data, datalen);
 }
 
 int iax_send_image(struct iax_session *session, int format, unsigned char *data,
 		int datalen)
 {
 	/* Send an image frame */
-	return send_command(session, AST_FRAME_IMAGE, format, 0, data, datalen, -1);
+	return send_command(session, AST_FRAME_IMAGE, format, 0, data, datalen);
 }
 
 int iax_send_video(struct iax_session *session, int format, unsigned char *data,
@@ -1706,7 +1678,7 @@ int iax_send_video(struct iax_session *session, int format, unsigned char *data,
 	if (!session->quelch)
 	{
 		int res = send_command_video(session, AST_FRAME_VIDEO, format,
-				0, data, datalen, -1, fullframe);
+				0, data, datalen, fullframe);
 		return res;
 	}
 	return 0;
@@ -1718,12 +1690,12 @@ int iax_send_video_trunk(struct iax_session *session, int format,
 	static int my_lastts = 0;
 
 	if ( ntrunk == 0 )
-		my_lastts = calc_timestamp(session, 0, NULL);
+		my_lastts = calc_timestamp(session, 0, 0);
 
 	if ( !session->quelch )
 	{
 		return send_command_video(session, AST_FRAME_VIDEO, format,
-				my_lastts, (unsigned char *)data, datalen, -1,
+				my_lastts, (unsigned char *)data, datalen,
 				fullframe);
 	}
 	return 0;
@@ -1774,7 +1746,7 @@ int iax_register(struct iax_session *session, const char *server, const char *pe
 	session->refresh = refresh;
 	iax_ie_append_str(&ied, IAX_IE_USERNAME, peer);
 	iax_ie_append_short(&ied, IAX_IE_REFRESH, refresh);
-	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
+	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos);
 	return res;
 }
 
@@ -1818,7 +1790,7 @@ int iax_unregister(struct iax_session *session, const char *server, const char *
 	strncpy(session->username, peer, sizeof(session->username) - 1);
 	iax_ie_append_str(&ied, IAX_IE_USERNAME, peer);
 	iax_ie_append_str(&ied, IAX_IE_CAUSE, session->unregreason);
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos);
 }
 
 int iax_reject(struct iax_session *session, char *reason)
@@ -1826,7 +1798,7 @@ int iax_reject(struct iax_session *session, char *reason)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_CAUSE, reason ? reason : "Unspecified");
-	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos, -1);
+	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos);
 }
 
 int iax_hangup(struct iax_session *session, char *byemsg)
@@ -1835,33 +1807,33 @@ int iax_hangup(struct iax_session *session, char *byemsg)
 	iax_sched_del(NULL, NULL, send_ping, (void *) session, 1);
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_CAUSE, byemsg ? byemsg : "Normal clearing");
-	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_HANGUP, 0, ied.buf, ied.pos, -1);
+	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_HANGUP, 0, ied.buf, ied.pos);
 }
 
 int iax_sendurl(struct iax_session *session, char *url)
 {
 	return send_command(session, AST_FRAME_HTML, AST_HTML_URL, 0,
-			(unsigned char *)url, (int)strlen(url), -1);
+			(unsigned char *)url, (int)strlen(url));
 }
 
 int iax_ring_announce(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_RINGING, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_RINGING, 0, NULL, 0);
 }
 
 int iax_lag_request(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_LAGRQ, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_LAGRQ, 0, NULL, 0);
 }
 
 int iax_busy(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_BUSY, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_BUSY, 0, NULL, 0);
 }
 
 int iax_congestion(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_CONGESTION, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_CONGESTION, 0, NULL, 0);
 }
 
 
@@ -1870,50 +1842,50 @@ int iax_accept(struct iax_session *session, int format)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_int(&ied, IAX_IE_FORMAT, format);
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_ACCEPT, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_ACCEPT, 0, ied.buf, ied.pos);
 }
 
 int iax_answer(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_ANSWER, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_ANSWER, 0, NULL, 0);
 }
 
 int iax_key_radio(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_KEY, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_KEY, 0, NULL, 0);
 }
 
 int iax_unkey_radio(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_UNKEY, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_UNKEY, 0, NULL, 0);
 }
 
 int iax_load_complete(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_HTML, AST_HTML_LDCOMPLETE, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_HTML, AST_HTML_LDCOMPLETE, 0, NULL, 0);
 }
 
 int iax_send_url(struct iax_session *session, const char *url, int link)
 {
 	return send_command(session, AST_FRAME_HTML,
 			link ? AST_HTML_LINKURL : AST_HTML_URL, 0,
-			(unsigned char *)url, (int)strlen(url), -1);
+			(unsigned char *)url, (int)strlen(url));
 }
 
 int iax_send_text(struct iax_session *session, const char *text)
 {
 	return send_command(session, AST_FRAME_TEXT, 0, 0,
-			(unsigned char *)text, (int)strlen(text) + 1, -1);
+			(unsigned char *)text, (int)strlen(text) + 1);
 }
 
 int iax_send_unlink(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_HTML, AST_HTML_UNLINK, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_HTML, AST_HTML_UNLINK, 0, NULL, 0);
 }
 
 int iax_send_link_reject(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_HTML, AST_HTML_LINKREJECT, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_HTML, AST_HTML_LINKREJECT, 0, NULL, 0);
 }
 
 static int iax_send_pong(struct iax_session *session, unsigned int ts)
@@ -1937,13 +1909,13 @@ static int iax_send_pong(struct iax_session *session, unsigned int ts)
 	iax_ie_append_int(&ied,IAX_IE_RR_DROPPED, stats.frames_dropped);
 	iax_ie_append_int(&ied,IAX_IE_RR_OOO, stats.frames_ooo);
 
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PONG, ts, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PONG, ts, ied.buf, ied.pos);
 }
 
 /* external API; deprecated since we send pings ourselves now (finally) */
 int iax_send_ping(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0);
 }
 
 /* scheduled ping sender; sends ping, then reschedules */
@@ -1954,14 +1926,14 @@ static void send_ping(void *s)
 	/* important, eh? */
 	if(!iax_session_valid(session)) return;
 
-	send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0, -1);
+	send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0);
 	session->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)session, ping_time * 1000);
 	return;
 }
 
 static int iax_send_lagrp(struct iax_session *session, unsigned int ts)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_LAGRP, ts, NULL, 0, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_LAGRP, ts, NULL, 0);
 }
 
 static int iax_send_txcnt(struct iax_session *session)
@@ -1969,7 +1941,7 @@ static int iax_send_txcnt(struct iax_session *session)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_int(&ied, IAX_IE_TRANSFERID, session->transferid);
-	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXCNT, 0, ied.buf, ied.pos);
+	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXCNT, ied.buf, ied.pos);
 }
 
 static int iax_send_txrej(struct iax_session *session)
@@ -1977,7 +1949,7 @@ static int iax_send_txrej(struct iax_session *session)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_int(&ied, IAX_IE_TRANSFERID, session->transferid);
-	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXREJ, 0, ied.buf, ied.pos);
+	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXREJ, ied.buf, ied.pos);
 }
 
 static int iax_send_txaccept(struct iax_session *session)
@@ -1985,7 +1957,7 @@ static int iax_send_txaccept(struct iax_session *session)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_int(&ied, IAX_IE_TRANSFERID, session->transferid);
-	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXACC, 0, ied.buf, ied.pos);
+	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXACC, ied.buf, ied.pos);
 }
 
 static int iax_send_txready(struct iax_session *session)
@@ -1994,7 +1966,7 @@ static int iax_send_txready(struct iax_session *session)
 	memset(&ied, 0, sizeof(ied));
 	/* see asterisk chan_iax2.c */
 	iax_ie_append_short(&ied, IAX_IE_CALLNO, session->callno);
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_TXREADY, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_TXREADY, 0, ied.buf, ied.pos);
 }
 
 int iax_auth_reply(struct iax_session *session, char *password, char *challenge, int methods)
@@ -2017,7 +1989,7 @@ int iax_auth_reply(struct iax_session *session, char *password, char *challenge,
 	} else {
 		iax_ie_append_str(&ied, IAX_IE_PASSWORD, password);
 	}
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_AUTHREP, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_AUTHREP, 0, ied.buf, ied.pos);
 }
 
 static int iax_regauth_reply(struct iax_session *session, char *password, char *challenge, int methods)
@@ -2043,10 +2015,10 @@ static int iax_regauth_reply(struct iax_session *session, char *password, char *
 	}
 	if (strlen(session->unregreason)) {		/* Non-zero unregreason length indicates REGREL */
 		iax_ie_append_str(&ied, IAX_IE_CAUSE, session->unregreason);
-		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos, -1);
+		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREL, 0, ied.buf, ied.pos);
 	} else {
 		iax_ie_append_short(&ied, IAX_IE_REFRESH, session->refresh);
-		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
+		return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos);
 	}
 }
 
@@ -2056,17 +2028,17 @@ int iax_dial(struct iax_session *session, char *number)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DIAL, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DIAL, 0, ied.buf, ied.pos);
 }
 
 int iax_quelch(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, NULL, 0);
 }
 
 int iax_unquelch(struct iax_session *session)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_UNQUELCH, 0, NULL, 0, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_UNQUELCH, 0, NULL, 0);
 }
 
 int iax_dialplan_request(struct iax_session *session, char *number)
@@ -2074,7 +2046,7 @@ int iax_dialplan_request(struct iax_session *session, char *number)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DPREQ, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DPREQ, 0, ied.buf, ied.pos);
 }
 
 static inline int which_bit(unsigned int i)
@@ -2223,7 +2195,7 @@ int iax_call(struct iax_session *session, const char *cidnum, const char *cidnam
 	memcpy(&session->peeraddr.sin_addr, hp->h_addr, sizeof(session->peeraddr.sin_addr));
 	session->peeraddr.sin_port = htons(portno);
 	session->peeraddr.sin_family = AF_INET;
-	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_NEW, 0, ied.buf, ied.pos, -1);
+	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_NEW, 0, ied.buf, ied.pos);
 	if (res < 0)
 		return res;
 	if (wait) {
@@ -2235,41 +2207,13 @@ int iax_call(struct iax_session *session, const char *cidnum, const char *cidnam
 
 static int calc_rxstamp(struct iax_session *session)
 {
-	struct timeval tv;
-	int ms;
+	struct timeval now = iax_tvnow();
 
-	if (!session->rxcore.tv_sec && !session->rxcore.tv_usec) {
-		session->rxcore = iax_tvnow();
-	}
-	tv = iax_tvnow();
+	if (iax_tvzero(session->rxcore))
+		session->rxcore = now;
 
-	ms = (tv.tv_sec - session->rxcore.tv_sec) * 1000 +
-		 (tv.tv_usec - session->rxcore.tv_usec) / 1000;
-		return ms;
+	return iax_tvdiff_ms(now, session->rxcore);
 }
-
-#ifdef notdef_cruft
-static int match(struct sockaddr_in *sin, short callno, short dcallno, struct iax_session *cur)
-{
-	if ((cur->peeraddr.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-		(cur->peeraddr.sin_port == sin->sin_port)) {
-		/* This is the main host */
-		if ((cur->peercallno == callno) ||
-			((dcallno == cur->callno) && !cur->peercallno)) {
-			/* That's us.  Be sure we keep track of the peer call number */
-			cur->peercallno = callno;
-			return 1;
-		}
-	}
-	if ((cur->transfer.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-	    (cur->transfer.sin_port == sin->sin_port) && (cur->transferring)) {
-		/* We're transferring */
-		if (dcallno == cur->callno)
-			return 1;
-	}
-	return 0;
-}
-#endif
 
 /* splitted match into 2 passes otherwise causing problem of matching
    up the wrong session using the dcallno and the peercallno because
@@ -2279,17 +2223,13 @@ static int match(struct sockaddr_in *sin, short callno, short dcallno, struct ia
  */
 static int forward_match(struct sockaddr_in *sin, short callno, short dcallno, struct iax_session *cur)
 {
-	if ((cur->transfer.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-		(cur->transfer.sin_port == sin->sin_port) && (cur->transferring)) {
+	if (inaddrcmp(&cur->transfer, sin) == 0 && cur->transferring) {
 		/* We're transferring */
 		if (dcallno == cur->callno)
-		{
 			return 1;
-		}
 	}
 
-	if ((cur->peeraddr.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-		(cur->peeraddr.sin_port == sin->sin_port)) {
+	if (inaddrcmp(&cur->peeraddr, sin) == 0) {
 		if (dcallno == cur->callno && dcallno != 0)  {
 			/* That's us.  Be sure we keep track of the peer call number */
 			if (cur->peercallno == 0) {
@@ -2312,18 +2252,15 @@ static int forward_match(struct sockaddr_in *sin, short callno, short dcallno, s
 
 static int reverse_match(struct sockaddr_in *sin, short callno, struct iax_session *cur)
 {
-	if ((cur->transfer.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-		(cur->transfer.sin_port == sin->sin_port) && (cur->transferring)) {
+	if (inaddrcmp(&cur->transfer, sin) == 0 && cur->transferring) {
 		/* We're transferring */
-		if (callno == cur->peercallno)  {
+		if (callno == cur->peercallno)
 			return 1;
-		}
 	}
-	if ((cur->peeraddr.sin_addr.s_addr == sin->sin_addr.s_addr) &&
-		(cur->peeraddr.sin_port == sin->sin_port)) {
-		if (callno == cur->peercallno)  {
+
+	if (inaddrcmp(&cur->peeraddr, sin) == 0) {
+		if (callno == cur->peercallno)
 			return 1;
-		}
 	}
 
 	return 0;
@@ -2335,18 +2272,16 @@ static struct iax_session *iax_find_session(struct sockaddr_in *sin,
 		int makenew)
 {
 	struct iax_session *cur = sessions;
-	while(cur) {
-		if (forward_match(sin, callno, dcallno, cur)) {
+	while (cur) {
+		if (forward_match(sin, callno, dcallno, cur))
 			return cur;
-		}
 		cur = cur->next;
 	}
 
 	cur = sessions;
-	while(cur) {
-		if (reverse_match(sin, callno, cur)) {
+	while (cur) {
+		if (reverse_match(sin, callno, cur))
 			return cur;
-		}
 		cur = cur->next;
 	}
 
@@ -2364,22 +2299,6 @@ static struct iax_session *iax_find_session(struct sockaddr_in *sin,
 	return cur;
 }
 
-#ifdef EXTREME_DEBUG
-static int display_time(int ms)
-{
-	static int oldms = -1;
-	if (oldms < 0) {
-		DEBU(G "First measure\n");
-		oldms = ms;
-		return 0;
-	}
-	DEBU(G "Time from last frame is %d ms\n", ms - oldms);
-	oldms = ms;
-	return 0;
-}
-#endif
-
-/* From chan_iax2/steve davies:  need to get permission from steve or digium, I guess */
 static long unwrap_timestamp(long ts, long last, int is_video)
 {
 	const int ts_shift = is_video ? 15 : 16;
@@ -2422,9 +2341,8 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 	 * before delivering the packet.
 	 */
 
-#ifdef EXTREME_DEBUG
-	DEBU(G "[%p] We are at %d, packet is for %d\n", e->session, calc_rxstamp(e->session), ts);
-#endif
+	int type = JB_TYPE_CONTROL;
+	int ms = 0;
 
 	/* insert into jitterbuffer */
 	/* TODO: Perhaps we could act immediately if it's not droppable and late */
@@ -2434,41 +2352,51 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 	{
 		iax_sched_add(e, NULL, NULL, NULL, 0);
 		return NULL;
-	} else
+	}
+
+	if (e->etype == IAX_EVENT_VOICE)
 	{
-		int type = JB_TYPE_CONTROL;
-		int len = 0;
+		const int samples = get_sample_cnt(e);
 
-		if(e->etype == IAX_EVENT_VOICE)
+		if ( samples < 0 )
 		{
-			type = JB_TYPE_VOICE;
-			/* The frame time only has an effect for voice */
-			len = get_sample_cnt(e) / 8;
-		} else if(e->etype == IAX_EVENT_VIDEO)
-		{
-			type = JB_TYPE_VIDEO;
-		} else if(e->etype == IAX_EVENT_CNG)
-		{
-			type = JB_TYPE_SILENCE;
-		}
-
-		/* unwrap timestamp */
-		ts = unwrap_timestamp(ts, e->session->last_ts,
-				e->etype == IAX_EVENT_VIDEO);
-
-		/* move forward last_ts if it's greater. We do this _after_
-		 * unwrapping, because asterisk _still_ has cases where it
-		 * doesn't send full frames when it ought to */
-		if(ts > e->session->last_ts)
-		{
-			e->session->last_ts = ts;
-		}
-
-		if(jb_put(e->session->jb, e, type, len, ts,
-					calc_rxstamp(e->session)) == JB_DROP)
-		{
+			/* If get_sample_cnt fails, then something very bad
+			 * is occurring, drop the frame and log the problem.
+			 */
+			fprintf(stderr, "iax2: get_sample_cnt failed %d\n",
+					samples);
 			iax_event_free(e);
+			return NULL;
 		}
+
+		/* The frame time only has an effect for voice */
+		ms = samples * 1000 / 8000;
+
+		type = JB_TYPE_VOICE;
+	}
+	else if (e->etype == IAX_EVENT_VIDEO)
+	{
+		type = JB_TYPE_VIDEO;
+	}
+	else if (e->etype == IAX_EVENT_CNG)
+	{
+		type = JB_TYPE_SILENCE;
+	}
+
+	/* unwrap timestamp */
+	ts = unwrap_timestamp(ts, e->session->last_ts,
+			e->etype == IAX_EVENT_VIDEO);
+
+	/* move forward last_ts if it's greater. We do this _after_
+	 * unwrapping, because asterisk _still_ has cases where it
+	 * doesn't send full frames when it ought to */
+	if ( ts > e->session->last_ts )
+		e->session->last_ts = ts;
+
+	if ( jb_put(e->session->jb, e, type, ms, ts,
+				calc_rxstamp(e->session)) == JB_DROP )
+	{
+		iax_event_free(e);
 	}
 
 	return NULL;
@@ -2485,58 +2413,64 @@ static int uncompress_subclass(unsigned char csub)
 
 static void iax_handle_vnak(struct iax_session *session, struct ast_iax2_full_hdr *fh)
 {
-	struct iax_sched *sch, *list, *l, *tmp;
+	struct iax_sched *sch = schedq;
+	struct iax_sched *retrans_list = NULL;
+	const unsigned char vnak_seqno = fh->iseqno - session->rseqno;
 
-	/*
-	 * According to the IAX2 02 draft, we MUST immediately retransmit all frames
-	 * with higher sequence number than the VNAK's iseqno
-	 * However, it seems that the right thing to do would be to retransmit
-	 * frames with sequence numbers higher OR EQUAL to VNAK's iseqno.
+	/* According to the IAX2 02 draft, we MUST immediately retransmit all
+	 * frames with higher sequence number than the VNAK's iseqno. However,
+	 * it seems that the right thing to do would be to retransmit frames
+	 * with sequence numbers higher OR EQUAL to VNAK's iseqno.
 	 */
-	sch = schedq;
-	list = NULL;
 	while ( sch != NULL )
 	{
 		if ( sch->frame != NULL &&
 		     sch->frame->session == session
 		   )
 		{
-			/*
-			 * We want to check if our frame's oseqno is greater or equal than
-			 * the VNAK's iseqno, but we need to take into account sequence
-			 * number wrap-arounds
-			 * session->rseqno is our last acknowledged sequence number, so
-			 * we use that as a base
+			/* We want to check if our frame's oseqno is greater or
+			 * equal than the VNAK's iseqno, but we need to take
+			 * into account sequence number wrap-arounds.
+			 * session->rseqno is our last acknowledged sequence
+			 * number, so we use that as a base.
 			 */
-			if ( (unsigned char)(fh->iseqno - session->rseqno) <= (unsigned char)(sch->frame->oseqno - session->rseqno) )
+			const unsigned char frame_seqno =
+				sch->frame->oseqno - session->rseqno;
+
+			if ( vnak_seqno <= frame_seqno )
 			{
-				/*
-				 * We cannot retransmit immediately, since the frames are ordered by retransmit time
-				 * We need to collect them and orrange them in ascending order of their oseqno
-				 */
-				tmp = (struct iax_sched *)calloc(1, sizeof(struct iax_sched));
+				/* We cannot retransmit immediately since the
+				 * frames are ordered by retransmit time. We
+				 * need to first collect them and arrange them
+				 * in ascending order by their oseqno. */
+				struct iax_sched *tmp =
+					calloc(1, sizeof(struct iax_sched));
 				tmp->frame = sch->frame;
 
-				if ( list == NULL ||
-				     (list->frame->oseqno - session->rseqno) > (tmp->frame->oseqno - session->rseqno)
+				if ( retrans_list == NULL ||
+				     (retrans_list->frame->oseqno - session->rseqno) > frame_seqno
 				   )
 				{
-					tmp->next = list;
-					list = tmp;
-				} else
+					tmp->next = retrans_list;
+					retrans_list = tmp;
+				}
+				else
 				{
-					l = list;
-					while ( l != NULL )
+					struct iax_sched *item = retrans_list;
+					while ( item != NULL )
 					{
-						if ( l->next == NULL ||
-						     (l->next->frame->oseqno - session->rseqno) > (tmp->frame->oseqno - session->rseqno)
+						const unsigned char next_seqno =
+							item->next->frame->oseqno -
+							session->rseqno;
+						if ( item->next == NULL ||
+						     next_seqno > frame_seqno
 						   )
 						{
-							tmp->next = l->next;
-							l->next = tmp;
+							tmp->next = item->next;
+							item->next = tmp;
 							break;
 						}
-						l = l->next;
+						item = item->next;
 					}
 				}
 			}
@@ -2545,11 +2479,11 @@ static void iax_handle_vnak(struct iax_session *session, struct ast_iax2_full_hd
 	}
 
 	/* Transmit collected frames and free the space */
-	while ( list != NULL )
+	while ( retrans_list != NULL )
 	{
-		tmp = list;
-		iax_xmit_frame(tmp->frame);
-		list = list->next;
+		struct iax_sched * tmp = retrans_list;
+		iax_xmit_frame(retrans_list->frame);
+		retrans_list = retrans_list->next;
 		free(tmp);
 	}
 }
@@ -2584,11 +2518,10 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 		iax_showframe(NULL, fh, 1, sin, datalen);
 #endif
 
-	/* Get things going with it, timestamp wise, if we
-	   haven't already. */
+	/* Get things going with it, timestamp wise, if we haven't already. */
 
 	/* Handle implicit ACKing unless this is an INVAL, and only if this is
-		from the real peer, not the transfer peer */
+	 * from the real peer, not the transfer peer */
 	if ( !inaddrcmp(sin, &session->peeraddr) &&
 	     ( subclass != IAX_COMMAND_INVAL ||
 	       fh->type != AST_FRAME_IAX
@@ -2629,25 +2562,25 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 
 	/* Check where we are */
 	if ((ntohs(fh->dcallno) & IAX_FLAG_RETRANS) ||
-			((fh->type != AST_FRAME_VOICE) && (fh->type != AST_FRAME_VIDEO)))
+			(fh->type != AST_FRAME_VOICE &&
+			 fh->type != AST_FRAME_VIDEO))
 		updatehistory = 0;
-	if ((session->iseqno != fh->oseqno) &&
-		(session->iseqno ||
-			((subclass != IAX_COMMAND_TXREADY) &&
-			(subclass != IAX_COMMAND_TXREL) &&
-			(subclass != IAX_COMMAND_TXCNT) &&
-			(subclass != IAX_COMMAND_TXACC)) ||
-			(fh->type != AST_FRAME_IAX)))
+
+	if (session->iseqno != fh->oseqno &&
+		(session->iseqno || fh->type != AST_FRAME_IAX ||
+		 (subclass != IAX_COMMAND_TXREADY &&
+		  subclass != IAX_COMMAND_TXREL &&
+		  subclass != IAX_COMMAND_TXCNT &&
+		  subclass != IAX_COMMAND_TXACC)))
 	{
-		if (
-			((subclass != IAX_COMMAND_ACK) &&
-			(subclass != IAX_COMMAND_INVAL) &&
-			(subclass != IAX_COMMAND_TXREADY) &&
-			(subclass != IAX_COMMAND_TXREL) &&
-			(subclass != IAX_COMMAND_TXCNT) &&
-			(subclass != IAX_COMMAND_TXACC) &&
-			(subclass != IAX_COMMAND_VNAK)) ||
-			(fh->type != AST_FRAME_IAX))
+		if (fh->type != AST_FRAME_IAX ||
+				(subclass != IAX_COMMAND_ACK &&
+				 subclass != IAX_COMMAND_INVAL &&
+				 subclass != IAX_COMMAND_TXREADY &&
+				 subclass != IAX_COMMAND_TXREL &&
+				 subclass != IAX_COMMAND_TXCNT &&
+				 subclass != IAX_COMMAND_TXACC &&
+				 subclass != IAX_COMMAND_VNAK))
 		{
 			/* If it's not an ACK packet, it's out of order. */
 			DEBU(G "Packet arrived out of order (expecting %d, got %d) (frametype = %d, subclass = %d)\n",
@@ -2661,376 +2594,377 @@ static struct iax_event *iax_header_to_event(struct iax_session *session, struct
 			{
 				/* If we've already seen it, ack it XXX There's a border condition here XXX */
 				if ((fh->type != AST_FRAME_IAX) ||
-						((subclass != IAX_COMMAND_ACK) && (subclass != IAX_COMMAND_INVAL)))
+						(subclass != IAX_COMMAND_ACK &&
+						 subclass != IAX_COMMAND_INVAL))
 				{
 					DEBU(G "Acking anyway\n");
 					/* XXX Maybe we should handle its ack to us, but then again, it's probably outdated anyway, and if
 						we have anything to send, we'll retransmit and get an ACK back anyway XXX */
 					send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0,fh->iseqno);
 				}
-			} else
+			}
+			else
 			{
 				/* Send a VNAK requesting retransmission */
 				iax2_vnak(session);
 			}
 			return NULL;
 		}
-	} else
+	}
+	else
 	{
 		/* Increment unless it's an ACK or VNAK */
-		if (((subclass != IAX_COMMAND_ACK) &&
-			(subclass != IAX_COMMAND_INVAL) &&
-			(subclass != IAX_COMMAND_TXCNT) &&
-			(subclass != IAX_COMMAND_TXACC) &&
-			(subclass != IAX_COMMAND_VNAK)) ||
-			(fh->type != AST_FRAME_IAX))
+		if (fh->type != AST_FRAME_IAX ||
+				(subclass != IAX_COMMAND_ACK &&
+				 subclass != IAX_COMMAND_INVAL &&
+				 subclass != IAX_COMMAND_TXCNT &&
+				 subclass != IAX_COMMAND_TXACC &&
+				 subclass != IAX_COMMAND_VNAK))
 			session->iseqno++;
 	}
 
-	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen + 1);
+	e = calloc(1, sizeof(struct iax_event) + datalen + 1);
 
-	if (e) {
-		memset(e, 0, sizeof(struct iax_event) + datalen);
-		/* Set etype to some unknown value so do not inavertently
-		   sending IAX_EVENT_CONNECT event, which is 0 to application.
-		 */
-		e->etype = -1;
-		e->session = session;
-		switch(fh->type) {
-		case AST_FRAME_DTMF:
-			e->etype = IAX_EVENT_DTMF;
-			e->subclass = subclass;
-			/*
-			 We want the DTMF event deliver immediately so all I/O can be
-			 terminate quickly in an IVR system.
-			e = schedule_delivery(e, ts, updatehistory); */
-			break;
-		case AST_FRAME_VOICE:
-			e->etype = IAX_EVENT_VOICE;
-			e->subclass = subclass;
-			e->ts = ts;
-			session->voiceformat = subclass;
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-				e->datalen = datalen;
-			}
-			e = schedule_delivery(e, ts, updatehistory);
-			break;
-		case AST_FRAME_CNG:
-			e->etype = IAX_EVENT_CNG;
-			e->subclass = subclass;
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-				e->datalen = datalen;
-			}
-			e = schedule_delivery(e, ts, updatehistory);
-			break;
-		case AST_FRAME_IAX:
-			/* Parse IE's */
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-				e->datalen = datalen;
-			}
-			if (iax_parse_ies(&e->ies, e->data, e->datalen)) {
-				IAXERROR "Unable to parse IE's");
-				free(e);
-				e = NULL;
-				break;
-			}
-			switch(subclass) {
-			case IAX_COMMAND_NEW:
-				/* This is a new, incoming call */
-				/* save the capability for validation */
-				session->capability = e->ies.capability;
-				if (e->ies.codec_prefs) {
-					strncpy(session->codec_order,
-							e->ies.codec_prefs,
-							sizeof(session->codec_order));
-					session->codec_order_len =
-						(int)strlen(session->codec_order);
-				}
-				e->etype = IAX_EVENT_CONNECT;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_AUTHREQ:
-				/* This is a request for a call */
-				e->etype = IAX_EVENT_AUTHRQ;
-				if (strlen(session->username) && !strcmp(e->ies.username, session->username) &&
-					strlen(session->secret)) {
-						/* Hey, we already know this one */
-						iax_auth_reply(session, session->secret, e->ies.challenge, e->ies.authmethods);
-						free(e);
-						e = NULL;
-						break;
-				}
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_HANGUP:
-				e->etype = IAX_EVENT_HANGUP;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_INVAL:
-				e->etype = IAX_EVENT_HANGUP;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_REJECT:
-				e->etype = IAX_EVENT_REJECT;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_ACK:
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_VNAK:
-				iax_handle_vnak(session, fh);
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_LAGRQ:
-				/* Pass this along for later handling */
-				e->etype = IAX_EVENT_LAGRQ;
-				e->ts = ts;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_POKE:
-				e->etype = IAX_EVENT_POKE;
-				e->ts = ts;
-				break;
-			case IAX_COMMAND_PING:
-				/* PINGS and PONGS don't get scheduled; */
-				e->etype = IAX_EVENT_PING;
-				e->ts = ts;
-				break;
-			case IAX_COMMAND_PONG:
-				e->etype = IAX_EVENT_PONG;
-				/* track weighted average of ping time */
-				session->pingtime = ((2 * session->pingtime) + (calc_timestamp(session,0,NULL) - ts)) / 3;
-				session->remote_netstats.jitter = e->ies.rr_jitter;
-				session->remote_netstats.losspct = e->ies.rr_loss >> 24;;
-				session->remote_netstats.losscnt = e->ies.rr_loss & 0xffffff;
-				session->remote_netstats.packets = e->ies.rr_pkts;
-				session->remote_netstats.delay = e->ies.rr_delay;
-				session->remote_netstats.dropped = e->ies.rr_dropped;
-				session->remote_netstats.ooo = e->ies.rr_ooo;
-				break;
-			case IAX_COMMAND_ACCEPT:
-				if (e->ies.format & session->capability) {
-					e->etype = IAX_EVENT_ACCEPT;
-				}
-				else {
-					struct iax_ie_data ied;
-					/* Although this should not happen, we
-					 * added this to make sure the
-					 * negotiation protocol is enforced.
-					 * For lack of event to notify the
-					 * application we use the defined
-					 * REJECT event.
-					 */
-					memset(&ied, 0, sizeof(ied));
-					iax_ie_append_str(&ied, IAX_IE_CAUSE, "Unable to negotiate codec");
-					send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos, -1);
-					e->etype = IAX_EVENT_REJECT;
-				}
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_REGACK:
-				e->etype = IAX_EVENT_REGACK;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_REGAUTH:
-				iax_regauth_reply(session, session->secret, e->ies.challenge, e->ies.authmethods);
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_REGREJ:
-				e->etype = IAX_EVENT_REGREJ;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_LAGRP:
-				e->etype = IAX_EVENT_LAGRP;
-				nowts = calc_timestamp(session, 0, NULL);
-				e->ts = nowts - ts;
-				/* Can't call schedule_delivery since timestamp is non-normal */
-				break;;
-			case IAX_COMMAND_TXREQ:
-				/* added check for defensive programming
-				 * - in case the asterisk server
-				 * or another client does not send the
-				 *  apparent transfer address
-				 */
-				if (e->ies.apparent_addr != NULL) {
-					/* so a full voice frame is sent on the
-					   next voice output */
-					session->svoiceformat = -1;
-					session->transfer = *e->ies.apparent_addr;
-					session->transfer.sin_family = AF_INET;
-					session->transfercallno = e->ies.callno;
-					session->transferring = TRANSFER_BEGIN;
-					session->transferid = e->ies.transferid;
-					iax_send_txcnt(session);
-				}
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_DPREP:
-				/* Received dialplan reply */
-				e->etype = IAX_EVENT_DPREP;
-				/* Return immediately, makes no sense to schedule */
-				break;
-			case IAX_COMMAND_TXCNT:
-				if (session->transferring)  {
-					session->transfer = *sin;
-					iax_send_txaccept(session);
-				}
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_TXACC:
-				if (session->transferring) {
-					stop_transfer(session);
-					session->transferring = TRANSFER_READY;
-					iax_send_txready(session);
-				}
-				free(e);
-				e = NULL;
-				break;
-			case IAX_COMMAND_TXREL:
-				/* Release the transfer */
-				send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
-				if (session->transferring) {
-					complete_transfer(session, e->ies.callno, 1, 0);
-				}
-				else {
-					complete_transfer(session, session->peercallno, 0, 1);
-				}
-				e->etype = IAX_EVENT_TRANSFER;
-				/* notify that asterisk no longer sitting between peers */
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case IAX_COMMAND_QUELCH:
-				e->etype = IAX_EVENT_QUELCH;
-				session->quelch = 1;
-				break;
-			case IAX_COMMAND_UNQUELCH:
-				e->etype = IAX_EVENT_UNQUELCH;
-				session->quelch = 0;
-				break;
-			case IAX_COMMAND_TXREJ:
-				e->etype = IAX_EVENT_TXREJECT;
-				iax_handle_txreject(session);
-				break;
+	if (!e) {
+		DEBU(G "Out of memory\n");
+		return NULL;
+	}
 
-			case IAX_COMMAND_TXREADY:
-				send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
-				if (iax_handle_txready(session)) {
-					e->etype = IAX_EVENT_TXREADY;
-				}
-				else {
-					free(e);
-					e = NULL;
-				}
-				break;
-			default:
-				DEBU(G "Don't know what to do with IAX command %d\n", subclass);
-				free(e);
-				e = NULL;
-			}
-			break;
-		case AST_FRAME_CONTROL:
-			switch(subclass) {
-			case AST_CONTROL_ANSWER:
-				e->etype = IAX_EVENT_ANSWER;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_CONTROL_CONGESTION:
-			case AST_CONTROL_BUSY:
-				e->etype = IAX_EVENT_BUSY;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_CONTROL_RINGING:
-				e->etype = IAX_EVENT_RINGA;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_CONTROL_KEY:
-				e->etype = IAX_EVENT_KEY;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_CONTROL_UNKEY:
-				e->etype = IAX_EVENT_UNKEY;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			default:
-				DEBU(G "Don't know what to do with AST control %d\n", subclass);
-				free(e);
-				return NULL;
-			}
-			break;
-		case AST_FRAME_IMAGE:
-			e->etype = IAX_EVENT_IMAGE;
-			e->subclass = subclass;
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-			}
-			e = schedule_delivery(e, ts, updatehistory);
-			break;
-		case AST_FRAME_VIDEO:
-			e->etype = IAX_EVENT_VIDEO;
-			e->subclass = subclass;
-			e->ts = ts;
-			session->videoformat = e->subclass;
+	/* Set etype to some unknown value so do not inavertently
+	 * sending IAX_EVENT_CONNECT event, which is 0 to application.
+	 */
+	e->etype = -1;
+	e->session = session;
+	switch(fh->type) {
+	case AST_FRAME_DTMF:
+		e->etype = IAX_EVENT_DTMF;
+		e->subclass = subclass;
+		/*
+		 We want the DTMF event deliver immediately so all I/O can be
+		 terminate quickly in an IVR system.
+		e = schedule_delivery(e, ts, updatehistory); */
+		break;
+	case AST_FRAME_VOICE:
+		e->etype = IAX_EVENT_VOICE;
+		e->subclass = subclass;
+		e->ts = ts;
+		session->voiceformat = subclass;
+		if (datalen) {
 			memcpy(e->data, fh->iedata, datalen);
 			e->datalen = datalen;
+		}
+		e = schedule_delivery(e, ts, updatehistory);
+		break;
+	case AST_FRAME_CNG:
+		e->etype = IAX_EVENT_CNG;
+		e->subclass = subclass;
+		if (datalen) {
+			memcpy(e->data, fh->iedata, datalen);
+			e->datalen = datalen;
+		}
+		e = schedule_delivery(e, ts, updatehistory);
+		break;
+	case AST_FRAME_IAX:
+		/* Parse IE's */
+		if (datalen) {
+			memcpy(e->data, fh->iedata, datalen);
+			e->datalen = datalen;
+		}
+		if (iax_parse_ies(&e->ies, e->data, e->datalen)) {
+			IAXERROR "Unable to parse IE's");
+			free(e);
+			e = NULL;
+			break;
+		}
+		switch(subclass) {
+		case IAX_COMMAND_NEW:
+			/* This is a new, incoming call */
+			/* save the capability for validation */
+			session->capability = e->ies.capability;
+			if (e->ies.codec_prefs) {
+				strncpy(session->codec_order,
+						e->ies.codec_prefs,
+						sizeof(session->codec_order));
+				session->codec_order_len =
+					(int)strlen(session->codec_order);
+			}
+			e->etype = IAX_EVENT_CONNECT;
 			e = schedule_delivery(e, ts, updatehistory);
 			break;
-		case AST_FRAME_TEXT:
-			e->etype = IAX_EVENT_TEXT;
-			if (datalen) {
-				memcpy(e->data, fh->iedata, datalen);
-				e->datalen = datalen;
+		case IAX_COMMAND_AUTHREQ:
+			/* This is a request for a call */
+			e->etype = IAX_EVENT_AUTHRQ;
+			if (strlen(session->username) && !strcmp(e->ies.username, session->username) &&
+				strlen(session->secret)) {
+					/* Hey, we already know this one */
+					iax_auth_reply(session, session->secret, e->ies.challenge, e->ies.authmethods);
+					free(e);
+					e = NULL;
+					break;
 			}
 			e = schedule_delivery(e, ts, updatehistory);
 			break;
+		case IAX_COMMAND_HANGUP:
+			e->etype = IAX_EVENT_HANGUP;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_INVAL:
+			e->etype = IAX_EVENT_HANGUP;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_REJECT:
+			e->etype = IAX_EVENT_REJECT;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_ACK:
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_VNAK:
+			iax_handle_vnak(session, fh);
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_LAGRQ:
+			/* Pass this along for later handling */
+			e->etype = IAX_EVENT_LAGRQ;
+			e->ts = ts;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_POKE:
+			e->etype = IAX_EVENT_POKE;
+			e->ts = ts;
+			break;
+		case IAX_COMMAND_PING:
+			/* PINGS and PONGS don't get scheduled; */
+			e->etype = IAX_EVENT_PING;
+			e->ts = ts;
+			break;
+		case IAX_COMMAND_PONG:
+			e->etype = IAX_EVENT_PONG;
+			/* track weighted average of ping time */
+			session->pingtime = ((2 * session->pingtime) + (calc_timestamp(session, 0, 0) - ts)) / 3;
+			session->remote_netstats.jitter = e->ies.rr_jitter;
+			session->remote_netstats.losspct = e->ies.rr_loss >> 24;;
+			session->remote_netstats.losscnt = e->ies.rr_loss & 0xffffff;
+			session->remote_netstats.packets = e->ies.rr_pkts;
+			session->remote_netstats.delay = e->ies.rr_delay;
+			session->remote_netstats.dropped = e->ies.rr_dropped;
+			session->remote_netstats.ooo = e->ies.rr_ooo;
+			break;
+		case IAX_COMMAND_ACCEPT:
+			if (e->ies.format & session->capability) {
+				e->etype = IAX_EVENT_ACCEPT;
+			} else {
+				struct iax_ie_data ied;
+				/* Although this should not happen, we
+				 * added this to make sure the
+				 * negotiation protocol is enforced.
+				 * For lack of event to notify the
+				 * application we use the defined
+				 * REJECT event.
+				 */
+				memset(&ied, 0, sizeof(ied));
+				iax_ie_append_str(&ied, IAX_IE_CAUSE, "Unable to negotiate codec");
+				send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos);
+				e->etype = IAX_EVENT_REJECT;
+			}
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_REGACK:
+			e->etype = IAX_EVENT_REGACK;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_REGAUTH:
+			iax_regauth_reply(session, session->secret, e->ies.challenge, e->ies.authmethods);
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_REGREJ:
+			e->etype = IAX_EVENT_REGREJ;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_LAGRP:
+			e->etype = IAX_EVENT_LAGRP;
+			nowts = calc_timestamp(session, 0, 0);
+			e->ts = nowts - ts;
+			/* Can't call schedule_delivery since timestamp is non-normal */
+			break;;
+		case IAX_COMMAND_TXREQ:
+			/* added check for defensive programming
+			 * - in case the asterisk server
+			 * or another client does not send the
+			 *  apparent transfer address
+			 */
+			if (e->ies.apparent_addr != NULL) {
+				/* so a full voice frame is sent on the
+				   next voice output */
+				session->svoiceformat = -1;
+				session->transfer = *e->ies.apparent_addr;
+				session->transfer.sin_family = AF_INET;
+				session->transfercallno = e->ies.callno;
+				session->transferring = TRANSFER_BEGIN;
+				session->transferid = e->ies.transferid;
+				iax_send_txcnt(session);
+			}
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_DPREP:
+			/* Received dialplan reply */
+			e->etype = IAX_EVENT_DPREP;
+			/* Return immediately, makes no sense to schedule */
+			break;
+		case IAX_COMMAND_TXCNT:
+			if (session->transferring)  {
+				session->transfer = *sin;
+				iax_send_txaccept(session);
+			}
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_TXACC:
+			if (session->transferring) {
+				stop_transfer(session);
+				session->transferring = TRANSFER_READY;
+				iax_send_txready(session);
+			}
+			free(e);
+			e = NULL;
+			break;
+		case IAX_COMMAND_TXREL:
+			/* Release the transfer */
+			send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
+			if (session->transferring) {
+				complete_transfer(session, e->ies.callno, 1, 0);
+			} else {
+				complete_transfer(session, session->peercallno, 0, 1);
+			}
+			e->etype = IAX_EVENT_TRANSFER;
+			/* notify that asterisk no longer sitting between peers */
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case IAX_COMMAND_QUELCH:
+			e->etype = IAX_EVENT_QUELCH;
+			session->quelch = 1;
+			break;
+		case IAX_COMMAND_UNQUELCH:
+			e->etype = IAX_EVENT_UNQUELCH;
+			session->quelch = 0;
+			break;
+		case IAX_COMMAND_TXREJ:
+			e->etype = IAX_EVENT_TXREJECT;
+			iax_handle_txreject(session);
+			break;
 
-		case AST_FRAME_HTML:
-			switch(fh->csub) {
-			case AST_HTML_LINKURL:
-				e->etype = IAX_EVENT_LINKURL;
-				/* Fall through */
-			case AST_HTML_URL:
-				if (e->etype == -1)
-					e->etype = IAX_EVENT_URL;
-				e->subclass = fh->csub;
-				e->datalen = datalen;
-				if (datalen) {
-					memcpy(e->data, fh->iedata, datalen);
-				}
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_HTML_LDCOMPLETE:
-				e->etype = IAX_EVENT_LDCOMPLETE;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_HTML_UNLINK:
-				e->etype = IAX_EVENT_UNLINK;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			case AST_HTML_LINKREJECT:
-				e->etype = IAX_EVENT_LINKREJECT;
-				e = schedule_delivery(e, ts, updatehistory);
-				break;
-			default:
-				DEBU(G "Don't know how to handle HTML type %d frames\n", fh->csub);
+		case IAX_COMMAND_TXREADY:
+			send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
+			if (iax_handle_txready(session)) {
+				e->etype = IAX_EVENT_TXREADY;
+			} else {
 				free(e);
-				return NULL;
+				e = NULL;
 			}
 			break;
 		default:
-			DEBU(G "Don't know what to do with frame type %d\n", fh->type);
+			DEBU(G "Don't know what to do with IAX command %d\n", subclass);
+			free(e);
+			e = NULL;
+		}
+		break;
+	case AST_FRAME_CONTROL:
+		switch(subclass) {
+		case AST_CONTROL_ANSWER:
+			e->etype = IAX_EVENT_ANSWER;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_CONTROL_CONGESTION:
+		case AST_CONTROL_BUSY:
+			e->etype = IAX_EVENT_BUSY;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_CONTROL_RINGING:
+			e->etype = IAX_EVENT_RINGA;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_CONTROL_KEY:
+			e->etype = IAX_EVENT_KEY;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_CONTROL_UNKEY:
+			e->etype = IAX_EVENT_UNKEY;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		default:
+			DEBU(G "Don't know what to do with AST control %d\n", subclass);
 			free(e);
 			return NULL;
 		}
-	} else
-		DEBU(G "Out of memory\n");
+		break;
+	case AST_FRAME_IMAGE:
+		e->etype = IAX_EVENT_IMAGE;
+		e->subclass = subclass;
+		if (datalen) {
+			memcpy(e->data, fh->iedata, datalen);
+		}
+		e = schedule_delivery(e, ts, updatehistory);
+		break;
+	case AST_FRAME_VIDEO:
+		e->etype = IAX_EVENT_VIDEO;
+		e->subclass = subclass;
+		e->ts = ts;
+		session->videoformat = e->subclass;
+		memcpy(e->data, fh->iedata, datalen);
+		e->datalen = datalen;
+		e = schedule_delivery(e, ts, updatehistory);
+		break;
+	case AST_FRAME_TEXT:
+		e->etype = IAX_EVENT_TEXT;
+		if (datalen) {
+			memcpy(e->data, fh->iedata, datalen);
+			e->datalen = datalen;
+		}
+		e = schedule_delivery(e, ts, updatehistory);
+		break;
+
+	case AST_FRAME_HTML:
+		switch(fh->csub) {
+		case AST_HTML_LINKURL:
+			e->etype = IAX_EVENT_LINKURL;
+			/* Fall through */
+		case AST_HTML_URL:
+			if (e->etype == -1)
+				e->etype = IAX_EVENT_URL;
+			e->subclass = fh->csub;
+			e->datalen = datalen;
+			if (datalen) {
+				memcpy(e->data, fh->iedata, datalen);
+			}
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_HTML_LDCOMPLETE:
+			e->etype = IAX_EVENT_LDCOMPLETE;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_HTML_UNLINK:
+			e->etype = IAX_EVENT_UNLINK;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		case AST_HTML_LINKREJECT:
+			e->etype = IAX_EVENT_LINKREJECT;
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
+		default:
+			DEBU(G "Don't know how to handle HTML type %d frames\n", fh->csub);
+			free(e);
+			return NULL;
+		}
+		break;
+	default:
+		DEBU(G "Don't know what to do with frame type %d\n", fh->type);
+		free(e);
+		return NULL;
+	}
 
 	/* Already ack'd iax frames */
 	if (session->aseqno != session->iseqno) {
@@ -3052,7 +2986,7 @@ static struct iax_event *iax_videoheader_to_event(struct iax_session *session,
 		return 0;
 	}
 
-	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen);
+	e = calloc(1, sizeof(struct iax_event) + datalen);
 
 	if ( !e )
 	{
@@ -3081,7 +3015,7 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 		return 0;
 	}
 
-	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen);
+	e = calloc(1, sizeof(struct iax_event) + datalen);
 
 	if ( !e )
 	{
@@ -3142,8 +3076,9 @@ static struct iax_event *iax_net_read(void)
 		// TODO: this is buttugly from a design point of view. Basically we
 		// change libiax2 behavior to accomodate iaxclient.
 		// There must be a way to do it better.
-		event = (struct iax_event *)malloc(sizeof(struct iax_event));
-		if ( event != NULL ) event->etype = IAX_EVENT_NULL;
+		event = calloc(1, sizeof(struct iax_event));
+		if ( event != NULL )
+			event->etype = IAX_EVENT_NULL;
 	}
 	return event;
 }
@@ -3261,40 +3196,27 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 
 static struct iax_sched *iax_get_sched(struct timeval tv)
 {
-	struct iax_sched *cur, *prev=NULL;
-	cur = schedq;
-	/* Check the event schedule first. */
-	while(cur) {
-		if ((tv.tv_sec > cur->when.tv_sec) ||
-		    ((tv.tv_sec == cur->when.tv_sec) &&
-			(tv.tv_usec >= cur->when.tv_usec))) {
-				/* Take it out of the event queue */
-				if (prev) {
-					prev->next = cur->next;
-				} else {
-					schedq = cur->next;
-				}
-				return cur;
-		}
-		cur = cur->next;
+	/* Just need to check the head of schedq because the earliest item is
+	 * guaranteed to be first. */
+	if (schedq && iax_tvcmp(tv, schedq->when) >= 0) {
+		struct iax_sched *tmp = schedq;
+		schedq = tmp->next;
+		return tmp;
 	}
 	return NULL;
 }
 
 struct iax_event *iax_get_event(int blocking)
 {
-	struct iax_event *event;
-	struct iax_frame *frame;
-	struct timeval tv;
+	struct timeval tv = iax_tvnow();
 	struct iax_sched *cur;
 	struct iax_session *session;
 
-	tv = iax_tvnow();
-
-	while((cur = iax_get_sched(tv)))
+	while ((cur = iax_get_sched(tv)))
 	{
-		event = cur->event;
-		frame = cur->frame;
+		struct iax_event *event = cur->event;
+		struct iax_frame *frame = cur->frame;
+
 		if (event)
 		{
 			/* See if this is an event we need to handle */
@@ -3304,7 +3226,8 @@ struct iax_event *iax_get_event(int blocking)
 				free(cur);
 				return event;
 			}
-		} else if(frame)
+		}
+		else if (frame)
 		{
 			/* It's a frame, transmit it and schedule a retry */
 			if (frame->retries < 0)
@@ -3313,67 +3236,71 @@ struct iax_event *iax_get_event(int blocking)
 				   frame. If final, destroy the session. */
 				if (frame->final)
 					destroy_session(frame->session);
-				if (frame->data)
-					free(frame->data);
-				free(frame);
-			} else if (frame->retries == 0)
+				iax_frame_free(frame);
+			}
+			else if (frame->retries == 0)
 			{
 				if (frame->transfer)
 				{
 					/* Send a transfer reject since we weren't able to connect */
 					iax_send_txrej(frame->session);
-					if (frame->data)
-						free(frame->data);
-					free(frame);
+					iax_frame_free(frame);
 					free(cur);
 					break;
-				} else
+				}
+				else
 				{
 					/* We haven't been able to get an ACK on this packet. If a
 					   final frame, destroy the session, otherwise, pass up timeout */
 					if (frame->final)
 					{
 						destroy_session(frame->session);
-						if (frame->data)
-							free(frame->data);
-						free(frame);
-					} else
+						iax_frame_free(frame);
+					}
+					else
 					{
-						event = (struct iax_event *)malloc(sizeof(struct iax_event));
+						event = calloc(1, sizeof(struct iax_event));
 						if (event)
 						{
 							event->etype = IAX_EVENT_TIMEOUT;
 							event->session = frame->session;
-							if (frame->data)
-								free(frame->data);
-							free(frame);
+							iax_frame_free(frame);
 							free(cur);
 							return handle_event(event);
 						}
 					}
 				}
-			} else
+			}
+			else
 			{
-				struct ast_iax2_full_hdr *fh;
+				struct ast_iax2_full_hdr *fh = frame->rawdata;
+
 				/* Decrement remaining retries */
 				frame->retries--;
-				/* Multiply next retry time by 4, not above MAX_RETRY_TIME though */
+
+				/* Multiply next retry time by 4, not above
+				 * MAX_RETRY_TIME though */
 				frame->retrytime *= 4;
-				/* Keep under 1000 ms if this is a transfer packet */
-				if (!frame->transfer)
+
+				if (frame->transfer)
+				{
+					if (frame->retrytime > 1000)
+						frame->retrytime = 1000;
+				}
+				else
 				{
 					if (frame->retrytime > MAX_RETRY_TIME)
 						frame->retrytime = MAX_RETRY_TIME;
-				} else if (frame->retrytime > 1000)
-					frame->retrytime = 1000;
-				fh = (struct ast_iax2_full_hdr *)(frame->data);
+				}
 				fh->dcallno = htons(IAX_FLAG_RETRANS | frame->dcallno);
 				iax_xmit_frame(frame);
+
 				/* Schedule another retransmission */
 				DEBU(G "Scheduling retransmission %d\n", frame->retries);
 				iax_sched_add(NULL, frame, NULL, NULL, frame->retrytime);
 			}
-		} else if (cur->func)
+		}
+		else if (cur->func)
 		{
 		    cur->func(cur->arg);
 		}
@@ -3387,28 +3314,29 @@ struct iax_event *iax_get_event(int blocking)
 		long now;
 		long next;
 		jb_frame frame;
+		struct iax_event * event;
 
-		now = (tv.tv_sec - session->rxcore.tv_sec) * 1000 +
-		      (tv.tv_usec - session->rxcore.tv_usec) / 1000;
+		now = iax_tvdiff_ms(tv, session->rxcore);
 
 		if ( now <= (next = jb_next(session->jb)) )
 			continue;
 
-		/* interp len no longer hardcoded, now determined by get_interp_len */
-		ret = jb_get(session->jb,&frame,now,get_interp_len(session->voiceformat));
+		/* interp len no longer hardcoded, now determined by
+		 * get_interp_len */
+		ret = jb_get(session->jb, &frame, now,
+				get_interp_len(session->voiceformat));
 
-		switch(ret) {
+		switch (ret) {
 		case JB_OK:
 			event = (struct iax_event *)frame.data;
 			event = handle_event(event);
-			if (event) {
+			if (event)
 				return event;
-			}
 			break;
 		case JB_INTERP:
 			/* create an interpolation frame */
 			//fprintf(stderr, "Making Interpolation frame\n");
-			event = (struct iax_event *)malloc(sizeof(struct iax_event));
+			event = calloc(1, sizeof(struct iax_event));
 			if (event) {
 				event->etype    = IAX_EVENT_VOICE;
 				event->subclass = session->voiceformat;
@@ -3438,28 +3366,27 @@ struct iax_event *iax_get_event(int blocking)
 	if (blocking) {
 		/* Block until there is data if desired */
 		fd_set fds;
-		int nextEventTime;
+		int next_event_time;
 
 		FD_ZERO(&fds);
 		FD_SET(netfd, &fds);
 
-		nextEventTime = iax_time_to_next_event();
+		next_event_time = iax_time_to_next_event();
 
-		if(nextEventTime < 0) select(netfd + 1, &fds, NULL, NULL, NULL);
-		else
-		{
-			struct timeval nextEvent;
+		if (next_event_time < 0) {
+			select(netfd + 1, &fds, NULL, NULL, NULL);
+		} else {
+			struct timeval next_event;
 
-			nextEvent.tv_sec = nextEventTime / 1000;
-			nextEvent.tv_usec = (nextEventTime % 1000) * 1000;
+			next_event.tv_sec = next_event_time / 1000;
+			next_event.tv_usec = (next_event_time % 1000) * 1000;
 
-			select(netfd + 1, &fds, NULL, NULL, &nextEvent);
+			select(netfd + 1, &fds, NULL, NULL, &next_event);
 		}
 
 	}
-	event = iax_net_read();
 
-	return handle_event(event);
+	return handle_event(iax_net_read());
 }
 
 struct sockaddr_in iax_get_peer_addr(struct iax_session *session)
@@ -3513,7 +3440,7 @@ int iax_quelch_moh(struct iax_session *session, int MOH)
 		session->transfer_moh = 1;
 	}
 
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos);
 }
 
 struct timeval iax_tvnow(void)
