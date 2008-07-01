@@ -1194,6 +1194,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		iaxc_clear_call(callNo);
 		break;
 	case IAX_EVENT_ACCEPT:
+		calls[callNo].state |= IAXC_CALL_STATE_ACTIVE;
 		calls[callNo].format = e->ies.format & IAXC_AUDIO_FORMAT_MASK;
 		calls[callNo].vformat = e->ies.format & IAXC_VIDEO_FORMAT_MASK;
 #if USE_VIDEO
@@ -1203,6 +1204,7 @@ static void iaxc_handle_network_event(struct iax_event *e, int callNo)
 					"Failed video codec negotiation.");
 		}
 #endif
+		iaxci_do_state_callback(callNo);
 		iaxci_usermsg(IAXC_STATUS,"Call %d accepted", callNo);
 		break;
 	case IAX_EVENT_ANSWER:
@@ -1372,7 +1374,7 @@ EXPORT int iaxc_call_ex(const char *num, const char* callerid_name, const char* 
 	} else
 	{
 		// use selected call if not active, otherwise, get a new appearance
-		if ( calls[selected_call].state  & IAXC_CALL_STATE_ACTIVE )
+		if ( calls[selected_call].state & IAXC_CALL_STATE_ACTIVE )
 		{
 			callNo = iaxc_first_free_call();
 		} else
@@ -1426,7 +1428,7 @@ EXPORT int iaxc_call_ex(const char *num, const char* callerid_name, const char* 
 	strncpy(calls[callNo].local        , calls[callNo].callerid_name, IAXC_EVENT_BUFSIZ);
 	strncpy(calls[callNo].local_context, "default", IAXC_EVENT_BUFSIZ);
 
-	calls[callNo].state = IAXC_CALL_STATE_ACTIVE | IAXC_CALL_STATE_OUTGOING;
+	calls[callNo].state = IAXC_CALL_STATE_OUTGOING;
 
 	/* reset activity and ping "timers" */
 	iaxc_note_activity(callNo);
@@ -1530,7 +1532,7 @@ EXPORT void iaxc_dump_all_calls(void)
 
 EXPORT void iaxc_dump_call_number( int callNo )
 {
-	if ( ( callNo >= 0 ) && ( callNo < max_calls ) )
+	if ( callNo >= 0 && callNo < max_calls )
 	{
 		get_iaxc_lock();
 		iaxc_dump_one_call(callNo);
@@ -1558,7 +1560,7 @@ EXPORT void iaxc_reject_call(void)
 
 EXPORT void iaxc_reject_call_number( int callNo )
 {
-	if ( ( callNo >= 0 ) && ( callNo < max_calls ) )
+	if ( callNo >= 0 && callNo < max_calls )
 	{
 		get_iaxc_lock();
 		iax_reject(calls[callNo].session, "Call rejected manually.");
@@ -1591,13 +1593,13 @@ EXPORT void iaxc_send_text(const char * text)
 
 EXPORT void iaxc_send_text_call(int callNo, const char * text)
 {
-	if ( callNo < 0 || !(calls[callNo].state & IAXC_CALL_STATE_ACTIVE) )
-		return;
-
-	get_iaxc_lock();
-	if ( calls[callNo].state & IAXC_CALL_STATE_ACTIVE )
-		iax_send_text(calls[callNo].session, text);
-	put_iaxc_lock();
+	if ( callNo >= 0 && callNo < max_calls )
+	{
+		get_iaxc_lock();
+		if ( calls[callNo].state & IAXC_CALL_STATE_ACTIVE )
+			iax_send_text(calls[callNo].session, text);
+		put_iaxc_lock();
+	}
 }
 
 EXPORT void iaxc_send_url(const char * url, int link)
