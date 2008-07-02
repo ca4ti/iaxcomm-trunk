@@ -174,7 +174,8 @@ int iaxci_prioboostend()
 
 typedef void *(*pthread_function_t)(void *);
 
-typedef struct {
+struct prioboost
+{
 	int priority;
 	pthread_t ThreadID;
 
@@ -187,11 +188,11 @@ typedef struct {
 	pthread_t WatchDogThread;
 	int IsWatchDogThreadValid;
 
-} prioboost;
+};
 
-static prioboost *pb;
+static struct prioboost *pb;
 
-static int CanaryProc( prioboost *b)
+static int CanaryProc(struct prioboost *b)
 {
 	int result = 0;
 	struct sched_param schat = { 0 };
@@ -209,7 +210,7 @@ static int CanaryProc( prioboost *b)
 	return result;
 }
 
-static int WatchDogProc( prioboost *b )
+static int WatchDogProc(struct prioboost *b )
 {
 	struct sched_param    schp = { 0 };
 	int                   maxPri;
@@ -298,7 +299,7 @@ cleanup:
 	return 0;
 }
 
-static void StopWatchDog( prioboost *b )
+static void StopWatchDog(struct prioboost *b)
 {
 	/* Cancel WatchDog thread if there is one. */
 	if( b->IsWatchDogThreadValid )
@@ -322,7 +323,7 @@ static void StopWatchDog( prioboost *b )
 }
 
 
-static int StartWatchDog( prioboost *b)
+static int StartWatchDog(struct prioboost *b)
 {
 	int  hres;
 	int  result = 0;
@@ -364,7 +365,7 @@ error:
 int iaxci_prioboostbegin()
 {
 	struct sched_param   schp = { 0 };
-	prioboost *b = calloc(sizeof(*b),1);
+	struct prioboost *b = calloc(sizeof(*b),1);
 
 	int result = 0;
 
