@@ -400,6 +400,7 @@ int iaxci_prioboostbegin()
 		pb = NULL;
 		schp.sched_priority = 0;
 		pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schp);
+		free(b);
 	}
 
 	return result;
@@ -408,7 +409,10 @@ int iaxci_prioboostbegin()
 int iaxci_prioboostend()
 {
 	if ( pb )
+	{
 		StopWatchDog(pb);
+		free(pb);
+	}
 	return 0;
 }
 
