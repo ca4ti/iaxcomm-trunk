@@ -177,6 +177,9 @@ typedef void *(*pthread_function_t)(void *);
 struct prioboost
 {
 	int priority;
+	int min_priority;
+	int max_priority;
+
 	pthread_t ThreadID;
 
 	struct timeval CanaryTime;
@@ -213,13 +216,12 @@ static int CanaryProc(struct prioboost *b)
 static int WatchDogProc(struct prioboost *b )
 {
 	struct sched_param    schp = { 0 };
-	int                   maxPri;
 
 	/* Run at a priority level above main thread so we can still run if it hangs. */
 	/* Rise more than 1 because of rumored off-by-one scheduler bugs. */
 	schp.sched_priority = b->priority + 4;
-	maxPri = sched_get_priority_max(SCHEDULER_POLICY);
-	if( schp.sched_priority > maxPri ) schp.sched_priority = maxPri;
+	if( schp.sched_priority > b->max_priority )
+		schp.sched_priority = b->max_priority;
 
 	if (pthread_setschedparam(pthread_self(), SCHEDULER_POLICY, &schp) != 0)
 	{
@@ -369,8 +371,9 @@ int iaxci_prioboostbegin()
 
 	int result = 0;
 
-	b->priority = (sched_get_priority_max(SCHEDULER_POLICY) -
-			sched_get_priority_min(SCHEDULER_POLICY)) / 2;
+	b->min_priority = sched_get_priority_min(SCHEDULER_POLICY); 
+	b->max_priority = sched_get_priority_max(SCHEDULER_POLICY);
+	b->priority = (b->max_priority - b->min_priority) / 2;
 	schp.sched_priority = b->priority;
 
 	b->ThreadID = pthread_self();
