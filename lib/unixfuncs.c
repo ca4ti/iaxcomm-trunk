@@ -215,10 +215,12 @@ static int CanaryProc(struct prioboost *b)
 
 static int WatchDogProc(struct prioboost *b )
 {
-	struct sched_param    schp = { 0 };
+	struct sched_param schp = { 0 };
+	struct sched_param schat = { 0 };
 
-	/* Run at a priority level above main thread so we can still run if it hangs. */
-	/* Rise more than 1 because of rumored off-by-one scheduler bugs. */
+	/* Run at a priority level above main thread so we can still run if it
+	 * hangs. Rise more than 1 because of rumored off-by-one scheduler
+	 * bugs. */
 	schp.sched_priority = b->priority + 4;
 	if( schp.sched_priority > b->max_priority )
 		schp.sched_priority = b->max_priority;
@@ -229,15 +231,15 @@ static int WatchDogProc(struct prioboost *b )
 		goto killAudio;
 	}
 
-	DBUG("prioboost: WatchDog priority set to level %d!\n", schp.sched_priority);
+	DBUG("prioboost: WatchDog priority set to level %d!\n",
+			schp.sched_priority);
 
 	/* Compare watchdog time with audio and canary thread times. */
 	/* Sleep for a while or until thread cancelled. */
-	while( b->WatchDogRun )
+	while ( b->WatchDogRun )
 	{
-
-		int              delta;
-		struct timeval   currentTime;
+		int delta;
+		struct timeval currentTime;
 
 		usleep( WATCHDOG_INTERVAL_USEC );
 		gettimeofday( &currentTime, NULL );
@@ -266,18 +268,17 @@ static int WatchDogProc(struct prioboost *b )
 	return 0;
 
 lowerAudio:
+	if ( pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schat) != 0 )
 	{
-		struct sched_param    schat = { 0 };
-		if( pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schat) != 0)
-		{
-			ERR_RPT("WatchDogProc: failed to lower audio priority. errno = %d\n", errno );
-			/* Fall through into killing audio thread. */
-		}
-		else
-		{
-			ERR_RPT("WatchDogProc: lowered audio priority to prevent hogging of CPU.\n");
-			goto cleanup;
-		}
+		ERR_RPT("WatchDogProc: failed to lower audio priority. "
+				"errno = %d\n", errno);
+		/* Fall through into killing audio thread. */
+	}
+	else
+	{
+		ERR_RPT("WatchDogProc: lowered audio priority to prevent "
+				"hogging of CPU.\n");
+		goto cleanup;
 	}
 
 killAudio:
@@ -366,8 +367,8 @@ error:
 
 int iaxci_prioboostbegin()
 {
-	struct sched_param   schp = { 0 };
-	struct prioboost *b = calloc(sizeof(*b),1);
+	struct sched_param schp = { 0 };
+	struct prioboost *b = calloc(1, sizeof(*b));
 
 	int result = 0;
 
@@ -384,13 +385,18 @@ int iaxci_prioboostbegin()
 	}
 	else
 	{
-		DBUG("prioboost: priority set to level %d!\n", schp.sched_priority);        /* We are running at high priority so we should have a watchdog in case audio goes wild. */
+		DBUG("prioboost: priority set to level %d!\n", schp.sched_priority);
+		/* We are running at high priority so we should have a watchdog
+		 * in case audio goes wild. */
 		result = StartWatchDog( b );
 	}
 
-	if(result == 0)  {
+	if (result == 0)
+	{
 		pb = b;
-	} else {
+	}
+	else
+	{
 		pb = NULL;
 		schp.sched_priority = 0;
 		pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schp);
@@ -401,7 +407,8 @@ int iaxci_prioboostbegin()
 
 int iaxci_prioboostend()
 {
-	if(pb) StopWatchDog(pb);
+	if ( pb )
+		StopWatchDog(pb);
 	return 0;
 }
 
