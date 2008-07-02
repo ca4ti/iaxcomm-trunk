@@ -217,19 +217,31 @@ static int WatchDogProc(struct prioboost *b )
 {
 	struct sched_param schp = { 0 };
 	struct sched_param schat = { 0 };
+	int pri = b->priority + 4;
 
 	/* Run at a priority level above main thread so we can still run if it
 	 * hangs. Rise more than 1 because of rumored off-by-one scheduler
 	 * bugs. */
-	schp.sched_priority = b->priority + 4;
-	if( schp.sched_priority > b->max_priority )
-		schp.sched_priority = b->max_priority;
+	if ( pri > b->max_priority )
+		pri = b->max_priority;
 
-	if (pthread_setschedparam(pthread_self(), SCHEDULER_POLICY, &schp) != 0)
+	for ( ; pri > b->priority; pri-- )
 	{
-		ERR_RPT("WatchDogProc: cannot set watch dog priority!\n");
-		goto killAudio;
+		schp.sched_priority = pri;
+
+		if ( pthread_setschedparam(pthread_self(), SCHEDULER_POLICY,
+				&schp) )
+			ERR_RPT("WatchDogProc: cannot set watch dog priority!"
+					" %d\n", pri);
+		else
+			break;
 	}
+
+	/* If the watchdog thread cannot get a higher priority than the canary,
+	 * the whole scheme falls apart. Bail.
+	 */
+	if ( pri <= b->priority )
+		goto killAudio;
 
 	DBUG("prioboost: WatchDog priority set to level %d!\n",
 			schp.sched_priority);
