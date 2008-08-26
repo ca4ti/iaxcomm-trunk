@@ -2459,11 +2459,8 @@ static void iax_handle_vnak(struct iax_session *session, struct ast_iax2_full_hd
 					struct iax_sched *item = retrans_list;
 					while ( item != NULL )
 					{
-						const unsigned char next_seqno =
-							item->next->frame->oseqno -
-							session->rseqno;
 						if ( item->next == NULL ||
-						     next_seqno > frame_seqno
+						     item->next->frame->oseqno - session->rseqno > frame_seqno
 						   )
 						{
 							tmp->next = item->next;
