@@ -199,8 +199,8 @@ read_cb(OGGZ *oggz, ogg_packet *op, long serialno, void *data)
 		read_speex_cb(oggz, op, serialno, data);
 	} else
 	{
-		mylog("Got unknown ogg packet, serialno=%d, size=%d, "
-				"packetno=%d, granulepos=%d\n",
+		mylog("Got unknown ogg packet, serialno=%ld, size=%ld, "
+				"packetno=%lld, granulepos=%lld\n",
 				serialno, op->bytes,
 				op->packetno, op->granulepos);
 	}
