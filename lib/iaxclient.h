@@ -247,7 +247,7 @@ struct iaxc_ev_call_state {
 	int format;
 	
 	/*!
-		The audio format of the call.
+		The video format of the call.
 
 		\see IAXC_FORMAT_JPEG, IAXC_FORMAT_PNG, IAXC_FORMAT_H261, IAXC_FORMAT_H263,
 		IAXC_FORMAT_H263_PLUS, IAXC_FORMAT_H264, IAXC_FORMAT_MPEG4, 
