@@ -69,8 +69,9 @@ static int height = 240;
 static int fragsize = 1400;
 
 static int call_established = 0;
-static int running = 0;
+static int running = 1;
 
+static int camera_enabled_sent = 0;
 static int send_video = 1;
 static int send_audio = 1;
 static int print_netstats = 0;
@@ -221,27 +222,31 @@ int netstat_callback(struct iaxc_ev_netstats n) {
 	return 0;
 }
 
-void process_text_message(char *message)
+void process_text_message(const char * message)
 {
 	unsigned int prefs;
+	const char ctrl_str[] = "CONTROL:";
+	const int ctrl_strlen = strlen(ctrl_str);
 
-	if ( strncmp(message, "CONTROL:", strlen("CONTROL:")) == 0 )
+	if ( strncmp(message, ctrl_str, ctrl_strlen) == 0 )
 	{
-		message += strlen("CONTROL:");
+		message += ctrl_strlen;
 		if ( strcmp(message, "STOPVIDEO") == 0 )
 		{
 			// Stop sending video
 			prefs = iaxc_get_video_prefs();
 			prefs = prefs | IAXC_VIDEO_PREF_SEND_DISABLE ;
 			iaxc_set_video_prefs(prefs);
-		} else if ( strcmp(message, "STARTVIDEO") == 0 )
+		}
+		else if ( strcmp(message, "STARTVIDEO") == 0 )
 		{
 			// Start sending video
 			prefs = iaxc_get_video_prefs();
 			prefs = prefs & ~IAXC_VIDEO_PREF_SEND_DISABLE ;
 			iaxc_set_video_prefs(prefs);
 		}
-	} else
+	}
+	else
 		mylog("Text message received: %s\n", message);
 }
 
@@ -534,8 +539,7 @@ int main(int argc, char **argv)
 	// Wait for the call to be established;
 	while ( !call_established && running )
 	{
-		struct timeval now;
-		now = get_now();
+		struct timeval now = get_now();
 		if ( connect_timeout_ms > 0 &&
 				msecdiff(&start_time, &now) > connect_timeout_ms )
 		{
@@ -546,7 +550,6 @@ int main(int argc, char **argv)
 		iaxc_millisleep(5);
 	}
 
-	running = 1;
 	while ( running )
 	{
 		struct timeval now = get_now();
@@ -571,7 +574,15 @@ int main(int argc, char **argv)
 			if ( !loop && video_is_eos() )
 				break;
 			if ( send_video && op != NULL && op->bytes > 0 )
+			{
+				if ( !camera_enabled_sent )
+				{
+					/* Let app_conference know that we can send video */
+					iaxc_send_text("CONTROL:CAMERA_ENABLED");
+					camera_enabled_sent = 1;
+				}
 				iaxc_push_video(op->packet, op->bytes, 1);
+			}
 		}
 
 		// Tight spinloops are bad, mmmkay?
