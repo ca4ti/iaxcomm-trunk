@@ -209,7 +209,7 @@ static char *parse_slice_header(char * in, struct slice_header_t * slice_header)
 }
 
 static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
-		char * in, int * outlen, char * out)
+		char * in, int * outlen, char * out, int * frames_dropped)
 {
 	struct decoder_ctx *d = (struct decoder_ctx *) c->decstate;
 	struct slice_header_t * sh_saved = &d->slice_header;
@@ -217,10 +217,15 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 	char * inp;
 	int ret;
 
+	*frames_dropped = 0;
+
 	inp = parse_slice_header(in, &sh_this);
 
 	if ( !inp )
+	{
+		*frames_dropped = 1;
 		return -1;
+	}
 
 	inlen -= inp - in;
 
@@ -237,6 +242,8 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 		}
 		else if ( frame_delta > 0 )
 		{
+			*frames_dropped = frame_delta - 1;
+
 			/* This slice belongs to a future frame */
 			if ( sh_saved->slice_index > 0 )
 			{
@@ -254,7 +261,10 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 				reset_decoder_frame_state(d);
 
 				if ( ret )
+				{
+					*frames_dropped += 1;
 					return -1;
+				}
 			}
 
 			sh_saved->frame_index = sh_this.frame_index;
@@ -272,6 +282,7 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 	{
 		fprintf(stderr,
 			"codec_ffmpeg: decode: slice overflows decoder frame buffer\n");
+		*frames_dropped = 1;
 		return -1;
 	}
 
@@ -294,7 +305,10 @@ static int decode_iaxc_slice(struct iaxc_video_codec * c, int inlen,
 	reset_decoder_frame_state(d);
 
 	if ( ret )
+	{
+		*frames_dropped = 1;
 		return -1;
+	}
 
 	return 0;
 }
