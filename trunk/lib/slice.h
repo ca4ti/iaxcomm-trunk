@@ -104,6 +104,7 @@ int free_deslicer_context(struct deslicer_context *dsc);
  * outlen with the frame size if successful
  */
 char *
-deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc);
+deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc,
+		int * frames_dropped);
 
 #endif

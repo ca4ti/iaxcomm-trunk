@@ -1259,6 +1259,7 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 	int ret;
 	struct timeval now;
 	long time;
+	int frames_dropped;
 
 	if ( !call )
 		return 0;
@@ -1315,7 +1316,9 @@ int video_recv_video(struct iaxc_call *call, int sel_call,
 			call->vdecoder->video_stats.acc_recv_size * 8000 / time;
 
 	ret = call->vdecoder->decode(call->vdecoder, encoded_video_len,
-			(char *)encoded_video, &out_size, yuv_buf);
+			(char *)encoded_video, &out_size, yuv_buf, &frames_dropped);
+
+	call->vdecoder->video_stats.dropped_frames += (unsigned long) frames_dropped;
 
 	if ( ret < 0 )
 	{

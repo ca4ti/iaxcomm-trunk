@@ -94,10 +94,12 @@ static void reset_deslicer_context(struct deslicer_context *dsc)
 }
 
 char *
-deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc)
+deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc, int *frames_dropped)
 {
 	unsigned char		frame_index, slice_index, num_slices, version;
 	unsigned short		source_id;
+
+	*frames_dropped = 0;
 
 	// Sanity checks
 	if ( dsc == NULL || in == NULL || inlen <= 0 || outlen == NULL )
@@ -143,6 +145,7 @@ deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc)
 			{
 				/* Current frame is incomplete, drop it */
 				reset_deslicer_context(dsc);
+				*frames_dropped += frame_delta;
 			}
 		}
 	} else
@@ -159,6 +162,7 @@ deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc)
 	if ( dsc->slice_size * slice_index + inlen > MAX_ENCODED_FRAME_SIZE )
 	{
 		// Frame would be too large, ignore slice
+		*frames_dropped = 1;
 		return NULL;
 	}
 

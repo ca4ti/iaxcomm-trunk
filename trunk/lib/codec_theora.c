@@ -112,7 +112,7 @@ static void destroy( struct iaxc_video_codec *c)
 }
 
 static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
-		int *outlen, char *out)
+		int *outlen, char *out, int * frames_dropped)
 {
 	struct theora_decoder *d;
 	ogg_packet            op;
@@ -123,6 +123,8 @@ static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
 	int                   flen;
 	char                  *frame;
 
+	*frames_dropped = 0;
+
 	// Sanity checks
 	if ( !c || !c->decstate || !in || inlen <= 0 || !out || !outlen )
 		return -1;
@@ -132,7 +134,7 @@ static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
 	if ( !d->dsc )
 		return -1;
 
-	frame = deslice(in, inlen, &flen, d->dsc);
+	frame = deslice(in, inlen, &flen, d->dsc, frames_dropped);
 	if ( frame == NULL )
 		return 1;
 	

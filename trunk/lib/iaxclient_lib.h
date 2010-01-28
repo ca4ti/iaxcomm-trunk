@@ -196,7 +196,8 @@ struct iaxc_video_codec {
 	int (*encode)(struct iaxc_video_codec * codec, int inlen,
 			const char * in, struct slice_set_t * out);
 	int (*decode)(struct iaxc_video_codec * codec, int inlen,
-			const char * in, int * outlen, char * out);
+			const char * in, int * outlen, char * out,
+			int * frames_dropped);
 	void (*destroy)(struct iaxc_video_codec * codec);
 };
 
