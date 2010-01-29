@@ -455,51 +455,67 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 	return 0;
 }
 
+// NOTE: pa_open does not require an input device for success
 static int pa_open(int single, int inMono, int outMono)
 {
 	PaError err;
-	PaDeviceInfo *result;
+	PaDeviceInfo *in_dev_info, *out_dev_info;
 
-	struct PaStreamParameters in_stream_params, out_stream_params, no_device;
+	struct PaStreamParameters in_stream_params, out_stream_params, *in_params;
+
+	if ( selectedInput != paNoDevice )
+	{
+		in_dev_info = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedInput);
+		if ( in_dev_info == NULL )
+			return -1;
+
 	in_stream_params.device = selectedInput;
 	in_stream_params.channelCount = (inMono ? 1 : 2);
 	in_stream_params.sampleFormat = paInt16;
-	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedInput);
-	if ( result == NULL ) return -1;
-	in_stream_params.suggestedLatency = result->defaultLowInputLatency;
+		in_stream_params.suggestedLatency = in_dev_info->defaultLowInputLatency;
 	in_stream_params.hostApiSpecificStreamInfo = NULL;
+
+		in_params = &in_stream_params;
+	}
+	else
+		in_params = NULL;
+
+	out_dev_info = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedOutput);
+	if ( out_dev_info == NULL )
+		return -1;
 
 	out_stream_params.device = selectedOutput;
 	out_stream_params.channelCount = (outMono ? 1 : 2);
 	out_stream_params.sampleFormat = paInt16;
-	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedOutput);
-	if ( result == NULL ) return -1;
-	out_stream_params.suggestedLatency = result->defaultLowOutputLatency;
+	out_stream_params.suggestedLatency = out_dev_info->defaultLowOutputLatency;
 	out_stream_params.hostApiSpecificStreamInfo = NULL;
 
-	no_device.device = paNoDevice;
-	no_device.channelCount = 0;
-	no_device.sampleFormat = paInt16;
-	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedInput);
-	if ( result == NULL ) return -1;
-	no_device.suggestedLatency = result->defaultLowInputLatency; // FEEDBACK - unsure if appropriate
-	no_device.hostApiSpecificStreamInfo = NULL;
-
-	if ( single )
+	// if there is no input device, there's no point in dual streams
+	if ( single || selectedInput == paNoDevice )
 	{
-		err = Pa_OpenStream(&iStream,
-			&in_stream_params,
+		err = Pa_OpenStream(&oStream,
+			in_params,
 			&out_stream_params,
 			iaxci_sample_rate,
 			SAMPLES_PER_FRAME,
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
 			NULL);
-		if (err != paNoError) return -1;
-		oStream = iStream;
+		if (err != paNoError)
+			return -1;
+
+		iStream = oStream;
 		oneStream = 1;
 	} else
 	{
+		struct PaStreamParameters no_device;
+
+		no_device.device = paNoDevice;
+		no_device.channelCount = 0;
+		no_device.sampleFormat = paInt16;
+		no_device.suggestedLatency = in_dev_info->defaultLowInputLatency; // FEEDBACK - unsure if appropriate
+		no_device.hostApiSpecificStreamInfo = NULL;
+
 		err = Pa_OpenStream(&iStream,
 			&in_stream_params,
 			&no_device,
@@ -508,7 +524,8 @@ static int pa_open(int single, int inMono, int outMono)
 			paNoFlag,
 			(PaStreamCallback *)pa_callback,
 			NULL);
-		if ( err != paNoError ) return -1;
+		if ( err != paNoError )
+			return -1;
 
 		err = Pa_OpenStream(&oStream,
 			&no_device,
@@ -666,19 +683,28 @@ static int pa_start(struct iaxc_audio_driver *d)
 	if ( pa_openstreams(d) )
 		return -1;
 
-	if ( Pa_StartStream(iStream) != paNoError )
+	if ( selectedInput == paNoDevice )
+	{
+		if ( Pa_StartStream(oStream) != paNoError )
 		return -1;
+
+		oMixer = Px_OpenMixer(oStream, 0);
+	}
+	else
+	{
+		if ( Pa_StartStream(iStream) != paNoError )
+			return -1;
 
 	iMixer = Px_OpenMixer(iStream, 0);
 
 	if ( !oneStream )
 	{
-		PaError err = Pa_StartStream(oStream);
-		oMixer = Px_OpenMixer(oStream, 0);
-		if ( err != paNoError )
+			if ( Pa_StartStream(oStream) != paNoError )
 		{
 			Pa_StopStream(iStream);
 			return -1;
+			}
+			oMixer = Px_OpenMixer(oStream, 0);
 		}
 	}
 
@@ -746,13 +772,13 @@ static int pa_stop (struct iaxc_audio_driver *d )
 	if ( sounds )
 		return 0;
 
-	err = Pa_AbortStream(iStream);
-	err = Pa_CloseStream(iStream);
+		err = Pa_AbortStream(oStream);
+		err = Pa_CloseStream(oStream);
 
 	if ( !oneStream )
 	{
-		err = Pa_AbortStream(oStream);
-		err = Pa_CloseStream(oStream);
+		err = Pa_AbortStream(iStream);
+		err = Pa_CloseStream(iStream);
 	}
 
 	if ( auxStream )
@@ -769,8 +795,8 @@ static int pa_stop (struct iaxc_audio_driver *d )
  * I bet if it's gone, no one will miss it.  Such a cold, cold world!
 static void pa_shutdown()
 {
-	CloseAudioStream( iStream );
-	if(!oneStream) CloseAudioStream( oStream );
+	CloseAudioStream( oStream );
+	if(!oneStream) CloseAudioStream( iStream );
 	if(auxStream) CloseAudioStream( aStream );
 }
 */
