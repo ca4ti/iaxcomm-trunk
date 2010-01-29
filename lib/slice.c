@@ -141,11 +141,14 @@ deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc, in
 			/* Slice belongs to a new frame */
 			dsc->frame_index = frame_index;
 
+			*frames_dropped += frame_delta - 1;
+
 			if ( dsc->slice_count > 0 )
 			{
 				/* Current frame is incomplete, drop it */
 				reset_deslicer_context(dsc);
-				*frames_dropped += frame_delta;
+
+				*frames_dropped += 1;
 			}
 		}
 	} else
