@@ -41,10 +41,30 @@ int slice(const char *data,
 	int i, ssize;
 	
 	if ( data == NULL || slice_set == NULL || sc == NULL)
+	{
+		fprintf(stderr, "slice: invalid param(s): data=%p, set=%p, context=%p\n",
+				data, slice_set, sc);
 		return -1;
+	}
 	
+	// Theora packets can be 0-byte (delta-frame with no coded blocks)
+	if ( size )
+	{
 	// Figure out how many slices we need
 	slice_set->num_slices = (size - 1) / sc->slice_size + 1;
+
+		if ( slice_set->num_slices > MAX_NO_SLICES )
+		{
+			fprintf(stderr, "slice: %d-byte frame is too large "
+					"- would require %d slices\n",
+					size, slice_set->num_slices);
+			return -1;
+		}
+	}
+	else
+	{
+		slice_set->num_slices = 1;
+	}
 	
 	for ( i = 0; i < slice_set->num_slices; i++ )
 	{
@@ -165,6 +185,8 @@ deslice(const char *in, int inlen, int *outlen, struct deslicer_context *dsc, in
 	if ( dsc->slice_size * slice_index + inlen > MAX_ENCODED_FRAME_SIZE )
 	{
 		// Frame would be too large, ignore slice
+		fprintf(stderr, "deslice: dropping frame that's > %d bytes\n",
+				MAX_ENCODED_FRAME_SIZE);
 		*frames_dropped = 1;
 		return NULL;
 	}
