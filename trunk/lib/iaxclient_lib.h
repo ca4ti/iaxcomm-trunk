@@ -170,8 +170,10 @@ struct iaxc_audio_codec {
 	void (*destroy) ( struct iaxc_audio_codec *codec);
 };
 
+//FIXME: This is all very static. What of higher
+//       bitrates, that require more slices?
 #define MAX_TRUNK_LEN	(1<<16)
-#define MAX_NO_SLICES	32
+#define MAX_NO_SLICES	64
 
 struct slice_set_t
 {

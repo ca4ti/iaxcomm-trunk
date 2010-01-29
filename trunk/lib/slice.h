@@ -39,7 +39,12 @@
 
 #include "iaxclient_lib.h"
 
-#define MAX_ENCODED_FRAME_SIZE 48 * 1024
+// We don't bother deslicing frames larger than this,
+// but we DO slice-up frames as long as they don't exceed
+// MAX_NO_SLICES, each up to MAX_TRUNK_LEN long
+// ( see definition of struct slice_set_t )
+//FIXME: this doesn't depend on the bitrate
+#define MAX_ENCODED_FRAME_SIZE 96 * 1024
 
 struct slicer_context
 {
