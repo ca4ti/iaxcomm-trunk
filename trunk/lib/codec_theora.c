@@ -306,7 +306,11 @@ static int encode(struct iaxc_video_codec * c, int inlen, const char * in,
 	slice_set->key_frame = theora_packet_iskeyframe(&op) == 1;
 	
 	// Slice the frame
-	slice((char *)op.packet, op.bytes, slice_set, e->sc);
+	if ( slice((char *)op.packet, op.bytes, slice_set, e->sc) )
+	{
+		fprintf(stderr, "codec_theora: failed to slice an encoded packet\n");
+		return -1;
+	}
 
 	return 0;
 }

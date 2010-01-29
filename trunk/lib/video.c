@@ -1830,7 +1830,14 @@ EXPORT int iaxc_push_video(void *data, unsigned int size, int fragment)
 			vinfo.sc = create_slicer_context((unsigned short)rand(),
 					vfinfo.fragsize);
 
-		slice(data, size, &slice_set, vinfo.sc);
+		if ( slice(data, size, &slice_set, vinfo.sc) )
+		{
+			fprintf(stderr, "iaxc_push_video: Failed to slice frame,"
+					" call %d, size %d\n",
+					selected_call, size);
+			return -1;
+		}
+
 		for ( i = 0 ; i < slice_set.num_slices ; i++ )
 		{
 			if ( iax_send_video_trunk(call->session,
