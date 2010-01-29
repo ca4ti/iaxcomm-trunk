@@ -66,6 +66,7 @@ struct theora_decoder
 	theora_comment          tc;
 	struct deslicer_context *dsc;
 	int                     got_key_frame;
+	unsigned short          prev_src_id;
 };
 
 struct theora_encoder
@@ -143,8 +144,12 @@ static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
 	op.bytes = flen;
 	op.packet = (unsigned char *)frame;
 
-	/* reject all incoming frames until we get a key frame */
-	if ( !d->got_key_frame )
+	/* Reject all incoming frames until we get a key frame.
+	 * Similarly, check for a change in who is sending the video.
+	 * We shouldn't use frames from a new source until
+	 * we get a keyframe
+	 */
+	if ( !d->got_key_frame || d->prev_src_id != d->dsc->source_id )
 	{
 		if ( theora_packet_iskeyframe(&op) )
 			d->got_key_frame = 1;
@@ -178,6 +183,10 @@ static int decode(struct iaxc_video_codec *c, int inlen, const char *in,
 		fprintf(stderr, "codec_theora: error getting our goodies\n");
 		return -1;
 	}
+
+	// keep track of the source id (from the most
+	// recent valid desliced frame) to detect a switch
+	d->prev_src_id = d->dsc->source_id;
 
 	//clear output
 	memset(out, 127, my_out_len);
